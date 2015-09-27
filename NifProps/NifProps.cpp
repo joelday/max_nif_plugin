@@ -8,6 +8,17 @@
 
 using namespace std;
 
+static LPCTSTR CollisionSection = TEXT("Collision");
+float NifPropsGlobals::bhkScaleFactor = 6.9969f;
+
+void InitializeNifProps()
+{
+   TCHAR iniName[MAX_PATH];
+   GetIniFileName(iniName);
+
+   NifPropsGlobals::bhkScaleFactor = GetIniValue<float>(CollisionSection, TEXT("bhkScaleFactor"), 6.9969f, iniName);
+}
+
 #define NifProps_CLASS_ID	Class_ID(0x3f25f18d, 0x99c3b095)
 
 class NifProps : public UtilityObj 
@@ -142,27 +153,18 @@ void NifProps::BeginEditParams(Interface *ip, IUtil *iu)
 
 	mNode = NULL;
 
-	const char **str;
+	const TCHAR **str;
 	str = NpHvkMaterialNames;
 	while (*str)
-	{
-		mCbMaterial.add(*str);
-		str++;
-	}
+		mCbMaterial.add(*str++);
 
 	str = NpHvkLayerNames;
 	while (*str)
-	{
-		mCbLayer.add(*str);
-		str++;
-	}
+		mCbLayer.add(*str++);
 
 	str = NpHvkMotionSystems;
 	while (*str)
-	{
-		mCbMotionSystem.add(*str);
-		str++;
-	}
+		mCbMotionSystem.add(*str++);
 
 	str = NpHvkQualityTypes;
 	while (*str)

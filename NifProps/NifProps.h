@@ -10,3 +10,8 @@
 
 extern TCHAR *GetString(int id);
 extern HINSTANCE hInstance;
+
+struct NifPropsGlobals
+{
+   static float bhkScaleFactor;
+};

@@ -27,7 +27,8 @@ void KFImporter::ReadBlocks()
 	   opts.exceptionOnErrors = false;
 
 	   // Handle Freedom Force Animation Import
-	   std::vector<NiObjectRef> roots = ReadNifList(name.c_str(), &info, &opts);
+	   string aname = T2AString(name);
+	   std::vector<NiObjectRef> roots = ReadNifList(aname.c_str(), &info, &opts);
 	   kf = DynamicCast<NiControllerSequence>(roots);
 	   if (kf.size() == 0)
 	   {

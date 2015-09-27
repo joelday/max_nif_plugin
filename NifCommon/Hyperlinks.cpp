@@ -28,7 +28,7 @@ LRESULT CALLBACK _HyperlinkParentProc(HWND hwnd, UINT message, WPARAM wParam, LP
 			HDC hdc = (HDC) wParam;
 			HWND hwndCtl = (HWND) lParam;
 
-			BOOL fHyperlink = (NULL != GetProp(hwndCtl, PROP_STATIC_HYPERLINK));
+			BOOL fHyperlink = (nullptr != GetProp(hwndCtl, PROP_STATIC_HYPERLINK));
 			if (fHyperlink)
 			{
 				LRESULT lr = CallWindowProc(pfnOrigProc, hwnd, message, wParam, lParam);
@@ -40,7 +40,7 @@ LRESULT CALLBACK _HyperlinkParentProc(HWND hwnd, UINT message, WPARAM wParam, LP
 		}
 	case WM_DESTROY:
 		{
-			SetWindowLong(hwnd, GWLP_WNDPROC, (LONG) pfnOrigProc);
+			SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)pfnOrigProc);
 			RemoveProp(hwnd, PROP_ORIGINAL_PROC);
 			break;
 		}
@@ -56,7 +56,7 @@ LRESULT CALLBACK _HyperlinkProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 	{
 	case WM_DESTROY:
 		{
-			SetWindowLong(hwnd, GWLP_WNDPROC, (LONG) pfnOrigProc);
+			SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR) pfnOrigProc);
 			RemoveProp(hwnd, PROP_ORIGINAL_PROC);
 
 			HFONT hOrigFont = (HFONT) GetProp(hwnd, PROP_ORIGINAL_FONT);
@@ -77,7 +77,7 @@ LRESULT CALLBACK _HyperlinkProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 			{
 				HFONT hFont = (HFONT) GetProp(hwnd, PROP_UNDERLINE_FONT);
 				SendMessage(hwnd, WM_SETFONT, (WPARAM) hFont, FALSE);
-				InvalidateRect(hwnd, NULL, FALSE);
+				InvalidateRect(hwnd, nullptr, FALSE);
 				SetCapture(hwnd);
 			}
 			else
@@ -92,9 +92,9 @@ LRESULT CALLBACK _HyperlinkProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 				{
 					HFONT hFont = (HFONT) GetProp(hwnd, PROP_ORIGINAL_FONT);
 					SendMessage(hwnd, WM_SETFONT, (WPARAM) hFont, FALSE);
-					InvalidateRect(hwnd, NULL, FALSE);
+					InvalidateRect(hwnd, nullptr, FALSE);
 					ReleaseCapture();
-               SetCursor(LoadCursor(NULL, IDC_ARROW));
+               SetCursor(LoadCursor(nullptr, IDC_ARROW));
 				}
 			}
 			break;
@@ -103,10 +103,10 @@ LRESULT CALLBACK _HyperlinkProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 		{
 			// Since IDC_HAND is not available on all operating systems,
 			// we will load the arrow cursor if IDC_HAND is not present.
-			HCURSOR hCursor = LoadCursor(NULL, MAKEINTRESOURCE(IDC_HAND));
-			if (NULL == hCursor)
+			HCURSOR hCursor = LoadCursor(nullptr, MAKEINTRESOURCE(IDC_HAND));
+			if (nullptr == hCursor)
 			{
-				hCursor = LoadCursor(NULL, MAKEINTRESOURCE(IDC_ARROW));
+				hCursor = LoadCursor(nullptr, MAKEINTRESOURCE(IDC_ARROW));
 			}
 			SetCursor(hCursor);
 			return TRUE;
@@ -117,9 +117,9 @@ LRESULT CALLBACK _HyperlinkProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
          {
             HFONT hFont = (HFONT) GetProp(hwnd, PROP_ORIGINAL_FONT);
             SendMessage(hwnd, WM_SETFONT, (WPARAM) hFont, FALSE);
-            InvalidateRect(hwnd, NULL, FALSE);
+            InvalidateRect(hwnd, nullptr, FALSE);
             ReleaseCapture();
-            SetCursor(LoadCursor(NULL, IDC_ARROW));
+            SetCursor(LoadCursor(nullptr, IDC_ARROW));
          }
       }
       break;
@@ -133,13 +133,13 @@ BOOL ConvertStaticToHyperlink(HWND hwndCtl)
 	// Subclass the parent so we can color the controls as we desire.
 
 	HWND hwndParent = GetParent(hwndCtl);
-	if (NULL != hwndParent)
+	if (nullptr != hwndParent)
 	{
-		WNDPROC pfnOrigProc = (WNDPROC) GetWindowLong(hwndParent, GWLP_WNDPROC);
+		WNDPROC pfnOrigProc = (WNDPROC) GetWindowLongPtr(hwndParent, GWLP_WNDPROC);
 		if (pfnOrigProc != _HyperlinkParentProc)
 		{
 			SetProp(hwndParent, PROP_ORIGINAL_PROC, (HANDLE) pfnOrigProc);
-			SetWindowLong(hwndParent, GWLP_WNDPROC, (LONG) (WNDPROC) _HyperlinkParentProc);
+			SetWindowLongPtr(hwndParent, GWLP_WNDPROC, (LONG_PTR) (WNDPROC) _HyperlinkParentProc);
 		}
 	}
 
@@ -150,9 +150,9 @@ BOOL ConvertStaticToHyperlink(HWND hwndCtl)
 
 	// Subclass the existing control.
 
-	WNDPROC pfnOrigProc = (WNDPROC) GetWindowLong(hwndCtl, GWLP_WNDPROC);
+	WNDPROC pfnOrigProc = (WNDPROC) GetWindowLongPtr(hwndCtl, GWLP_WNDPROC);
 	SetProp(hwndCtl, PROP_ORIGINAL_PROC, (HANDLE) pfnOrigProc);
-	SetWindowLong(hwndCtl, GWLP_WNDPROC, (LONG) (WNDPROC) _HyperlinkProc);
+	SetWindowLongPtr(hwndCtl, GWLP_WNDPROC, (LONG_PTR) (WNDPROC) _HyperlinkProc);
 
 	// Create an updated font by adding an underline.
 

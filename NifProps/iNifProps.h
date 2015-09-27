@@ -26,15 +26,27 @@ enum DismemberBodyPartType {
    BP_RIGHTLEG3 = 12, /*!< Right Leg 3 */
    BP_BRAIN = 13, /*!< Brain */
 
-   BP_SKY_HEAD = 30,
-   BP_SKY_UNK1 = 31,
-   BP_SKY_TORSO1 = 32,
-   BP_SKY_HANDS1 = 33,
-   BP_SKY_HANDS2 = 34,
-   BP_SKY_UNK2 = 35,
-   BP_SKY_UNK3 = 36,
-   BP_SKY_FEET = 37,
-   BP_SKY_TORSO2 = 38,
+   SBP_30_HEAD = 30, /*!< Skyrim, Head(Human), Body(Atronachs,Beasts), Mask(Dragonpriest) */
+   SBP_31_HAIR = 31, /*!< Skyrim, Hair(human), Far(Dragon), Mask2(Dragonpriest),SkinnedFX(Spriggan) */
+   SBP_32_BODY = 32, /*!< Skyrim, Main body, extras(Spriggan) */
+   SBP_33_HANDS = 33, /*!< Skyrim, Hands L/R, BodyToo(Dragonpriest), Legs(Draugr), Arms(Giant) */
+   SBP_34_FOREARMS = 34, /*!< Skyrim, Forearms L/R, Beard(Draugr) */
+   SBP_35_AMULET = 35, /*!< Skyrim, Amulet */
+   SBP_36_RING = 36, /*!< Skyrim, Ring */
+   SBP_37_FEET = 37, /*!< Skyrim, Feet L/R */
+   SBP_38_CALVES = 38, /*!< Skyrim, Calves L/R */
+   SBP_39_SHIELD = 39, /*!< Skyrim, Shield */
+   SBP_40_TAIL = 40, /*!< Skyrim, Tail(Argonian/Khajiit), Skeleton01(Dragon), FX01(AtronachStorm),FXMist (Dragonpriest), Spit(Chaurus,Spider),SmokeFins(IceWraith) */
+   SBP_41_LONGHAIR = 41, /*!< Skyrim, Long Hair(Human), Skeleton02(Dragon),FXParticles(Dragonpriest) */
+   SBP_42_CIRCLET = 42, /*!< Skyrim, Circlet(Human, MouthFireEffect(Dragon) */
+   SBP_43_EARS = 43, /*!< Skyrim, Ears */
+   SBP_44_BLOODHEAD = 44, /*!< Skyrim, Bloodied dragon head */
+   SBP_45_BLOODWINGL = 45, /*!< Skyrim, Left Bloodied dragon wing, Saddle(Horse) */
+   SBP_46_BLOODWINGR = 46, /*!< Skyrim, Right Bloodied dragon wing */
+   SBP_47_BLOODTAIL = 47, /*!< Skyrim, Bloodied dragon tail */
+   SBP_50_DECAPITATEDHEAD = 50, /*!< Skyrim, Decapitated Head */
+   SBP_51_DECAPITATE = 51, /*!< Skyrim, Decapitate, neck gore */
+   SBP_61_FX01 = 61, /*!< Skyrim, FX01(Humanoid) */
 
    BP_SECTIONCAP_HEAD = 101, /*!< Section Cap | Head */
    BP_SECTIONCAP_HEAD2 = 102, /*!< Section Cap | Head 2 */
@@ -49,6 +61,14 @@ enum DismemberBodyPartType {
    BP_SECTIONCAP_RIGHTLEG2 = 111, /*!< Section Cap | Right Leg 2 */
    BP_SECTIONCAP_RIGHTLEG3 = 112, /*!< Section Cap | Right Leg 3 */
    BP_SECTIONCAP_BRAIN = 113, /*!< Section Cap | Brain */
+
+   SBP_130_HEAD = 130, /*!< Skyrim, Head slot, use on full-face helmets */
+   SBP_131_HAIR = 131, /*!< Skyrim, Hair slot 1, use on hoods */
+   SBP_141_LONGHAIR = 141, /*!< Skyrim, Hair slot 2, use for longer hair */
+   SBP_142_CIRCLET = 142, /*!< Skyrim, Circlet slot 1, use for circlets */
+   SBP_143_EARS = 143, /*!< Skyrim, Ear slot */
+   SBP_150_DECAPITATEDHEAD = 150, /*!< Skyrim, neck gore on head side */
+
    BP_TORSOCAP_HEAD = 201, /*!< Torso Cap | Head */
    BP_TORSOCAP_HEAD2 = 202, /*!< Torso Cap | Head 2 */
    BP_TORSOCAP_LEFTARM = 203, /*!< Torso Cap | Left Arm */
@@ -62,6 +82,9 @@ enum DismemberBodyPartType {
    BP_TORSOCAP_RIGHTLEG2 = 211, /*!< Torso Cap | Right Leg 2 */
    BP_TORSOCAP_RIGHTLEG3 = 212, /*!< Torso Cap | Right Leg 3 */
    BP_TORSOCAP_BRAIN = 213, /*!< Torso Cap | Brain */
+
+   SBP_230_HEAD = 230, /*!< Skyrim, Head slot, use for neck on character head */
+
    BP_TORSOSECTION_HEAD = 1000, /*!< Torso Section | Head */
    BP_TORSOSECTION_HEAD2 = 2000, /*!< Torso Section | Head 2 */
    BP_TORSOSECTION_LEFTARM = 3000, /*!< Torso Section | Left Arm */

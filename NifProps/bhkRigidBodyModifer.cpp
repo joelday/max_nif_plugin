@@ -51,10 +51,14 @@ public:
 	~bhkRigidBodyModifier();		
 
    void DeleteThis() { delete this; }
-   void GetClassName(TSTR& s) { s = "bhkRigidBodyModifier"; }  
+   void GetClassName(TSTR& s) { s = TEXT("bhkRigidBodyModifier"); }  
    virtual Class_ID ClassID() { return BHKRIGIDBODYMODIFIER_CLASS_ID; }		
    RefTargetHandle Clone(RemapDir& remap);
-   TCHAR *GetObjectName() { return "bhkRigidBodyModifier"; }
+#if VERSION_3DSMAX < (17000<<16) // Version 17 (2015)
+   TCHAR *                 GetObjectName() { return TEXT("bhkRigidBodyModifier"); }
+#else
+   const MCHAR*             GetObjectName() { return TEXT("bhkRigidBodyModifier"); }
+#endif
 
    // From modifier
 	ChannelMask ChannelsUsed()  {return PART_GEOM|PART_TOPO;}
@@ -106,7 +110,11 @@ public:
    virtual	int NumRefs();
    virtual  RefTargetHandle GetReference(int i);
    virtual  void SetReference(int i, RefTargetHandle rtarg);
-   virtual  RefResult   NotifyRefChanged(Interval,RefTargetHandle,PartID &,RefMessage);
+#if VERSION_3DSMAX < (17000<<16) // Version 17 (2015)
+   virtual RefResult NotifyRefChanged(Interval changeInt, RefTargetHandle hTarget, PartID& partID, RefMessage message);
+#else
+   virtual RefResult NotifyRefChanged(const Interval& changeInt, RefTargetHandle hTarget, PartID& partID, RefMessage message, BOOL propagate);
+#endif
 
    int NumSubs() {return 1;}
    Animatable* SubAnim(int i) { return GetReference(i); }
@@ -191,54 +199,54 @@ static ParamBlockDesc2 havok_param_blk (
 
     PB_MATERIAL, _T("material"), TYPE_INT, 0,	IDS_DS_MATERIAL,
       p_default,	NP_INVALID_HVK_MATERIAL,
-      end,
+      p_end,
 
 	PB_BOUND_TYPE, 	_T("boundType"),	TYPE_INT, 0, IDS_BV_BOUNDING_TYPE,
 	  p_default, 		bv_type_shapes, 
 	  p_range, 		0, 6, 
 	  p_ui, 			havok_params,	TYPE_RADIO, 8, IDC_RDO_NO_COLL, IDC_RDO_AXIS_ALIGNED_BOX, IDC_RDO_SPHERE, IDC_RDO_CAPSULE, IDC_RDO_PROXY_MESH, IDC_RDO_CONVEX, IDC_RDO_PACKED_STRIPS, IDC_RDO_OBB,
-	  end,
+	  p_end,
 
 	PB_OPT_ENABLE,	_T("enableOptimize"), TYPE_BOOL, 0, IDS_OPT_ENABLE,
 	  p_default, 	FALSE, 
 	  p_ui,			opt_params, TYPE_SINGLECHEKBOX, IDC_OPT_ENABLE,
-	  end,
+	  p_end,
   
 	PB_FACETHRESH,	_T("faceThresh"),	TYPE_FLOAT, P_RESET_DEFAULT, IDS_OPT_FACETHRESH,
 	  p_default, 	0.1f, 
 	  p_range, 		0.0f, 90.0f, 
 	  p_ui,			opt_params, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_OPT_FACETHRESH, IDC_OPT_FACETHRESHSPIN, 0.01f,
 	  p_uix,		opt_params,
-	  end,
+	  p_end,
 
 	PB_EDGETHRESH,		_T("edgeThresh"),		TYPE_FLOAT, 0, IDS_OPT_EDGETHRESH,
 	  p_default, 	0.1f, 
 	  p_range, 		0.0f, 90.0f, 
 	  p_ui,			opt_params, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_OPT_EDGETHRESH, IDC_OPT_EDGETHRESHSPIN, 0.01f,
 	  p_uix,		opt_params,
-	  end,
+	  p_end,
 
     PB_BIAS,		_T("bias"),		TYPE_FLOAT, 0, IDS_OPT_BIAS,
 	  p_default, 	0.1f, 
 	  p_range, 		0.0f, 1.0f, 
 	  p_ui,			opt_params, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_OPT_BIAS, IDC_OPT_BIASSPIN, 0.01f,
 	  p_uix,		opt_params,
-	  end,
+	  p_end,
 
 	PB_LAYER, _T("layer"), TYPE_INT, P_ANIMATABLE,	IDS_DS_LAYER,
 	  p_default,	NP_DEFAULT_HVK_LAYER,
-	  end,
+	  p_end,
 
 	PB_FILTER, _T("filter"), TYPE_INT, P_ANIMATABLE,	IDS_DS_FILTER,
 	  p_default,	NP_DEFAULT_HVK_FILTER,
 	  p_range, 		0, 255, 
 	  p_ui,			subshape_params, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_ED_FILTER, IDC_SP_FILTER, 0.01f,
 	  p_uix,		subshape_params,
-	  end,
+	  p_end,
 
 
-   end,
-   end
+   p_end,
+   p_end
    );
 
 static bhkRigidBodyModifierClassDesc bhkRigidBodyModifierDesc;
@@ -264,8 +272,8 @@ INT_PTR bhkRigidBodyModifierDlgProc::DlgProc (TimeValue t,IParamMap2 *map,HWND h
    case WM_INITDIALOG:
 	   {
 		   mCbMaterial.init(GetDlgItem(hWnd, IDC_CB_MATERIAL));
-		   mCbMaterial.add("<Default>");
-		   for (const char **str = NpHvkMaterialNames; *str; ++str)
+		   mCbMaterial.add(TEXT("<Default>"));
+		   for (const TCHAR **str = NpHvkMaterialNames; *str; ++str)
 			   mCbMaterial.add(*str);
 		   Interval valid;
 		   int sel = NP_INVALID_HVK_MATERIAL;
@@ -346,7 +354,7 @@ namespace
 		case WM_INITDIALOG:
 			{
 				mCbLayer.init(GetDlgItem(hWnd, IDC_CB_LAYER));
-				for (const char **str = NpHvkLayerNames; *str; ++str)
+				for (const TCHAR **str = NpHvkLayerNames; *str; ++str)
 					mCbLayer.add(*str);
 
 				int sel = NP_DEFAULT_HVK_LAYER;
@@ -430,11 +438,11 @@ void bhkRigidBodyModifier::SetReference(int i, RefTargetHandle rtarg)
    if (i==0) pblock = (IParamBlock2*)rtarg;
 }
 
-RefResult bhkRigidBodyModifier::NotifyRefChanged(
-   Interval changeInt, 
-   RefTargetHandle hTarget, 
-   PartID& partID, 
-   RefMessage message)
+#if VERSION_3DSMAX < (17000<<16) // Version 17 (2015)
+RefResult bhkRigidBodyModifier::NotifyRefChanged(Interval changeInt, RefTargetHandle hTarget, PartID& partID, RefMessage message)
+#else
+RefResult bhkRigidBodyModifier::NotifyRefChanged(const Interval& changeInt, RefTargetHandle hTarget, PartID& partID, RefMessage message, BOOL propagate)
+#endif
 {
    switch (message) 
    {
@@ -454,7 +462,7 @@ Interval bhkRigidBodyModifier::GetValidity (TimeValue t) {
 
 void bhkRigidBodyModifier::ModifyObject (TimeValue t, ModContext &mc, ObjectState *os, INode *inode) 
 {
-	OutputDebugString("bhkRigidBodyModifier::ModifyObject\n");
+	OutputDebugString(TEXT("bhkRigidBodyModifier::ModifyObject\n"));
 	int bvType = 0;
 	pblock->GetValue(PB_BOUND_TYPE, 0, bvType, FOREVER, 0);
 	if (bvType == 0)
@@ -531,7 +539,7 @@ void bhkRigidBodyModifier::ModifyObject (TimeValue t, ModContext &mc, ObjectStat
 }
 void bhkRigidBodyModifier::NotifyInputChanged(Interval changeInt, PartID partID, RefMessage message, ModContext *mc)
 {
-	OutputDebugString("bhkRigidBodyModifier::NotifyInputChanged\n");
+	OutputDebugString(TEXT("bhkRigidBodyModifier::NotifyInputChanged\n"));
    Modifier::NotifyInputChanged(changeInt, partID, message, mc);
 
 }

@@ -45,6 +45,7 @@ enum ClassDescType
 
 static void InitializeLibSettings();
 static void InitializeHavok();
+extern void InitializeNifProps();
 
 HINSTANCE hInstance;
 static int controlsInit = FALSE;
@@ -70,8 +71,8 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,ULONG fdwReason,LPVOID lpvReserved)
 		InitCustomControls(hInstance);	// Initialize MAX's custom controls
 #endif
 		InitCommonControls();			// Initialize Win95 controls
-		RegisterNotification(DoNotifyNodeHide, NULL, NOTIFY_NODE_HIDE); 
-		RegisterNotification(DoNotifyNodeUnHide, NULL, NOTIFY_NODE_UNHIDE); 
+		RegisterNotification(DoNotifyNodeHide, nullptr, NOTIFY_NODE_HIDE); 
+		RegisterNotification(DoNotifyNodeUnHide, nullptr, NOTIFY_NODE_UNHIDE); 
 	}
 	if (fdwReason == DLL_PROCESS_ATTACH)
 		InitializeLibSettings();
@@ -82,20 +83,20 @@ void InitializeLibSettings()
 {
    TCHAR iniName[MAX_PATH];
    GetIniFileName(iniName);
-   libVersion = GetIniValue("System", "MaxSDKVersion", libVersion, iniName);
+   libVersion = GetIniValue(TEXT("System"), TEXT("MaxSDKVersion"), libVersion, iniName);
    if (libVersion == 0)
       libVersion = VERSION_3DSMAX;
 
    nClasses = 0;
-   if ( GetIniValue<bool>("MaxNifExport", "Enable", true, iniName) ) {
+   if ( GetIniValue<bool>(TEXT("MaxNifExport"), TEXT("Enable"), true, iniName) ) {
       classDescEnabled[CD_Export] = true;
       classDescriptions[nClasses++] = GetNifExportDesc();
    }
-   if ( GetIniValue<bool>("MaxNifImport", "Enable", true, iniName) ) {
+   if ( GetIniValue<bool>(TEXT("MaxNifImport"), TEXT("Enable"), true, iniName) ) {
       classDescEnabled[CD_Import] = true;
       classDescriptions[nClasses++] = GetMaxNifImportDesc();
    }
-   if ( GetIniValue<bool>("NifProps", "Enable", true, iniName) ) {
+   if ( GetIniValue<bool>(TEXT("NifProps"), TEXT("Enable"), true, iniName) ) {
       classDescEnabled[CD_Props] = true;
       classDescriptions[nClasses++] = GetNifPropsDesc();
 	  classDescriptions[nClasses++] = GetbhkListObjDesc();
@@ -107,11 +108,11 @@ void InitializeLibSettings()
       classDescriptions[nClasses++] = GetBSDSModifierDesc();
       classDescriptions[nClasses++] = GetNifShaderDesc();
    }
-   if ( GetIniValue<bool>("NifFurniture", "Enable", true, iniName) ) {
+   if ( GetIniValue<bool>(TEXT("NifFurniture"), TEXT("Enable"), true, iniName) ) {
       classDescEnabled[CD_Furniture] = true;
       classDescriptions[nClasses++] = GetNifFurnitureDesc();
    }
-   if ( GetIniValue<bool>("KFExport", "Enable", false, iniName) ) {
+   if ( GetIniValue<bool>(TEXT("KFExport"), TEXT("Enable"), false, iniName) ) {
       classDescEnabled[CD_KFExport] = true;
       classDescriptions[nClasses++] = GetKfExportDesc();
    }
@@ -119,6 +120,8 @@ void InitializeLibSettings()
    classDescriptions[nClasses++] = (ClassDesc2 *)GetDDSLibClassDesc();
 #endif
    InitializeHavok();
+
+   InitializeNifProps();
 }
 
 // This function returns a string that describes the DLL and where the user
@@ -147,10 +150,10 @@ __declspec( dllexport ) int LibNumberClasses()
       foundOlderReleaseConflict = 0;
 
       // Check for older releases
-      if (  (classDescEnabled[CD_Import] && NULL != GetModuleHandle("MaxNifImport.dli"))
-         || (classDescEnabled[CD_Export] && NULL != GetModuleHandle("NifExport.dle"))
-         || (classDescEnabled[CD_Furniture] && NULL != GetModuleHandle("NifFurniture.dlo"))
-         || (classDescEnabled[CD_Props]  && NULL != GetModuleHandle("NifProps.dlu"))
+      if (  (classDescEnabled[CD_Import] && nullptr != GetModuleHandle(TEXT("MaxNifImport.dli")))
+         || (classDescEnabled[CD_Export] && nullptr != GetModuleHandle(TEXT("NifExport.dle")))
+         || (classDescEnabled[CD_Furniture] && nullptr != GetModuleHandle(TEXT("NifFurniture.dlo")))
+         || (classDescEnabled[CD_Props]  && nullptr != GetModuleHandle(TEXT("NifProps.dlu")))
          )
       {
          foundOlderReleaseConflict = 1;
@@ -173,19 +176,19 @@ __declspec( dllexport ) int LibNumberClasses()
       if (foundOlderReleaseConflict > 0)
       {
          TCHAR buffer[512];
-         sprintf(buffer,
-            "An older release of the Niftools Max Plugins was found.\n\n"
-            "Please remove the following files from your 3dsmax\\plugins directory:\n"
-            "%s%s%s%s"
-            "The current version will be disabled."
-            , classDescEnabled[CD_Import] ? "\tMaxNifImport.dli\n" : ""
-            , classDescEnabled[CD_Export] ? "\tNifExport.dle\n" : ""
-            , classDescEnabled[CD_Furniture] ? "\tNifFurniture.dlo\n" : ""
-            , classDescEnabled[CD_Props] ? "\tNifProps.dlu\n\n" : ""
+         _stprintf(buffer,
+			 TEXT("An older release of the Niftools Max Plugins was found.\n\n")
+			 TEXT("Please remove the following files from your 3dsmax\\plugins directory:\n")
+			 TEXT("%s%s%s%s")
+			 TEXT("The current version will be disabled.")
+            , classDescEnabled[CD_Import] ? TEXT("\tMaxNifImport.dli\n") : TEXT("")
+            , classDescEnabled[CD_Export] ? TEXT("\tNifExport.dle\n") : TEXT("")
+            , classDescEnabled[CD_Furniture] ? TEXT("\tNifFurniture.dlo\n") : TEXT("")
+            , classDescEnabled[CD_Props] ? TEXT("\tNifProps.dlu\n\n") : TEXT("")
             );
-         ::MessageBox( NULL
+         ::MessageBox( nullptr
             , buffer
-            , "Niftools Max Plugins"
+            , TEXT("Niftools Max Plugins")
             , MB_ICONSTOP|MB_OK
             );
          return 0;
@@ -205,8 +208,8 @@ TCHAR *GetString(int id)
 	static TCHAR buf[256];
 
 	if (hInstance)
-		return LoadString(hInstance, id, buf, sizeof(buf)) ? buf : NULL;
-	return NULL;
+		return LoadString(hInstance, id, buf, sizeof(buf)) ? buf : nullptr;
+	return nullptr;
 }
 
 // This function returns a pre-defined constant indicating the version of 
@@ -234,9 +237,9 @@ static void DoNotifyNodeHide(void *param, NotifyInfo *info)
 		   int nBlocks = pblock2->Count(PB_MESHLIST);
 		   for (int i = 0;i < pblock2->Count(PB_MESHLIST); i++)
 		   {
-			   INode *tnode = NULL;
+			   INode *tnode = nullptr;
 			   pblock2->GetValue(PB_MESHLIST,0,tnode,FOREVER,i);	
-			   if (tnode != NULL)
+			   if (tnode != nullptr)
 			   {
 				   tnode->Hide(TRUE);
 			   }
@@ -262,9 +265,9 @@ static void DoNotifyNodeUnHide(void *param, NotifyInfo *info)
 		   int nBlocks = pblock2->Count(PB_MESHLIST);
 		   for (int i = 0;i < pblock2->Count(PB_MESHLIST); i++)
 		   {
-			   INode *tnode = NULL;
+			   INode *tnode = nullptr;
 			   pblock2->GetValue(PB_MESHLIST,0,tnode,FOREVER,i);	
-			   if (tnode != NULL)
+			   if (tnode != nullptr)
 			   {
 				   tnode->Hide(FALSE);
 			   }
@@ -276,14 +279,14 @@ static void DoNotifyNodeUnHide(void *param, NotifyInfo *info)
 #include "Inertia.h"
 static void InitializeHavok()
 {
-	char curfile[_MAX_PATH];
+	TCHAR curfile[_MAX_PATH];
 	GetModuleFileName(hInstance, curfile, MAX_PATH);
 	PathRemoveFileSpec(curfile);
-	PathAppend(curfile, "NifMopp.dll");
-	HMODULE hNifHavok = LoadLibraryA( curfile );
-	if (hNifHavok == NULL)
-		hNifHavok = LoadLibraryA( "NifMopp.dll" );
-	if ( hNifHavok != NULL )
+	PathAppend(curfile, TEXT("NifMopp.dll"));
+	HMODULE hNifHavok = LoadLibrary( curfile );
+	if (hNifHavok == nullptr)
+		hNifHavok = LoadLibrary( TEXT("NifMopp.dll") );
+	if ( hNifHavok != nullptr )
 	{
 		Niflib::Inertia::SetCalcMassPropertiesBox( 
 			(Niflib::Inertia::fnCalcMassPropertiesBox)GetProcAddress(hNifHavok, "CalcMassPropertiesBox") );

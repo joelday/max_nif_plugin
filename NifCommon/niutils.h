@@ -19,6 +19,7 @@ INFO: See Implementation for minimalist comments
 #  include <windows.h>
 #endif
 #include <tchar.h>
+#include <memory.h>
 #include <string>
 #include <map>
 #include <vector>
@@ -44,55 +45,169 @@ INFO: See Implementation for minimalist comments
 #define _countof(x) (sizeof(x)/sizeof((x)[0]))
 #endif
 
+#ifdef UNICODE
+typedef std::wstring tstring;
+typedef std::wstringstream tstringstream;
+typedef std::wistringstream tistringstream;
+typedef std::wostringstream tostringstream;
+#else
+typedef std::string tstring;
+typedef std::stringstream tstringstream;
+typedef std::istringstream tistringstream;
+typedef std::ostringstream tostringstream;
+#endif
+
 const unsigned int IntegerInf = 0x7f7fffff;
 const unsigned int IntegerNegInf = 0xff7fffff;
 const float FloatINF = *(float*)&IntegerInf;
 const float FloatNegINF = *(float*)&IntegerNegInf;
 
+
+inline LPWSTR A2WHelper(LPWSTR lpw, LPCSTR lpa, int nChars) {
+	if (lpw == nullptr || lpa == nullptr) return L"";
+	*lpw = '\0';
+	if (0 > mbstowcs(lpw, lpa, nChars)) return L"";
+	return lpw;
+}
+
+inline LPSTR W2AHelper(LPSTR lpa, LPCWSTR lpw, int nChars) {
+	if (lpa == nullptr || lpw == nullptr) return "";
+	*lpa = '\0';
+	if (0 > wcstombs(lpa, lpw, nChars)) return "";
+	return lpa;
+}
+
+#define USES_CONVERSION int _convert; (_convert); LPCWSTR _lpw; (_lpw); LPCSTR _lpa; (_lpa)
+
+#define A2W(lpa) (\
+	((_lpa = lpa) == nullptr) ? nullptr : (\
+		_convert = (static_cast<int>(strlen(_lpa))+1),\
+		A2WHelper((LPWSTR) alloca(_convert*sizeof(WCHAR)), _lpa, _convert)))
+
+#define W2A(lpw) (\
+	((_lpw = lpw) == nullptr) ? nullptr : (\
+		_convert = (static_cast<int>(wcslen(_lpw))+1), \
+		W2AHelper((LPSTR)alloca(_convert*sizeof(WCHAR)), _lpw, _convert*sizeof(WCHAR))))
+
+#define A2W_EX(lpa, n) (\
+	((_lpa = lpa) == nullptr) ? nullptr : (\
+		_convert = (static_cast<int>(n)+1),\
+		A2WHelper((LPWSTR) alloca(_convert*sizeof(WCHAR)), _lpa, _convert)))
+
+#define W2A_EX(lpw, n) (\
+	((_lpw = lpw) == nullptr) ? nullptr : (\
+		_convert = (static_cast<int>(n)+1), \
+		W2AHelper((LPSTR)alloca(_convert*sizeof(WCHAR)), _lpw, _convert*sizeof(WCHAR))))
+
+#define A2CW(lpa) ((LPCWSTR)A2W(lpa))
+#define W2CA(lpw) ((LPCSTR)W2A(lpw))
+
+wstring A2WString(const string& str);
+string W2AString(const wstring& str);
+
+#ifdef UNICODE
+#define A2T(lpa) A2W(lpa)
+#define W2T(lpa) (lpa)
+#define T2A(lpa) W2A(lpa)
+#define T2W(lpa) (lpa)
+#define T2AHelper W2AHelper
+#define T2WHelper(d,s,n) (s)
+#define A2THelper A2WHelper
+#define W2THelper(d,s,n) (s)
+#define T2AString W2AString
+#define T2WString(s) (s)
+#define A2TString A2WString
+#define W2TString(s) (s)
+#else
+#define A2T(lpa) (lpa)
+#define W2T(lpa) W2A(lpa)
+#define T2A(lpa) (lpa)
+#define T2W(lpa) A2W(lpa)
+#define A2THelper A2WHelper
+#define W2THelper(d,s,n) (s)
+#define T2AHelper W2AHelper
+#define T2WHelper(d,s,n) (s)
+#define T2AString(s) (s)
+#define T2WString A2WString
+#define A2TString(s) (s)
+#define W2TString W2AString
+#endif
+
 // Trim whitespace before and after a string
-inline TCHAR *Trim(TCHAR*&p) { 
-   while(_istspace(*p)) *p++ = 0; 
-   TCHAR *e = p + _tcslen(p) - 1;
-   while (e > p && _istspace(*e)) *e-- = 0;
+inline char *Trim(char*&p) { 
+   while(isspace(*p)) *p++ = 0; 
+   char *e = p + strlen(p) - 1;
+   while (e > p && isspace(*e)) *e-- = 0;
    return p;
+}
+inline wchar_t *Trim(wchar_t*&p) {
+	while (iswspace(*p)) *p++ = 0;
+	wchar_t *e = p + wcslen(p) - 1;
+	while (e > p && iswspace(*e)) *e-- = 0;
+	return p;
 }
 
 // Case insensitive string equivalence test for collections
 struct ltstr
 {
    bool operator()(const char* s1, const char* s2) const
-   { return _tcsicmp(s1, s2) < 0; }
+   { return _stricmp(s1, s2) < 0; }
 
    bool operator()(const string& s1, const string& s2) const
-   { return _tcsicmp(s1.c_str(), s2.c_str()) < 0; }
+   { return _stricmp(s1.c_str(), s2.c_str()) < 0; }
 
    bool operator()(const string& s1, const char * s2) const
-   { return _tcsicmp(s1.c_str(), s2) < 0; }
+   { return _stricmp(s1.c_str(), s2) < 0; }
 
    bool operator()(const char * s1, const string& s2) const
-   { return _tcsicmp(s1, s2.c_str()) >= 0; }
+   { return _stricmp(s1, s2.c_str()) >= 0; }
+
+   bool operator()(const wchar_t* s1, const wchar_t* s2) const
+   { return _wcsicmp(s1, s2) < 0; }
+
+   bool operator()(const wstring& s1, const wstring& s2) const
+   { return _wcsicmp(s1.c_str(), s2.c_str()) < 0; }
+
+   bool operator()(const wstring& s1, const wchar_t * s2) const
+   { return _wcsicmp(s1.c_str(), s2) < 0; }
+
+   bool operator()(const wchar_t * s1, const wstring& s2) const
+   { return _wcsicmp(s1, s2.c_str()) >= 0; }
 };
 
 
 // Case insensitive string equivalence but numbers are sorted together
 struct NumericStringEquivalence
 {
-   bool operator()(const TCHAR* s1, const TCHAR* s2) const
+   bool operator()(const char* s1, const char* s2) const
    { return numstrcmp(s1, s2) < 0; }
 
-   bool operator()(const std::string& s1, const TCHAR* s2) const
+   bool operator()(const std::string& s1, const char* s2) const
    { return numstrcmp(s1.c_str(), s2) < 0; }
 
-   bool operator()(const TCHAR* s1, const std::string& s2) const
+   bool operator()(const char* s1, const std::string& s2) const
    { return numstrcmp(s1, s2.c_str()) < 0; }
 
    bool operator()(const std::string& s1, const std::string& s2) const
    { return numstrcmp(s1.c_str(), s2.c_str()) < 0; }
 
-   static int numstrcmp(const TCHAR *str1, const TCHAR *str2)
+   bool operator()(const wchar_t* s1, const wchar_t* s2) const
+   { return numstrcmp(s1, s2) < 0; }
+
+   bool operator()(const std::wstring& s1, const wchar_t* s2) const
+   { return numstrcmp(s1.c_str(), s2) < 0; }
+
+   bool operator()(const wchar_t* s1, const std::wstring& s2) const
+   { return numstrcmp(s1, s2.c_str()) < 0; }
+
+   bool operator()(const std::wstring& s1, const std::wstring& s2) const
+   { return numstrcmp(s1.c_str(), s2.c_str()) < 0; }
+
+   static int numstrcmp(const char *str1, const char *str2)
    {
-      TCHAR *p1, *p2;
-      int c1, c2, lcmp;
+      char *p1, *p2;
+      int c1, c2;
+	  size_t lcmp;
       for(;;)
       {
          c1 = tolower(*str1), c2 = tolower(*str2);
@@ -118,112 +233,240 @@ struct NumericStringEquivalence
       lcmp = (c1 - c2);
       return ( lcmp < 0 ) ? -1 : (lcmp > 0 ? 1 : 0);
    }
+
+   static int numstrcmp(const wchar_t *str1, const wchar_t *str2)
+   {
+      wchar_t *p1, *p2;
+      int c1, c2;
+	  size_t lcmp;
+      for(;;)
+      {
+         c1 = towlower(*str1), c2 = towlower(*str2);
+         if ( c1 == 0 || c2 == 0 )
+            break;
+         else if (iswdigit(c1) && iswdigit(c2))
+         {			
+            lcmp = wcstol(str1, &p1, 10) - wcstol(str2, &p2, 10);
+            if ( lcmp == 0 )
+               lcmp = (p2 - str2) - (p1 - str1);
+            if ( lcmp != 0 )
+               return (lcmp > 0 ? 1 : -1);
+            str1 = p1, str2 = p2;
+         }
+         else
+         {
+            lcmp = (c1 - c2);
+            if (lcmp != 0)
+               return (lcmp > 0 ? 1 : -1);
+            ++str1, ++str2;
+         }
+      }
+      lcmp = (c1 - c2);
+      return ( lcmp < 0 ) ? -1 : (lcmp > 0 ? 1 : 0);
+   }
+
 };
 
 // Common collections that I use
-typedef std::map<std::string, std::string, ltstr> NameValueCollection;
-typedef std::pair<std::string, std::string> KeyValuePair;
+typedef std::map<std::string, std::string, ltstr> NameValueCollectionA;
+typedef std::pair<std::string, std::string> KeyValuePairA;
+typedef std::map<std::wstring, std::wstring, ltstr> NameValueCollectionW;
+typedef std::pair<std::wstring, std::wstring> KeyValuePairW;
 typedef std::vector<std::string> stringlist;
-
-extern int wildcmp(const TCHAR *wild, const TCHAR *string);
-extern int wildcmpi(const TCHAR *wild, const TCHAR *string);
+typedef std::vector<std::wstring> wstringlist;
+#ifdef UNICODE
+typedef NameValueCollectionW NameValueCollection;
+typedef KeyValuePairW KeyValuePair;
+typedef wstringlist tstringlist;
+#else
+typedef NameValueCollectionA NameValueCollection;
+typedef KeyValuePairA KeyValuePair;
+typedef stringlist tstringlist;
+#endif
+extern int wildcmp(const char *wild, const char *string);
+extern int wildcmpi(const char *wild, const char *string);
+extern int wildcmp(const wchar_t *wild, const wchar_t *string);
+extern int wildcmpi(const wchar_t *wild, const wchar_t *string);
 
 inline bool strmatch(const string& lhs, const std::string& rhs) {
-   return (0 == _tcsicmp(lhs.c_str(), rhs.c_str()));
+   return (0 == _stricmp(lhs.c_str(), rhs.c_str()));
 }
-inline bool strmatch(const TCHAR* lhs, const std::string& rhs) {
-   return (0 == _tcsicmp(lhs, rhs.c_str()));
+inline bool strmatch(const char* lhs, const std::string& rhs) {
+   return (0 == _stricmp(lhs, rhs.c_str()));
 }
-inline bool strmatch(const string& lhs, const TCHAR* rhs) {
-   return (0 == _tcsicmp(lhs.c_str(), rhs));
+inline bool strmatch(const string& lhs, const char* rhs) {
+   return (0 == _stricmp(lhs.c_str(), rhs));
 }
-inline bool strmatch(const TCHAR* lhs, const TCHAR* rhs) {
-   return (0 == _tcsicmp(lhs, rhs));
+inline bool strmatch(const char* lhs, const char* rhs) {
+   return (0 == _stricmp(lhs, rhs));
+}
+inline bool strmatch(const wstring& lhs, const std::wstring& rhs) {
+   return (0 == _wcsicmp(lhs.c_str(), rhs.c_str()));
+}
+inline bool strmatch(const wchar_t* lhs, const std::wstring& rhs) {
+   return (0 == _wcsicmp(lhs, rhs.c_str()));
+}
+inline bool strmatch(const wstring& lhs, const wchar_t* rhs) {
+   return (0 == _wcsicmp(lhs.c_str(), rhs));
+}
+inline bool strmatch(const wchar_t* lhs, const wchar_t* rhs) {
+   return (0 == _wcsicmp(lhs, rhs));
 }
 
-bool wildmatch(const TCHAR* match, const TCHAR* value);
+bool wildmatch(const char* match, const char* value);
 bool wildmatch(const string& match, const std::string& value);
 bool wildmatch(const stringlist& matches, const std::string& value);
+bool wildmatch(const wchar_t* match, const wchar_t* value);
+bool wildmatch(const wstring& match, const std::wstring& value);
+bool wildmatch(const wstringlist& matches, const std::wstring& value);
 
 // Generic IniFile reading routine
 template<typename T>
-inline T GetIniValue(LPCTSTR Section, LPCTSTR Setting, T Default, LPCTSTR iniFileName){
+inline T GetIniValue(LPCSTR Section, LPCSTR Setting, T Default, LPCSTR iniFileName){
    T v;
-   TCHAR buffer[1024];
+   char buffer[1024];
    stringstream sstr;
    sstr << Default;
    buffer[0] = 0;
-   if (0 < GetPrivateProfileString(Section, Setting, sstr.str().c_str(), buffer, sizeof(buffer), iniFileName)){
+   if (0 < GetPrivateProfileStringA(Section, Setting, sstr.str().c_str(), buffer, sizeof(buffer), iniFileName)){
       stringstream sstr(buffer);
       sstr >> v;
       return v;
    }
    return Default;
 }
-
+template<typename T>
+inline T GetIniValue(LPCWSTR Section, LPCWSTR Setting, T Default, LPCWSTR iniFileName) {
+	T v;
+	wchar_t buffer[1024];
+	wstringstream sstr;
+	sstr << Default;
+	buffer[0] = 0;
+	if (0 < GetPrivateProfileStringW(Section, Setting, sstr.str().c_str(), buffer, sizeof(buffer), iniFileName)) {
+		wstringstream sstr(buffer);
+		sstr >> v;
+		return v;
+	}
+	return Default;
+}
 // Specific override for int values
 template<>
-inline int GetIniValue<int>(LPCTSTR Section, LPCTSTR Setting, int Default, LPCTSTR iniFileName){
-   return GetPrivateProfileInt(Section, Setting, Default, iniFileName);
+inline int GetIniValue<int>(LPCSTR Section, LPCSTR Setting, int Default, LPCSTR iniFileName){
+   return GetPrivateProfileIntA(Section, Setting, Default, iniFileName);
+}
+template<>
+inline int GetIniValue<int>(LPCWSTR Section, LPCWSTR Setting, int Default, LPCWSTR iniFileName) {
+	return GetPrivateProfileIntW(Section, Setting, Default, iniFileName);
 }
 
 // Specific override for string values
 template<>
-inline std::string GetIniValue<std::string>(LPCTSTR Section, LPCTSTR Setting, std::string Default, LPCTSTR iniFileName){
-   TCHAR buffer[1024];
+inline std::string GetIniValue<std::string>(LPCSTR Section, LPCSTR Setting, std::string Default, LPCSTR iniFileName){
+   char buffer[1024];
    buffer[0] = 0;
-   if (0 < GetPrivateProfileString(Section, Setting, Default.c_str(), buffer, sizeof(buffer), iniFileName)){
+   if (0 < GetPrivateProfileStringA(Section, Setting, Default.c_str(), buffer, sizeof(buffer), iniFileName)){
       return std::string(buffer);
    }
    return Default;
 }
+template<>
+inline std::wstring GetIniValue<std::wstring>(LPCWSTR Section, LPCWSTR Setting, std::wstring Default, LPCWSTR iniFileName) {
+	wchar_t buffer[1024];
+	buffer[0] = 0;
+	if (0 < GetPrivateProfileStringW(Section, Setting, Default.c_str(), buffer, sizeof(buffer), iniFileName)) {
+		return std::wstring(buffer);
+	}
+	return Default;
+}
 
 // Specific override for TSTR values
+#ifdef UNICODE
 template<>
-inline TSTR GetIniValue<TSTR>(LPCTSTR Section, LPCTSTR Setting, TSTR Default, LPCTSTR iniFileName){
-   TCHAR buffer[1024];
+inline TSTR GetIniValue<TSTR>(LPCWSTR Section, LPCWSTR Setting, TSTR Default, LPCWSTR iniFileName){
+   wchar_t buffer[1024];
    buffer[0] = 0;
-   if (0 < GetPrivateProfileString(Section, Setting, Default.data(), buffer, sizeof(buffer), iniFileName)){
+   if (0 < GetPrivateProfileStringW(Section, Setting, Default.data(), buffer, sizeof(buffer), iniFileName)){
       return TSTR(buffer);
    }
    return Default;
 }
-
+#else
+template<>
+inline TSTR GetIniValue<TSTR>(LPCSTR Section, LPCSTR Setting, TSTR Default, LPCSTR iniFileName) {
+	char buffer[1024];
+	buffer[0] = 0;
+	if (0 < GetPrivateProfileStringA(Section, Setting, Default.data(), buffer, sizeof(buffer), iniFileName)) {
+		return TSTR(buffer);
+	}
+	return Default;
+}
+#endif
 // Generic IniFile reading routine
 template<typename T>
-inline void SetIniValue(LPCTSTR Section, LPCTSTR Setting, T value, LPCTSTR iniFileName){
+inline void SetIniValue(LPCSTR Section, LPCSTR Setting, T value, LPCSTR iniFileName){
    stringstream sstr;
    sstr << value;
-   WritePrivateProfileString(Section, Setting, sstr.str().c_str(), iniFileName);
+   WritePrivateProfileStringA(Section, Setting, sstr.str().c_str(), iniFileName);
+}
+template<typename T>
+inline void SetIniValue(LPCWSTR Section, LPCWSTR Setting, T value, LPCWSTR iniFileName) {
+	wstringstream sstr;
+	sstr << value;
+	WritePrivateProfileStringW(Section, Setting, sstr.str().c_str(), iniFileName);
 }
 
 // Specific override for string values
 template<>
-inline void SetIniValue<std::string>(LPCTSTR Section, LPCTSTR Setting, std::string value, LPCTSTR iniFileName){
-   WritePrivateProfileString(Section, Setting, value.c_str(), iniFileName);
+inline void SetIniValue<std::wstring>(LPCTSTR Section, LPCTSTR Setting, std::wstring value, LPCTSTR iniFileName){
+   WritePrivateProfileStringW(Section, Setting, value.c_str(), iniFileName);
+}
+template<>
+inline void SetIniValue<std::string>(LPCSTR Section, LPCSTR Setting, std::string value, LPCSTR iniFileName) {
+	WritePrivateProfileStringA(Section, Setting, value.c_str(), iniFileName);
 }
 
 // Specific override for TSTR values
+#ifdef UNICODE
 template<>
-inline void SetIniValue<TSTR>(LPCTSTR Section, LPCTSTR Setting, TSTR value, LPCTSTR iniFileName){
-   WritePrivateProfileString(Section, Setting, value.data(), iniFileName);
+inline void SetIniValue<TSTR>(LPCWSTR Section, LPCWSTR Setting, TSTR value, LPCWSTR iniFileName){
+   WritePrivateProfileStringW(Section, Setting, value.data(), iniFileName);
 }
+#else
+template<>
+inline void SetIniValue<TSTR>(LPCSTR Section, LPCSTR Setting, TSTR value, LPCSTR iniFileName) {
+	WritePrivateProfileStringA(Section, Setting, value.data(), iniFileName);
+}
+#endif
 
-extern TSTR FormatText(const TCHAR* format,...);
-extern std::string FormatString(const TCHAR* format,...);
+#ifdef UNICODE
+extern TSTR FormatText(const wchar_t* format,...);
+#else
+extern TSTR FormatText(const char* format, ...);
+#endif
+extern std::string FormatString(const char* format,...);
+extern std::wstring FormatString(const wchar_t* format, ...);
 
-extern stringlist TokenizeString(LPCTSTR str, LPCTSTR delims, bool trim=false);
-extern stringlist TokenizeCommandLine(LPCTSTR str, bool trim);
+extern stringlist TokenizeString(LPCSTR str, LPCSTR delims, bool trim=false);
+extern wstringlist TokenizeString(LPCWSTR str, LPCWSTR delims, bool trim = false);
+extern stringlist TokenizeCommandLine(LPCSTR str, bool trim);
+extern wstringlist TokenizeCommandLine(LPCWSTR str, bool trim);
 extern string JoinCommandLine(stringlist args);
+extern wstring JoinCommandLine(wstringlist args);
 
 extern string GetIndirectValue(LPCSTR path);
-extern NameValueCollection ReadIniSection(LPCTSTR Section, LPCTSTR iniFileName );
-extern string ExpandQualifiers(const string& src, const NameValueCollection& map);
+extern wstring GetIndirectValue(LPCWSTR path);
+extern NameValueCollectionA ReadIniSection(LPCSTR Section, LPCSTR iniFileName );
+extern NameValueCollectionW ReadIniSection(LPCWSTR Section, LPCWSTR iniFileName);
+extern string ExpandQualifiers(const string& src, const NameValueCollectionA& map);
+extern wstring ExpandQualifiers(const wstring& src, const NameValueCollectionW& map);
 extern string ExpandEnvironment(const string& src);
+extern wstring ExpandEnvironment(const wstring& src);
 
-extern void FindImages(NameValueCollection& images, const string& rootPath, const stringlist& searchpaths, const stringlist& extensions);
+extern void FindImages(NameValueCollectionA& images, const string& rootPath, const stringlist& searchpaths, const stringlist& extensions);
+extern void FindImages(NameValueCollectionW& images, const wstring& rootPath, const wstringlist& searchpaths, const wstringlist& extensions);
 
-extern void RenameNode(Interface *gi, LPCTSTR SrcName, LPCTSTR DstName);
+extern void RenameNode(Interface *gi, LPCSTR SrcName, LPCSTR DstName);
+extern void RenameNode(Interface *gi, LPCWSTR SrcName, LPCWSTR DstName);
 
 enum PosRotScale
 {
@@ -239,12 +482,17 @@ extern void PosRotScaleNode(Control *c, Matrix3& m3, PosRotScale prs = prsDefaul
 extern Matrix3 GetNodeLocalTM(INode *n, TimeValue t = 0);
 
 extern Niflib::NiNodeRef FindNodeByName( const vector<Niflib::NiNodeRef>& blocks, const string& name );
-extern std::vector<Niflib::NiNodeRef> SelectNodesByName( const vector<Niflib::NiNodeRef>& blocks, LPCTSTR match);
-extern int CountNodesByName( const vector<Niflib::NiNodeRef>& blocks, LPCTSTR match );
+extern Niflib::NiNodeRef FindNodeByName(const vector<Niflib::NiNodeRef>& blocks, const wstring& name);
+extern std::vector<Niflib::NiNodeRef> SelectNodesByName( const vector<Niflib::NiNodeRef>& blocks, LPCSTR match);
+extern std::vector<Niflib::NiNodeRef> SelectNodesByName(const vector<Niflib::NiNodeRef>& blocks, LPCWSTR match);
+extern int CountNodesByName( const vector<Niflib::NiNodeRef>& blocks, LPCSTR match );
+extern int CountNodesByName(const vector<Niflib::NiNodeRef>& blocks, LPCWSTR match);
 extern std::vector<std::string> GetNamesOfNodes( const vector<Niflib::NiNodeRef>& blocks );
-extern std::vector<Niflib::NiNodeRef> SelectNodesByName( const vector<Niflib::NiNodeRef>& blocks, LPCTSTR match);
+extern std::vector<Niflib::NiNodeRef> SelectNodesByName( const vector<Niflib::NiNodeRef>& blocks, LPCSTR match);
+extern std::vector<Niflib::NiNodeRef> SelectNodesByName(const vector<Niflib::NiNodeRef>& blocks, LPCWSTR match);
 
 extern INode* FindINode(Interface *i, const string& name);
+extern INode* FindINode(Interface *i, const wstring& name);
 extern INode* FindINode(Interface *i, Niflib::NiObjectNETRef node);
 
 struct NodeEquivalence
@@ -426,6 +674,7 @@ extern Modifier *GetSkin(INode *node);
 extern TriObject* GetTriObject(Object *o);
 
 extern TSTR GetFileVersion(const char *fileName);
+extern TSTR GetFileVersion(const wchar_t *fileName);
 
 template<typename T>
 inline Niflib::Ref<T> CreateNiObject() {
@@ -446,6 +695,7 @@ Modifier *CreatebhkCollisionModifier(
 	);
 
 void GetIniFileName(char *iniName);
+void GetIniFileName(wchar_t *iniName);
 
 Matrix3 GetLocalTM(INode *node);
 
@@ -466,7 +716,7 @@ extern void MorpherGetMorphVerts(Modifier* mod, int index, vector<Niflib::Vector
 // Enumeration support
 typedef struct EnumLookupType {
    int value;
-   const char *name;
+   const TCHAR *name;
 } EnumLookupType;
 
 extern TSTR EnumToString(int value, const EnumLookupType *table);
@@ -478,5 +728,6 @@ extern int StringToFlags(TSTR value, const EnumLookupType *table);
 #pragma endregion
 
 extern unsigned long Crc32Array(const void *data, size_t size);
+
 
 #endif // _NIUTILS_H_

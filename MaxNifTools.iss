@@ -99,6 +99,8 @@ Source: "Staging\x64\Release - Max 9\NifPlugins\NifPlugins.dlu"; DestDir: "{code
 ;Source: "MaxNifTools.ini"; DestDir: "{code:InstallPath|max9x64}{\}plugcfg"; Components: "max9x64"; Flags: ignoreversion;
 Source: "MaxNifTools.ini"; DestDir: "{localappdata}{\}Autodesk\3dsmax\9 - 64bit\enu\plugcfg"; Components: "max9x64"; Flags: ignoreversion; AfterInstall: FixPathInINI('max9x64');
 Source: "..\NifMagic\x64\NifMagic.dll"; DestDir: "{code:InstallPath|max9x64}{\}plugins"; Components: "max9x64"; Flags: ignoreversion;
+Source: "..\NifMopp\x64\Release\NifMopp.dll"; DestDir: "{code:InstallPath|max9x64}{\}plugins"; Components: "max9x64"; Flags: ignoreversion;
+Source: "..\NifMopp\Release - Exe\NifMopp.exe"; DestDir: "{code:InstallPath|max9x64}{\}plugins"; Components: "max9x64"; Flags: ignoreversion;
 
 Source: "Staging\Win32\Release - Max 2008\NifPlugins\NifPlugins.dlu"; DestDir: "{code:InstallPath|max10}{\}plugins"; Components: "max10"; Flags: ignoreversion;
 ;Source: "MaxNifTools.ini"; DestDir: "{code:InstallPath|max10}{\}plugcfg"; Components: "max10"; Flags: ignoreversion;
@@ -110,6 +112,8 @@ Source: "Staging\x64\Release - Max 2008\NifPlugins\NifPlugins.dlu"; DestDir: "{c
 ;Source: "MaxNifTools.ini"; DestDir: "{code:InstallPath|max10x64}{\}plugcfg"; Components: "max10x64"; Flags: ignoreversion;
 Source: "MaxNifTools.ini"; DestDir: "{localappdata}{\}Autodesk\3dsmax\2008 - 64bit\enu\plugcfg"; Components: "max10x64"; Flags: ignoreversion; AfterInstall: FixPathInINI('max10x64');
 Source: "..\NifMagic\x64\NifMagic.dll"; DestDir: "{code:InstallPath|max10x64}{\}plugins"; Components: "max10x64"; Flags: ignoreversion;
+Source: "..\NifMopp\x64\Release\NifMopp.dll"; DestDir: "{code:InstallPath|max10x64}{\}plugins"; Components: "max10x64"; Flags: ignoreversion;
+Source: "..\NifMopp\Release - Exe\NifMopp.exe"; DestDir: "{code:InstallPath|max10x64}{\}plugins"; Components: "max10x64"; Flags: ignoreversion;
 
 Source: "Staging\Win32\Release - Max 2009\NifPlugins\NifPlugins.dlu"; DestDir: "{code:InstallPath|max11}{\}plugins"; Components: "max11"; Flags: ignoreversion;
 ;Source: "MaxNifTools.ini"; DestDir: "{code:InstallPath|max11}{\}plugcfg"; Components: "max11"; Flags: ignoreversion;
@@ -121,6 +125,8 @@ Source: "Staging\x64\Release - Max 2009\NifPlugins\NifPlugins.dlu"; DestDir: "{c
 ;Source: "MaxNifTools.ini"; DestDir: "{code:InstallPath|max11x64}{\}plugcfg"; Components: "max11x64"; Flags: ignoreversion;
 Source: "MaxNifTools.ini"; DestDir: "{localappdata}{\}Autodesk\3dsmax\2009 - 64bit\enu\plugcfg"; Components: "max11x64"; Flags: ignoreversion; AfterInstall: FixPathInINI('max11x64');
 Source: "..\NifMagic\x64\NifMagic.dll"; DestDir: "{code:InstallPath|max11x64}{\}plugins"; Components: "max11x64"; Flags: ignoreversion;
+Source: "..\NifMopp\x64\Release\NifMopp.dll"; DestDir: "{code:InstallPath|max11x64}{\}plugins"; Components: "max11x64"; Flags: ignoreversion;
+Source: "..\NifMopp\Release - Exe\NifMopp.exe"; DestDir: "{code:InstallPath|max11x64}{\}plugins"; Components: "max11x64"; Flags: ignoreversion;
 
 Source: "Staging\Win32\Release - Max 2010\NifPlugins\NifPlugins.dlu"; DestDir: "{code:InstallPath|max12}{\}plugins"; Components: "max12"; Flags: ignoreversion;
 ;Source: "MaxNifTools.ini"; DestDir: "{code:InstallPath|max12}{\}plugcfg"; Components: "max12"; Flags: ignoreversion
@@ -132,6 +138,8 @@ Source: "Staging\x64\Release - Max 2010\NifPlugins\NifPlugins.dlu"; DestDir: "{c
 ;Source: "MaxNifTools.ini"; DestDir: "{code:InstallPath|max12x64}{\}plugcfg"; Components: "max12x64"; Flags: ignoreversion;
 Source: "MaxNifTools.ini"; DestDir: "{localappdata}{\}Autodesk\3dsmax\2010 - 64bit\enu\plugcfg"; Components: "max12x64"; Flags: ignoreversion; AfterInstall: FixPathInINI('max12x64');
 Source: "..\NifMagic\x64\NifMagic.dll"; DestDir: "{code:InstallPath|max12x64}{\}plugins"; Components: "max12x64"; Flags: ignoreversion;
+Source: "..\NifMopp\x64\Release\NifMopp.dll"; DestDir: "{code:InstallPath|max12x64}{\}plugins"; Components: "max12x64"; Flags: ignoreversion;
+Source: "..\NifMopp\Release - Exe\NifMopp.exe"; DestDir: "{code:InstallPath|max12x64}{\}plugins"; Components: "max12x64"; Flags: ignoreversion;
 
 Source: "Staging\Win32\Release - Max 2011\NifPlugins\NifPlugins.dlu"; DestDir: "{code:InstallPath|max13}{\}plugins"; Components: "max13"; Flags: ignoreversion;
 ;Source: "MaxNifTools.ini"; DestDir: "{code:InstallPath|max13}{\}plugcfg"; Components: "max13"; Flags: ignoreversion
@@ -143,6 +151,8 @@ Source: "Staging\x64\Release - Max 2011\NifPlugins\NifPlugins.dlu"; DestDir: "{c
 ;Source: "MaxNifTools.ini"; DestDir: "{code:InstallPath|max13x64}{\}plugcfg"; Components: "max13x64"; Flags: ignoreversion;
 Source: "MaxNifTools.ini"; DestDir: "{localappdata}{\}Autodesk\3dsmax\2011 - 64bit\enu\plugcfg"; Components: "max13x64"; Flags: ignoreversion; AfterInstall: FixPathInINI('max13x64');
 Source: "..\NifMagic\x64\NifMagic.dll"; DestDir: "{code:InstallPath|max13x64}{\}plugins"; Components: "max13x64"; Flags: ignoreversion;
+Source: "..\NifMopp\x64\Release\NifMopp.dll"; DestDir: "{code:InstallPath|max13x64}{\}plugins"; Components: "max13x64"; Flags: ignoreversion;
+Source: "..\NifMopp\Release - Exe\NifMopp.exe"; DestDir: "{code:InstallPath|max13x64}{\}plugins"; Components: "max13x64"; Flags: ignoreversion;
 
 Source: "Staging\Win32\Release - Max 2012\NifPlugins\NifPlugins.dlu"; DestDir: "{code:InstallPath|max14}{\}plugins"; Components: "max14"; Flags: ignoreversion;
 ;Source: "MaxNifTools.ini"; DestDir: "{code:InstallPath|max14}{\}plugcfg"; Components: "max14"; Flags: ignoreversion
@@ -154,6 +164,8 @@ Source: "Staging\x64\Release - Max 2012\NifPlugins\NifPlugins.dlu"; DestDir: "{c
 ;Source: "MaxNifTools.ini"; DestDir: "{code:InstallPath|max14x64}{\}plugcfg"; Components: "max14x64"; Flags: ignoreversion;
 Source: "MaxNifTools.ini"; DestDir: "{localappdata}{\}Autodesk\3dsmax\2012 - 64bit\enu\plugcfg"; Components: "max14x64"; Flags: ignoreversion; AfterInstall: FixPathInINI('max14x64');
 Source: "..\NifMagic\x64\NifMagic.dll"; DestDir: "{code:InstallPath|max14x64}{\}plugins"; Components: "max14x64"; Flags: ignoreversion;
+Source: "..\NifMopp\x64\Release\NifMopp.dll"; DestDir: "{code:InstallPath|max14x64}{\}plugins"; Components: "max14x64"; Flags: ignoreversion;
+Source: "..\NifMopp\Release - Exe\NifMopp.exe"; DestDir: "{code:InstallPath|max14x64}{\}plugins"; Components: "max14x64"; Flags: ignoreversion;
 
 [InstallDelete]
 Type: files; Name: "{code:InstallPath|max9}{\}plugcfg{\}MaxNifTools.ini";
@@ -465,10 +477,11 @@ begin
             end;
           end;
           if (Length(Result) = 0) then
-            Result := ExpandConstant('{pf32}{\}AutoDesk\3ds Max 9}{\}');
+            Result := ExpandConstant('{pf32}{\}AutoDesk\3ds Max 9{\}');
         end;
     'max9x64':
         begin
+          If IsWin64() Then Begin
           if RegGetSubkeyNames(HKEY_LOCAL_MACHINE, RegSoftware64() + 'Autodesk\3dsMax\9.0', Names) then begin
             for I := 0 to GetArrayLength(Names)-1 do begin
               if RegQueryStringValue(HKEY_LOCAL_MACHINE, RegSoftware64() + 'Autodesk\3dsMax\9.0\' + Names[I], 'InstallDir', Result) then
@@ -476,7 +489,10 @@ begin
             end;
           end;
           if Length(Result) = 0 then
-            Result := ExpandConstant('{pf64}{\}AutoDesk\3ds Max 9}{\}');
+              Result := ExpandConstant('{pf64}{\}AutoDesk\3ds Max 9{\}');
+          end else begin
+              Result := GetTempDir();
+          end;
         end;
     'max10': 
         begin
@@ -488,10 +504,11 @@ begin
             end;
           end;
           if (Length(Result) = 0) then
-            Result := ExpandConstant('{pf32}{\}AutoDesk\3ds Max 2008}{\}');
+            Result := ExpandConstant('{pf32}{\}AutoDesk\3ds Max 2008{\}');
         end;
     'max10x64':
         begin
+          If IsWin64() Then Begin
           if RegGetSubkeyNames(HKEY_LOCAL_MACHINE, RegSoftware64() + 'Autodesk\3dsMax\10.0', Names) then begin
             for I := 0 to GetArrayLength(Names)-1 do begin
               if RegQueryStringValue(HKEY_LOCAL_MACHINE, RegSoftware64() + 'Autodesk\3dsMax\10.0\' + Names[I], 'InstallDir', Result) then
@@ -499,7 +516,10 @@ begin
             end;
           end;
           if Length(Result) = 0 then
-            Result := ExpandConstant('{pf64}{\}AutoDesk\3ds Max 2008}{\}');
+              Result := ExpandConstant('{pf64}{\}AutoDesk\3ds Max 2008{\}');
+          end else begin
+              Result := GetTempDir();
+          end;
         end;
     'max11': 
         begin
@@ -511,10 +531,11 @@ begin
             end;
           end;
           if (Length(Result) = 0) then
-            Result := ExpandConstant('{pf32}{\}AutoDesk\3ds Max 2009}{\}');
+            Result := ExpandConstant('{pf32}{\}AutoDesk\3ds Max 2009{\}');
         end;
     'max11x64':
         begin
+          If IsWin64() Then Begin
           if RegGetSubkeyNames(HKEY_LOCAL_MACHINE, RegSoftware64() + 'Autodesk\3dsMax\11.0', Names) then begin
             for I := 0 to GetArrayLength(Names)-1 do begin
               if RegQueryStringValue(HKEY_LOCAL_MACHINE, RegSoftware64() + 'Autodesk\3dsMax\11.0\' + Names[I], 'InstallDir', Result) then
@@ -522,7 +543,10 @@ begin
             end;
           end;
           if Length(Result) = 0 then
-            Result := ExpandConstant('{pf64}{\}AutoDesk\3ds Max 2009}{\}');
+              Result := ExpandConstant('{pf64}{\}AutoDesk\3ds Max 2009{\}');
+          end else begin
+              Result := GetTempDir();
+          end;
         end;
     'max12': 
         begin
@@ -534,10 +558,11 @@ begin
             end;
           end;
           if (Length(Result) = 0) then
-            Result := ExpandConstant('{pf32}{\}AutoDesk\3ds Max 2010}{\}');
+            Result := ExpandConstant('{pf32}{\}AutoDesk\3ds Max 2010{\}');
         end;
     'max12x64':
         begin
+          If IsWin64() Then Begin
           if RegGetSubkeyNames(HKEY_LOCAL_MACHINE, RegSoftware64() + 'Autodesk\3dsMax\12.0', Names) then begin
             for I := 0 to GetArrayLength(Names)-1 do begin
               if RegQueryStringValue(HKEY_LOCAL_MACHINE, RegSoftware64() + 'Autodesk\3dsMax\12.0\' + Names[I], 'InstallDir', Result) then
@@ -545,7 +570,10 @@ begin
             end;
           end;
           if Length(Result) = 0 then
-            Result := ExpandConstant('{pf64}{\}AutoDesk\3ds Max 2010}{\}');
+              Result := ExpandConstant('{pf64}{\}AutoDesk\3ds Max 2010{\}');
+          end else begin
+              Result := GetTempDir();
+          end;
         end;
     'max13': 
         begin
@@ -557,10 +585,11 @@ begin
             end;
           end;
           if (Length(Result) = 0) then
-            Result := ExpandConstant('{pf32}{\}AutoDesk\3ds Max 2011}{\}');
+            Result := ExpandConstant('{pf32}{\}AutoDesk\3ds Max 2011{\}');
         end;
     'max13x64':
         begin
+          if IsWin64() then begin
           if RegGetSubkeyNames(HKEY_LOCAL_MACHINE, RegSoftware64() + 'Autodesk\3dsMax\13.0', Names) then begin
             for I := 0 to GetArrayLength(Names)-1 do begin
               if RegQueryStringValue(HKEY_LOCAL_MACHINE, RegSoftware64() + 'Autodesk\3dsMax\13.0\' + Names[I], 'InstallDir', Result) then
@@ -568,7 +597,10 @@ begin
             end;
           end;
           if Length(Result) = 0 then
-            Result := ExpandConstant('{pf64}{\}AutoDesk\3ds Max 2011}{\}');
+              Result := ExpandConstant('{pf64}{\}AutoDesk\3ds Max 2011{\}');
+          end else begin
+              Result := GetTempDir();
+          end;
         end;
     'max14': 
         begin
@@ -580,10 +612,11 @@ begin
             end;
           end;
           if (Length(Result) = 0) then
-            Result := ExpandConstant('{pf32}{\}AutoDesk\3ds Max 2012}{\}');
+            Result := ExpandConstant('{pf32}{\}AutoDesk\3ds Max 2012{\}');
         end;
     'max14x64':
         begin
+          If IsWin64() Then Begin
           if RegGetSubkeyNames(HKEY_LOCAL_MACHINE, RegSoftware64() + 'Autodesk\3dsMax\14.0', Names) then begin
             for I := 0 to GetArrayLength(Names)-1 do begin
               if RegQueryStringValue(HKEY_LOCAL_MACHINE, RegSoftware64() + 'Autodesk\3dsMax\14.0\' + Names[I], 'InstallDir', Result) then
@@ -591,7 +624,10 @@ begin
             end;
           end;
           if Length(Result) = 0 then
-            Result := ExpandConstant('{pf64}{\}AutoDesk\3ds Max 2012}{\}');
+              Result := ExpandConstant('{pf64}{\}AutoDesk\3ds Max 2012{\}');
+          end else begin
+              Result := GetTempDir();
+          end;
         end;
     else
       Result := '';

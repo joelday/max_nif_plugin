@@ -56,7 +56,11 @@ public:
    void BeginEditParams( IObjParam  *ip, ULONG flags,Animatable *prev);
    void EndEditParams( IObjParam *ip, ULONG flags,Animatable *next);
    RefTargetHandle Clone(RemapDir& remap);
-   TCHAR *GetObjectName() { return GetString(IDS_RB_SPHERE); }
+#if VERSION_3DSMAX < (17000<<16) // Version 17 (2015)
+   TCHAR *                 GetObjectName() { return _T(GetString(IDS_RB_SPHERE)); }
+#else
+   const MCHAR*             GetObjectName() { return GetString(IDS_RB_SPHERE); }
+#endif
 
    // From GeomObject
    int IntersectRay(TimeValue t, Ray& ray, float& at, Point3& norm);
@@ -95,7 +99,7 @@ public:
    const TCHAR *	ClassName() { return GetString(IDS_RB_SPHERE_CLASS); }
    SClass_ID		SuperClassID() { return HELPER_CLASS_ID; }
    Class_ID		   ClassID() { return bhkSphereObject_CLASS_ID; }
-   const TCHAR* 	Category() { return "NifTools"; }
+   const TCHAR* 	Category() { return TEXT("NifTools"); }
 
    const TCHAR*	InternalName() { return _T("bhkSphere"); }	// returns fixed parsable name (scripter-visible name)
    HINSTANCE		HInstance() { return hInstance; }			// returns owning module handle
@@ -131,6 +135,7 @@ enum SphereParamIndicies
    PB_RADIUS,
    PB_SEGS,
    PB_SMOOTH,
+   PB_SCALE,
 };
 
 enum { box_params_panel, };
@@ -143,26 +148,33 @@ static ParamBlockDesc2 param_blk (
     // params
     PB_MATERIAL, _T("material"), TYPE_INT, P_ANIMATABLE,	IDS_DS_MATERIAL,
        p_default,	NP_INVALID_HVK_MATERIAL,
-       end,
+       p_end,
 
     PB_RADIUS, _T("radius"), TYPE_FLOAT, P_ANIMATABLE,	IDS_RB_RADIUS,
        p_default,	   0.0,
        p_range,		float(0), float(1.0E30),
        p_ui, TYPE_SPINNER, EDITTYPE_UNIVERSE, IDC_RADIUS, IDC_RADSPINNER, SPIN_AUTOSCALE,
-       end,
+       p_end,
 
     PB_SEGS, _T("segments"), TYPE_INT, P_ANIMATABLE,	IDS_RB_SEGS,
        p_default,	   16,
        p_range,		MIN_SEGMENTS, MAX_SEGMENTS,
        p_ui, TYPE_SPINNER, EDITTYPE_POS_INT, IDC_SEGMENTS, IDC_SEGSPINNER, 1.0f,
-       end,
+       p_end,
 
     PB_SMOOTH, _T("smooth"), TYPE_INT, P_ANIMATABLE,	IDS_RB_SMOOTH,
        p_default,	   TRUE,
        p_ui, TYPE_SINGLECHEKBOX, IDC_OBSMOOTH,
-       end,
+       p_end,
 
-    end
+
+    PB_SCALE, _T("scale"), TYPE_FLOAT, P_ANIMATABLE,	IDS_DS_SCALE,
+       p_default,	   6.9969f,
+       p_range,		float(1.0f), float(1000.0f),
+       p_ui, TYPE_SPINNER, EDITTYPE_UNIVERSE, IDC_SCALEEDIT, IDC_SCALESPINNER, SPIN_AUTOSCALE,
+       p_end,
+
+    p_end
     );
 
 // static ClassDesc must be declared after static paramblock
@@ -208,8 +220,8 @@ INT_PTR SphereParamDlgProc::DlgProc(TimeValue t,IParamMap2 *map,HWND hWnd,UINT m
    case WM_INITDIALOG: 
       {
 		  mCbMaterial.init(GetDlgItem(hWnd, IDC_CB_MATERIAL));
-		  mCbMaterial.add("<Default>");
-		  for (const char **str = NpHvkMaterialNames; *str; ++str)
+		  mCbMaterial.add(TEXT("<Default>"));
+		  for (const TCHAR **str = NpHvkMaterialNames; *str; ++str)
 			  mCbMaterial.add(*str);
 		  Interval valid;
 		  int sel = NP_INVALID_HVK_MATERIAL;
@@ -304,7 +316,7 @@ void bhkSphereObject::BuildMesh(TimeValue t)
    pblock2->GetValue(PB_RADIUS, t, radius, ivalid);
    pblock2->GetValue(PB_SEGS, t, segs, ivalid);
    pblock2->GetValue(PB_SMOOTH, t, smooth, ivalid);
-   BuildSphere(mesh, (radius * 7.0f), segs, smooth, startAng);
+   BuildSphere(mesh, (radius * NifPropsGlobals::bhkScaleFactor), segs, smooth, startAng);
 }
 
 
@@ -358,7 +370,7 @@ int SphereObjCreateCallBack::proc(ViewExp *vpt,int msg, int point, int flags, IP
          mat.IdentityMatrix();
          //mat.PreRotateZ(HALFPI);
          p1 = vpt->SnapPoint(m,m,NULL,SNAP_IN_3D);
-         r = Length(p1-p0) / 7.0f;
+         r = Length(p1-p0) / NifPropsGlobals::bhkScaleFactor;
          mat.SetTrans(p0);
 
          ob->pblock2->SetValue(PB_RADIUS,0,r);
@@ -477,7 +489,7 @@ int bhkSphereObject::Display(TimeValue t, INode* inode, ViewExp *vpt, int flags)
    gw->setTransform(m);
    DWORD rlim = gw->getRndLimits();
 
-   DWORD newrlim = GW_WIREFRAME/*|GW_Z_BUFFER*/;
+   DWORD newrlim = GW_WIREFRAME|GW_BACKCULL|GW_Z_BUFFER/*|GW_Z_BUFFER*/;
 #if VERSION_3DSMAX >= ((5000<<16)+(15<<8)+0) // Version 5+
    newrlim |= GW_EDGES_ONLY;
 #endif

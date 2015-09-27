@@ -20,74 +20,87 @@ enum { shader_params, };
 // Paramblock2 parameter list
 
 const EnumLookupType TransparencyModes[] = {
-   { 0, "ONE"},
-   { 1, "ZERO"},
-   { 2, "SRCCOLOR"},
-   { 3, "INVSRCCOLOR"},
-   { 4, "DESTCOLOR"},
-   { 5, "INVDESTCOLOR"},
-   { 6, "SRCALPHA"},
-   { 7, "INVSRCALPHA"},
-   { 8, "DESTALPHA"},
-   { 9, "INVDESTALPHA"},
-   {10, "SRCALPHASAT"},
+   { 0, TEXT("ONE")},
+   { 1, TEXT("ZERO")},
+   { 2, TEXT("SRCCOLOR")},
+   { 3, TEXT("INVSRCCOLOR")},
+   { 4, TEXT("DESTCOLOR")},
+   { 5, TEXT("INVDESTCOLOR")},
+   { 6, TEXT("SRCALPHA")},
+   { 7, TEXT("INVSRCALPHA")},
+   { 8, TEXT("DESTALPHA")},
+   { 9, TEXT("INVDESTALPHA")},
+   {10, TEXT("SRCALPHASAT")},
    {-1, NULL},
 };
 const EnumLookupType TestModes[] = {
-   { 0, "ALWAYS"},
-   { 1, "LESS"},
-   { 2, "EQUAL"},
-   { 3, "LESSEQUAL"},
-   { 4, "GREATER"},
-   { 5, "NOTEQUAL"},
-   { 6, "GREATEREQUAL"},
-   { 7, "NEVER"}, 
+   { 0, TEXT("ALWAYS")},
+   { 1, TEXT("LESS")},
+   { 2, TEXT("EQUAL")},
+   { 3, TEXT("LESSEQUAL")},
+   { 4, TEXT("GREATER")},
+   { 5, TEXT("NOTEQUAL")},
+   { 6, TEXT("GREATEREQUAL")},
+   { 7, TEXT("NEVER")}, 
    {-1, NULL},
 };
 const EnumLookupType ApplyModes[] = { 
-   { 0, "REPLACE"},
-   { 1, "DECAL"},
-   { 2, "MODULATE"},
+   { 0, TEXT("REPLACE")},
+   { 1, TEXT("DECAL")},
+   { 2, TEXT("MODULATE")},
    {-1, NULL},
 };
 
 const EnumLookupType VertexModes[] = { 
-   { 0, "IGNORE"},
-   { 1, "EMISSIVE"},
-   { 2, "AMB_DIFF"},
+   { 0, TEXT("IGNORE")},
+   { 1, TEXT("EMISSIVE")},
+   { 2, TEXT("AMB_DIFF")},
    {-1, NULL},
 };
 const EnumLookupType LightModes[] = { 
-   { 0, "E"},
-   { 1, "E_A_D"},
+   { 0, TEXT("E")},
+   { 1, TEXT("E_A_D")},
    {-1, NULL},
 };
 
 const EnumLookupType ShaderTypes[] = { 
-   { 0, "Default"},
-   { 1, "BSShader"},
+   { 0, TEXT("Default")},
+   { 1, TEXT("BSShader")},
    {-1, NULL},
 };
 
 extern const EnumLookupType BSShaderTypes[] = { 
-   { 0, "Default"},
-   { 1, "BSShaderPPLightingProperty"},
-   { 2, "BSShaderNoLightingProperty"},
-   { 3, "WaterShaderProperty"},
-   { 4, "SkyShaderProperty"},
-   //{ 5, "DistantLODShaderProperty"},
-   //{ 6, "BSDistantTreeShaderProperty"},
-   { 7, "TallGrassShaderProperty"},
-   //{ 8, "VolumetricFogShaderProperty"},
-   //{ 9, "HairShaderProperty"},
-   {10, "Lighting30ShaderProperty"},
-   {100, "SkyrimDefault"},
-   {101, "SkyrimEnvMap"},
-   {102, "SkyrimGlow"},
-   {105, "SkyrimSkin"},
-   {106, "SkyrimHair"},
-   {111, "SkyrimParallax"},
-   {115, "SkyrimEye"},
+   { 0, TEXT("Default")},
+   { 1, TEXT("BSShaderPPLightingProperty")},
+   { 2, TEXT("BSShaderNoLightingProperty")},
+   { 3, TEXT("WaterShaderProperty")},
+   { 4, TEXT("SkyShaderProperty")},
+   //{ 5, TEXT("DistantLODShaderProperty")},
+   //{ 6, TEXT("BSDistantTreeShaderProperty")},
+   { 7, TEXT("TallGrassShaderProperty")},
+   //{ 8, TEXT("VolumetricFogShaderProperty")},
+   //{ 9, TEXT("HairShaderProperty")},
+   {10, TEXT("Lighting30ShaderProperty")},
+   {100, TEXT("SkyrimDefault")},
+   {101, TEXT("SkyrimEnvMap")},
+   {102, TEXT("SkyrimGlow")},
+   {103, TEXT("SkyrimHeightMap")},
+   {104, TEXT("SkyrimFaceTint")},
+   {105, TEXT("SkyrimSkinTint")},
+   {105, TEXT("SkyrimSkin")},
+   {106, TEXT("SkyrimHairTint")},
+   {106, TEXT("SkyrimHair")},
+   {107, TEXT("SkyrimParallax_Material")},
+   {107, TEXT("SkyrimWorldMultiTexture")},
+   {107, TEXT("SkyrimWorldMap1")},
+   {111, TEXT("SkyrimParallax")},
+   {113, TEXT("SkyrimWorldMap2")},
+   {114, TEXT("SkyrimSparkleSnow")},
+   {115, TEXT("SkyrimWorldMap3")},
+   {116, TEXT("SkyrimEye")},
+   {118, TEXT("SkyrimWorldMap4")},
+   {119, TEXT("SkyrimLodMultiTexture")},
+
    {-1, NULL},
 };
 
@@ -227,7 +240,7 @@ protected:
    long ChannelType( long nChan ) { return texChannelNames[nChan].channelType; }
    long StdIDToChannel( long stdID ){ return nifShaderStdIDToChannel[stdID]; }
 
-   BOOL KeyAtTime(int id,TimeValue t) { return pb->KeyFrameAtTime(id,t); }
+   //BOOL KeyAtTime(int id,TimeValue t) { return pb->KeyFrameAtTime(id,t); }
    ULONG GetRequirements( int subMtlNum ){ return MTLREQ_PHONG; }
 
    ShaderParamDlg* CreateParamDialog(HWND hOldRollup, HWND hwMtlEdit, IMtlParams *imp, StdMat2* theMtl, int rollupOpen, int );
@@ -259,8 +272,11 @@ protected:
    void Update(TimeValue t, Interval& valid);
    void Reset();
    RefTargetHandle Clone( RemapDir &remap /*=DefaultRemapDir()*/ );
-   RefResult NotifyRefChanged( Interval changeInt, RefTargetHandle hTarget, 
-                               PartID& partID, RefMessage message );
+#if VERSION_3DSMAX < (17000<<16) // Version 17 (2015)
+   RefResult				NotifyRefChanged(Interval changeInt, RefTargetHandle hTarget, PartID& partID, RefMessage message);
+#else
+   RefResult				NotifyRefChanged(const Interval& changeInt, RefTargetHandle hTarget, PartID& partID, RefMessage message, BOOL propagate);
+#endif
 
    void GetIllumParams( ShadeContext &sc, IllumParams& ip );
 
@@ -338,105 +354,105 @@ static ParamBlockDesc2 param_blk (
    //rollout
    ns_mat_ambient, _T("ambient"),  TYPE_RGBA, P_ANIMATABLE, IDS_MAT_AMBIENT,
       p_default, Color(0.0f, 0.0f, 0.0f), 
-      end,
+      p_end,
    ns_mat_diffuse, _T("diffuse"),  TYPE_RGBA, P_ANIMATABLE, IDS_MAT_DIFFUSE,
       p_default, Color(0.5f, 0.5f, 0.5f), 
-      end,
+      p_end,
    ns_mat_specular, _T("specular"),  TYPE_RGBA, P_ANIMATABLE, IDS_MAT_SPECULAR,
       p_default, Color(1.0f, 1.0f, 1.0f), 
-      end,
+      p_end,
    ns_mat_emittance, _T("emittance"),  TYPE_RGBA, P_ANIMATABLE, IDS_MAT_EMITTANCE,
       p_default, Color(0.0f, 0.0f, 0.0f), 
-      end,
+      p_end,
    ns_mat_specenable, _T("SpecularEnable"),  TYPE_BOOL, 0, IDS_MAT_SPECULARENABLE,
       p_default, FALSE, 
-      end,
+      p_end,
    ns_mat_selfillumon, _T("useSelfIllumColor"),  TYPE_BOOL, 0, IDS_MAT_SELFILLUMON,
       p_default, FALSE, 
-      end,
+      p_end,
    ns_mat_selfillumclr, _T("selfillumclr"),  TYPE_RGBA, P_ANIMATABLE, IDS_MAT_SELFILLUMCLR,
       p_default, Color(0.0f, 0.0f, 0.0f), 
-      end,
+      p_end,
    ns_mat_selfillum, _T("selfillum"),  TYPE_FLOAT, P_ANIMATABLE, IDS_MAT_SELFILLUM,
       p_default, 0.0f, 
-      end,
+      p_end,
    ns_mat_glossiness, _T("glossiness"),  TYPE_FLOAT, P_ANIMATABLE, IDS_MAT_GLOSSINESS,
       p_default, 0.0f, 
       p_range,    0.0, 200.0,
-      end,
+      p_end,
    ns_mat_speclevel, _T("specularLevel"),  TYPE_FLOAT, P_ANIMATABLE, IDS_MAT_SPECLEVEL,
       p_default, 0.0f, 
       p_range,    0.0, 999.0,
-      end,
+      p_end,
    ns_mat_softenlevel, _T("softenlevel"),  TYPE_FLOAT, P_ANIMATABLE, IDS_MAT_SOFTENLEVEL,
       p_default, 0.0f, 
-      end,
+      p_end,
    ns_mat_shininess, _T("shininess"),  TYPE_FLOAT, P_ANIMATABLE, IDS_MAT_SHININESS,
       p_default, 10.0f, 
-      end,
+      p_end,
    ns_mat_alpha, _T("alpha"),  TYPE_FLOAT, P_ANIMATABLE, IDS_MAT_ALPHA,
       p_default, 1.0f, 
-      end,
+      p_end,
    ns_mat_dither, _T("Dither"),  TYPE_BOOL, P_ANIMATABLE, IDS_MAT_DITHER,
       p_default, FALSE, 
-      end,
+      p_end,
    //////////////////////////////////////////////////////////////////////////
    ns_alpha_mode, _T("alphaMode"),  TYPE_INT, 0, IDS_ALPHA_MODE,
       p_default, 0, 
       p_range,   0, 5,
-      end,
+      p_end,
    ns_alpha_src, _T("srcBlend"), TYPE_INT, 0,   IDS_ALPHA_SRC,   
        p_default,      6, 
-       end, 
+       p_end, 
    ns_alpha_dest, _T("destBlend"), TYPE_INT, 0, IDS_ALPHA_DEST,  
        p_default,      7, 
-       end,
+       p_end,
    //////////////////////////////////////////////////////////////////////////
    ns_vertex_colors_enable, _T("VertexColorsEnable"), TYPE_BOOL, P_ANIMATABLE, IDS_VERTEXCOLORENABLE,
         p_default,      TRUE, 
-        end,
+        p_end,
    ns_vertex_srcmode, _T("SrcVertexMode"), TYPE_INT, 0, IDS_SRC_VERTEX_MODE,   
          p_default,      2, 
-         end, 
+         p_end, 
    ns_vertex_light, _T("LightingMode"), TYPE_INT, 0, IDS_LIGHTING_MODE,
          p_default,      1, 
-         end, 
+         p_end, 
    //////////////////////////////////////////////////////////////////////////
    ns_apply_mode, _T("ApplyMode"), TYPE_INT, 0, IDS_APPLY_MODE,  
        p_default,      2, 
-       end, 
+       p_end, 
    //////////////////////////////////////////////////////////////////////////
    ns_test_ref, _T("TestRef"), TYPE_INT, 0, IDS_TEST_REF, 
      p_default, 0,
      p_range,    0, 255,
-     end,
+     p_end,
    ns_testmode, _T("TestMode"), TYPE_INT, 0,   IDS_TEST_MODE,   
      p_default,      4, 
-     end, 
+     p_end, 
    ns_alphatest_enable, _T("AlphaTestEnable"), TYPE_BOOL, 0, IDS_ALPHATEST_ENABLE,     
      p_default,      FALSE, 
-     end,
+     p_end,
    ns_no_sorter, _T("NoSorter"), TYPE_BOOL, 0, IDS_ALPHA_NOSORTER,
      p_default,      FALSE, 
-     end,
+     p_end,
    //////////////////////////////////////////////////////////////////////////
     ns_shader_name, _T("CustomShader"), TYPE_STRING, 0, IDS_SHADER_NAME,
         p_default,      _T(""),
-        end,
+        p_end,
    //////////////////////////////////////////////////////////////////////////
     ns_bump_magnitude, _T("Magnitude"), TYPE_FLOAT, 0, IDS_BUMP_MAGNITUDE, 
         p_default, 1.0f,
         p_range,    -2.0f, 2.0f,
-        end,
+        p_end,
     ns_luma_scale, _T("Luma Scale"), TYPE_FLOAT, 0, IDS_LUMA_SCALE, 
         p_default, 1.0f,
         p_range,    0.0f, 1.0f,
-        end,
+        p_end,
     ns_luma_offset, _T("Luma Offset"), TYPE_FLOAT, 0, IDS_LUMA_OFFSET, 
         p_default, 0.0f,
         p_range,    0.0f, 1.0f,
-        end, 
-   end
+        p_end, 
+   p_end
    );
 
 NifShader::NifShader() 
@@ -763,8 +779,8 @@ void NifShader::Illum(ShadeContext &sc, IllumParams &ip)
 
             ip.specIllumOut += s * rj * I * Cs;
 
-         } // end, if specular
-      }  // end, illuminate
+         } // p_end, if specular
+      }  // p_end, illuminate
 
    } // for each light
 
@@ -881,7 +897,7 @@ public:
       } else
          UpdateOpacity();  // always update opacity since it's not in validity computations
    }     
-   BOOL KeyAtCurTime(int id) { return pShader->KeyAtTime(id,curTime); } 
+   //BOOL KeyAtCurTime(int id) { return pShader->KeyAtTime(id,curTime); } 
    void ActivateDlg( BOOL dlgOn ){ isActive = dlgOn; }
    HWND GetHWnd(){ return hRollup; }
    void NotifyChanged(){ pShader->NotifyChanged(); }
@@ -943,8 +959,11 @@ ShaderParamDlg* NifShader::CreateParamDialog(HWND hOldRollup, HWND hwMtlEdit, IM
    return (ShaderParamDlg*)pDlg; 
 }
 
-RefResult NifShader::NotifyRefChanged(Interval changeInt, RefTargetHandle hTarget, 
-                             PartID& partID, RefMessage message ) 
+#if VERSION_3DSMAX < (17000<<16) // Version 17 (2015)
+RefResult NifShader::NotifyRefChanged(Interval changeInt, RefTargetHandle hTarget, PartID& partID, RefMessage message)
+#else
+RefResult NifShader::NotifyRefChanged(const Interval& changeInt, RefTargetHandle hTarget, PartID& partID, RefMessage message, BOOL propagate)
+#endif
 {
    switch (message) {
       case REFMSG_CHANGE:

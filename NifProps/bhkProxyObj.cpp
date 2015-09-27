@@ -83,7 +83,11 @@ public:
    void BeginEditParams( IObjParam  *ip, ULONG flags,Animatable *prev);
    void EndEditParams( IObjParam *ip, ULONG flags,Animatable *next);
    RefTargetHandle Clone(RemapDir& remap);
-   TCHAR *GetObjectName() { return GetString(IDS_RB_PROXY); }
+#if VERSION_3DSMAX < (17000<<16) // Version 17 (2015)
+   TCHAR *                 GetObjectName() { return _T(GetString(IDS_RB_PROXY)); }
+#else
+   const MCHAR*             GetObjectName() { return GetString(IDS_RB_PROXY); }
+#endif
 
    int	NumParamBlocks() { return 1; }					// return number of ParamBlocks in this instance
    IParamBlock2* GetParamBlock(int i) { return pblock2; } // return i'th ParamBlock
@@ -133,7 +137,7 @@ public:
    const TCHAR *	ClassName() { return GetString(IDS_RB_PROXY_CLASS); }
    SClass_ID		SuperClassID() { return HELPER_CLASS_ID; }
    Class_ID		   ClassID() { return BHKPROXYOBJECT_CLASS_ID; }
-   const TCHAR* 	Category() { return "NifTools"; }
+   const TCHAR* 	Category() { return TEXT("NifTools"); }
 
    const TCHAR*	InternalName() { return _T("bhkProxyShape"); }	// returns fixed parsable name (scripter-visible name)
    HINSTANCE		HInstance() { return hInstance; }			// returns owning module handle
@@ -169,67 +173,67 @@ static ParamBlockDesc2 param_blk (
     // params
     PB_MATERIAL, _T("material"), TYPE_INT, P_ANIMATABLE,	IDS_DS_MATERIAL,
       p_default,	NP_INVALID_HVK_MATERIAL,
-      end,
+      p_end,
 
     PB_BOUND_TYPE, 	_T("boundType"),	TYPE_INT, 0, IDS_BV_BOUNDING_TYPE,
 	  p_default, 		0, 
 	  p_range, 			0, 5, 
 	  p_ui, 			list_params,	TYPE_RADIO, 7, IDC_RDO_NO_COLL, IDC_RDO_AXIS_ALIGNED_BOX, IDC_RDO_STRIPS_SHAPE, IDC_RDO_PACKED_STRIPS, IDC_RDO_CONVEX, IDC_RDO_CAPSULE, IDC_RDO_OBB,
-	  end,
+	  p_end,
 
 	PB_MESHLIST,   _T("meshProxy"),  TYPE_INODE_TAB,		0,	P_AUTO_UI|P_VARIABLE_SIZE,	IDS_MESHLIST,
 	  p_ui,       list_params, TYPE_NODELISTBOX, IDC_LIST1,IDC_ADD,0,IDC_REMOVE,
-	  end,
+	  p_end,
 
     PB_CENTER,   _T("center"),  TYPE_POINT3,  P_TRANSIENT,	IDS_CENTER,
-	  end,
+	  p_end,
 
 
 	PB_OPT_ENABLE,	_T("enableOptimize"), TYPE_BOOL, 0, IDS_OPT_ENABLE,
 	  p_default, 	FALSE, 
 	  p_ui,			opt_params, TYPE_SINGLECHEKBOX, IDC_OPT_ENABLE,
-	  end,
+	  p_end,
 
 	PB_FACETHRESH,	_T("faceThresh"),	TYPE_FLOAT, P_RESET_DEFAULT, IDS_OPT_FACETHRESH,
 	  p_default, 	0.1f, 
 	  p_range, 		0.0f, 90.0f, 
 	  p_ui,			opt_params, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_OPT_FACETHRESH, IDC_OPT_FACETHRESHSPIN, 0.01f,
 	  p_uix,		opt_params,
-	  end,
+	  p_end,
 
 	PB_EDGETHRESH,		_T("edgeThresh"),		TYPE_FLOAT, 0, IDS_OPT_EDGETHRESH,
 	  p_default, 	0.1f, 
 	  p_range, 		0.0f, 90.0f, 
 	  p_ui,			opt_params, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_OPT_EDGETHRESH, IDC_OPT_EDGETHRESHSPIN, 0.01f,
 	  p_uix,		opt_params,
-	  end,
+	  p_end,
 
 	PB_BIAS,		_T("bias"),		TYPE_FLOAT, 0, IDS_OPT_BIAS,
 	  p_default, 	0.1f, 
 	  p_range, 		0.0f, 1.0f, 
 	  p_ui,			opt_params, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_OPT_BIAS, IDC_OPT_BIASSPIN, 0.01f,
 	  p_uix,		opt_params,
-	  end,
+	  p_end,
 
 	PB_MAXEDGE,		_T("maxEdge"),		TYPE_FLOAT, 0, IDS_OPT_MAXEDGE,
 	  p_default, 	0.0f, 
 	  p_range, 		0.0f, 1000.0f, 
 	  p_ui,			opt_params, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_OPT_MAXEDGE, IDC_OPT_MAXEDGESPIN, SPIN_AUTOSCALE,
 	  p_uix,		opt_params,
-	  end,
+	  p_end,
 
 	PB_LAYER, _T("layer"), TYPE_INT, P_ANIMATABLE,	IDS_DS_LAYER,
 	  p_default,	NP_DEFAULT_HVK_LAYER,
-	  end,
+	  p_end,
 
     PB_FILTER, _T("filter"), TYPE_INT, P_ANIMATABLE,	IDS_DS_FILTER,
 	  p_default,	NP_DEFAULT_HVK_FILTER,
 	  p_range, 		0, 255, 
 	  p_ui,			subshape_params, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_ED_FILTER, IDC_SP_FILTER, 0.01f,
 	  p_uix,		subshape_params,
-	  end,
+	  p_end,
 
-    end
+    p_end
     );
 
 // bug in pb desc? forces us to use this rather than in inline version
@@ -359,8 +363,8 @@ INT_PTR ProxyParamDlgProc::DlgProc(TimeValue t,IParamMap2 *map,HWND hWnd,UINT ms
    case WM_INITDIALOG: 
       {
 		  mCbMaterial.init(GetDlgItem(hWnd, IDC_CB_MATERIAL));
-		  mCbMaterial.add("<Default>");
-		  for (const char **str = NpHvkMaterialNames; *str; ++str)
+		  mCbMaterial.add(TEXT("<Default>"));
+		  for (const TCHAR **str = NpHvkMaterialNames; *str; ++str)
 			  mCbMaterial.add(*str);
 		  Interval valid;
 		  int sel = NP_INVALID_HVK_MATERIAL;
@@ -444,7 +448,7 @@ namespace
 		case WM_INITDIALOG:
 			{
 				mCbLayer.init(GetDlgItem(hWnd, IDC_CB_LAYER));
-				for (const char **str = NpHvkLayerNames; *str; ++str)
+				for (const TCHAR **str = NpHvkLayerNames; *str; ++str)
 					mCbLayer.add(*str);
 
 				int sel = NP_DEFAULT_HVK_LAYER;

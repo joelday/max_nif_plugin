@@ -1,34 +1,50 @@
                   NifPlugins for 3ds Max
                   ======================
 
+    ATTENTION:
+    ----------
+    This is not the officially maintained edition of the NifTools plugin
+    
+    
+    Description
+    -----------    
     This document describes the how to setup your build environment to use this 
      project.
 
-    Report problems and ask questions here:
-    
-        http://niftools.sourceforge.net/forum/viewforum.php?f=6
-        
-    A tutorial on how to use the exporter and utility plugins can be found here:
-    
-        http://www.silgrad.com/wbb2/thread.php?threadid=2477    
         
     Enjoy!
 
     
     Requirements
     ------------
-      Microsoft Visual Studio 2005
-        - Visual C++ Express Edition 
-          URL: http://msdn.microsoft.com/vstudio/express/visualc/download/
+      Microsoft Visual Studio 2015
+        - Visual C++ Express Edition is sufficient
 
     Installation
     ------------
+    1. Check out max_nif_plugin from github.com
+      git clone --recursive git://github.com/figment/max_nif_plugin.git max_nif_plugin
+      git remote add upstream git://github.com/niflib/max_nif_plugin.git
+      
+    2. In the same root folder checkout niflib from github.com
+      git clone --recursive git://github.com/figment/niflib.git niflib
+      git remote add upstream git://github.com/niflib/niflib.git
+    
+    3. If you branch these then you need to fix the submodules in niflib
+       and that is not a easy to use workflow
             
+    4. Edit User_Settings.props to match 3ds max SDK installation directories
+    
+    5. Run makeconfig.bat from command line with git and sed available
+    
+    6. To build 3ds Max 2016, select "Release - Max 2016"  and "x64" and build
+    
+    
  
     Copyright
     ---------
       
-    Copyright (c) 2006, NIF File Format Library and Tools. All rights reserved.
+    Copyright (c) 2015, NIF File Format Library and Tools. All rights reserved.
     
     Legal
     -----

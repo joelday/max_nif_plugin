@@ -19,7 +19,7 @@ HISTORY:
 using namespace Niflib;
 
 static INT_PTR CALLBACK MaxNifImportOptionsDlgProc(HWND hWnd,UINT message,WPARAM wParam,LPARAM lParam) {
-   static KFMImporter *imp = NULL;
+   static KFMImporter *imp = nullptr;
    static DWORD dlgRes = IDCANCEL; 
 
    switch(message) {
@@ -28,9 +28,9 @@ static INT_PTR CALLBACK MaxNifImportOptionsDlgProc(HWND hWnd,UINT message,WPARAM
             dlgRes = IDCANCEL;
 
             // Append file version to dialog
-            TSTR version = GetFileVersion(NULL);
+            TSTR version = GetFileVersion((LPTSTR)nullptr);
             if (!version.isNull()) {
-               char buffer[256];
+               TCHAR buffer[256];
                GetWindowText(hWnd, buffer, _countof(buffer));
                _tcscat(buffer, TEXT(" "));
                _tcscat(buffer, version);
@@ -74,11 +74,11 @@ static INT_PTR CALLBACK MaxNifImportOptionsDlgProc(HWND hWnd,UINT message,WPARAM
                   return TRUE;
 
                case IDC_LBL_LINK:
-                  ShellExecute(hWnd, "open", imp->webSite, NULL, NULL, SW_SHOWNORMAL);
+                  ShellExecute(hWnd, TEXT("open"), imp->webSite, nullptr, nullptr, SW_SHOWNORMAL);
                   break;
 
                case IDC_LBL_WIKI:
-                  ShellExecute(hWnd, "open", imp->wikiSite, NULL, NULL, SW_SHOWNORMAL);
+                  ShellExecute(hWnd, TEXT("open"), imp->wikiSite, nullptr, nullptr, SW_SHOWNORMAL);
                   break;
                }
             }

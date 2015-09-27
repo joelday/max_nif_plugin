@@ -336,7 +336,12 @@ inline Color ConvertMAXScriptToC<Color>::cvt(Value* val)
 #endif
 }
 
-inline LPTSTR ConvertMAXScriptToC<LPTSTR>::cvt(Value* val)
+inline LPCTSTR ConvertMAXScriptToC<LPCTSTR>::cvt(Value* val)
+{
+	return val->to_string();
+}
+
+inline TSTR ConvertMAXScriptToC<TSTR>::cvt(Value* val)
 {
 	return val->to_string();
 }

@@ -46,9 +46,9 @@ public:
 
    // Biped/Bones related settings
    bool importBones;
-   string skeleton;
+   tstring skeleton;
    float bipedHeight;
-   string skeletonCheck;
+   tstring skeletonCheck;
    float bipedAngle;
    float bipedAnkleAttach;
    bool bipedTrianglePelvis;
@@ -59,18 +59,19 @@ public:
    bool removeUnusedImportedBones;
    bool forceRotation;
    bool browseForSkeleton;
-   string defaultSkeletonName;
+   tstring defaultSkeletonName;
    float minBoneWidth;
    float maxBoneWidth;
    float boneWidthToLengthRatio;
    bool createNubsForBones;
-   stringlist dummyNodeMatches;
+   tstringlist dummyNodeMatches;
    bool convertBillboardsToDummyNodes;
    bool uncontrolledDummies;
    bool ignoreRootNode;
    bool autoDetect;
-   stringlist rotate90Degrees;
+   tstringlist rotate90Degrees;
    bool supportPrnStrings;
+   bool importBonesAsDummy;
 
    // Animation related Settings
    bool replaceTCBRotationWithBezier;
@@ -88,13 +89,14 @@ public:
    float weldVertexThresh;
 
    bool dummyBonesAsLines;
+   int unnamedCounter;
 
    vector<Niflib::NiObjectRef> blocks;
    vector<Niflib::NiNodeRef> nodes;
-   map<string,int> ctrlCount; // counter for number of controllers referencing a node
+   map<tstring,int> ctrlCount; // counter for number of controllers referencing a node
 
    typedef map<Niflib::NiObjectNETRef, INode*> NodeToNodeMap;
-   typedef map<string, INode*, ltstr> NameToNodeMap;
+   typedef map<tstring, INode*, ltstr> NameToNodeMap;
    NodeToNodeMap nodeMap;
    NameToNodeMap nodeNameMap;
 
@@ -103,12 +105,13 @@ public:
    virtual void Initialize();
    virtual void ReadBlocks();
    void BuildNodes();
+   void BuildNodes(Niflib::NiNodeRef object, vector<Niflib::NiNodeRef>& nodes);
 
    // Ini File related routines
    virtual void LoadIniSettings();
    virtual void SaveIniSettings();
 
-   void ApplyAppSettings();
+   void ApplyAppSettings(bool initialize = false);
 
    bool HasSkeleton();
    bool IsBiped();
@@ -117,7 +120,7 @@ public:
    void ImportBipeds(vector<Niflib::NiNodeRef>& blocks);
    void AlignBiped(IBipMaster* master, Niflib::NiNodeRef block);
    bool ImportMeshes(Niflib::NiNodeRef block);
-   string FindImage(const string& name);
+   tstring FindImage(const tstring& name);
 
    bool ImportUPB(INode *node, Niflib::NiNodeRef block);
 
@@ -136,15 +139,15 @@ public:
    bool ImportSkin(ImpNode *node, Niflib::NiTriBasedGeomRef triGeom, int v_start=0);
    Texmap* CreateTexture(Niflib::TexDesc& desc);
    Texmap* CreateTexture(Niflib::NiTexturePropertyRef desc);
-	Texmap* CreateTexture(const string& name);
+	Texmap* CreateTexture(const tstring& name);
    Texmap* CreateNormalBump(LPCTSTR name, Texmap* nmap);
    Texmap* CreateMask(LPCTSTR name, Texmap* nmap, Texmap* mask);
    
-   INode *CreateBone(const string& name, Point3 startPos, Point3 endPos, Point3 zAxis);
-   INode *CreateHelper(const string& name, Point3 startPos);
-   INode *CreateCamera(const string& name);
+   INode *CreateBone(const tstring& name, Point3 startPos, Point3 endPos, Point3 zAxis);
+   INode *CreateHelper(const tstring& name, Point3 startPos);
+   INode *CreateCamera(const tstring& name);
 
-   INode *CreateImportNode(const char *name, Object *obj, INode* parent);
+   INode *CreateImportNode(const TCHAR *name, Object *obj, INode* parent);
 
    bool ImportLights(Niflib::NiNodeRef node);
    bool ImportLights(vector<Niflib::NiLightRef> lights);
@@ -159,10 +162,14 @@ public:
    INode *GetNode(Niflib::NiObjectNETRef obj);
 
    void RegisterNode(const string& name, INode* inode);
+   void RegisterNode(const wstring& name, INode* inode);
    INode *GetNode(const string& name);
+   INode *GetNode(const wstring& name);
    INode *GetNode(const TSTR& name);
 
-   string GetSkeleton(AppSettings *appSettings);
+   void SetNodeName(INode* inode, const LPCTSTR name);
+
+   tstring GetSkeleton(AppSettings *appSettings);
 
    bool ShowDialog();
    virtual bool DoImport();

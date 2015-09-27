@@ -155,7 +155,7 @@ FPInterfaceDesc thebhkRigidBodyInterface(
          "Bullet", 6,
          "User", 7,
          "Null", 8,
-   end);
+   p_end);
 
 FPInterfaceDesc *bhkRigidBodyInterface::GetDesc() {
    return &thebhkRigidBodyInterface;
@@ -311,15 +311,15 @@ INT_PTR RigidBodyParamDlgProc::DlgProc(TimeValue t,IParamMap *map,HWND hWnd,UINT
          //   mCbMaterial.add(*str);
 
          mCbLayer.init(GetDlgItem(hWnd, IDC_CB_LAYER));
-         for (const char **str = NpHvkLayerNames; *str; ++str)
+         for (const TCHAR **str = NpHvkLayerNames; *str; ++str)
             mCbLayer.add(*str);
 
          mCbMotionSystem.init(GetDlgItem(hWnd, IDC_CB_MOTION_SYSTEM));         
-         for (const char **str = NpHvkMotionSystems; *str; ++str)
+         for (const TCHAR **str = NpHvkMotionSystems; *str; ++str)
             mCbMotionSystem.add(*str);
 
          mCbQualityType.init(GetDlgItem(hWnd, IDC_CB_QUALITY_TYPE));
-         for (const char **str = NpHvkQualityTypes; *str; ++str)
+         for (const TCHAR **str = NpHvkQualityTypes; *str; ++str)
             mCbQualityType.add(*str);
 
          Update(t);

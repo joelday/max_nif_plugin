@@ -1,0 +1,8 @@
+/Build/*.user
+/Temp
+/Staging
+/ipch
+/Debug
+/.vs
+/*.opensdf
+/*.sdf

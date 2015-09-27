@@ -1,0 +1,136 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+Copyright (c) 2007, NIF File Format Library and Tools
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+   * Redistributions of source code must retain the above copyright
+     notice, this list of conditions and the following disclaimer.
+
+   * Redistributions in binary form must reproduce the above
+     copyright notice, this list of conditions and the following
+     disclaimer in the documentation and/or other materials provided
+     with the distribution.
+
+   * Neither the name of the NIF File Format Library and Tools
+     project nor the names of its contributors may be used to endorse
+     or promote products derived from this software without specific
+     prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+-->
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets">
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros">
+    <GMAXINSTALLPATH12>$(SystemDrive)\gmax12</GMAXINSTALLPATH12>
+    <MAXINSTALLPATH40>$(SystemDrive)\3dsmax4</MAXINSTALLPATH40>
+    <MAXINSTALLPATH42>$(SystemDrive)\3dsmax42</MAXINSTALLPATH42>
+    <MAXINSTALLPATH50>$(SystemDrive)\3dsmax5</MAXINSTALLPATH50>
+    <MAXINSTALLPATH60>$(SystemDrive)\3dsmax6</MAXINSTALLPATH60>
+    <MAXINSTALLPATH70>$(SystemDrive)\3dsmax7</MAXINSTALLPATH70>
+    <MAXINSTALLPATH80>$(SystemDrive)\3dsmax8</MAXINSTALLPATH80>
+    <MAXINSTALLPATH90>$(ProgramFiles)\AutoDesk\3ds Max 9 SDK</MAXINSTALLPATH90>
+    <MAXINSTALLPATH2008>$(ProgramFiles)\AutoDesk\3ds Max 2008 SDK</MAXINSTALLPATH2008>
+    <MAXINSTALLPATH2009>$(ProgramFiles)\AutoDesk\3ds Max 2009 SDK</MAXINSTALLPATH2009>
+    <MAXINSTALLPATH2010>$(ProgramFiles)\AutoDesk\3ds Max 2010 SDK</MAXINSTALLPATH2010>
+    <MAXINSTALLPATH2011>$(ProgramFiles)\AutoDesk\3ds Max 2011 SDK</MAXINSTALLPATH2011>
+    <MAXINSTALLPATH2012>$(ProgramFiles)\AutoDesk\3ds Max 2012 SDK</MAXINSTALLPATH2012>
+    <MAXINSTALLPATH2013>$(ProgramFiles)\AutoDesk\3ds Max 2013 SDK</MAXINSTALLPATH2013>
+    <MAXINSTALLPATH2014>$(ProgramFiles)\AutoDesk\3ds Max 2014 SDK</MAXINSTALLPATH2014>
+    <MAXINSTALLPATH2015>$(ProgramFiles)\AutoDesk\3ds Max 2015 SDK</MAXINSTALLPATH2015>
+    <MAXINSTALLPATH2016>$(ProgramFiles)\AutoDesk\3ds Max 2016 SDK</MAXINSTALLPATH2016>
+  </PropertyGroup>
+  <PropertyGroup>
+    <_ProjectFileVersion>14.0.23107.0</_ProjectFileVersion>
+  </PropertyGroup>
+  <ItemDefinitionGroup />
+  <ItemGroup>
+    <BuildMacro Include="GMAXINSTALLPATH12">
+      <Value>$(GMAXINSTALLPATH12)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="MAXINSTALLPATH40">
+      <Value>$(MAXINSTALLPATH40)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="MAXINSTALLPATH42">
+      <Value>$(MAXINSTALLPATH42)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="MAXINSTALLPATH50">
+      <Value>$(MAXINSTALLPATH50)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="MAXINSTALLPATH60">
+      <Value>$(MAXINSTALLPATH60)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="MAXINSTALLPATH70">
+      <Value>$(MAXINSTALLPATH70)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="MAXINSTALLPATH80">
+      <Value>$(MAXINSTALLPATH80)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="MAXINSTALLPATH90">
+      <Value>$(MAXINSTALLPATH90)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="MAXINSTALLPATH2008">
+      <Value>$(MAXINSTALLPATH2008)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="MAXINSTALLPATH2009">
+      <Value>$(MAXINSTALLPATH2009)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="MAXINSTALLPATH2010">
+      <Value>$(MAXINSTALLPATH2010)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="MAXINSTALLPATH2011">
+      <Value>$(MAXINSTALLPATH2011)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="MAXINSTALLPATH2012">
+      <Value>$(MAXINSTALLPATH2012)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="MAXINSTALLPATH2013">
+      <Value>$(MAXINSTALLPATH2013)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="MAXINSTALLPATH2014">
+      <Value>$(MAXINSTALLPATH2014)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="MAXINSTALLPATH2015">
+      <Value>$(MAXINSTALLPATH2015)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="MAXINSTALLPATH2016">
+      <Value>$(MAXINSTALLPATH2016)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+  </ItemGroup>
+  <!--
+  Uncomment and fix the below settings to match your machine or define the macros in your 
+  environment settings.
+  -->
+</Project>

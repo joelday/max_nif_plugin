@@ -82,7 +82,11 @@ public:
    void BeginEditParams( IObjParam  *ip, ULONG flags,Animatable *prev);
    void EndEditParams( IObjParam *ip, ULONG flags,Animatable *next);
    RefTargetHandle Clone(RemapDir& remap);
-   TCHAR *GetObjectName() { return GetString(IDS_RB_LIST); }
+#if VERSION_3DSMAX < (17000<<16) // Version 17 (2015)
+   TCHAR *                 GetObjectName() { return _T(GetString(IDS_RB_LIST)); }
+#else
+   const MCHAR*             GetObjectName() { return GetString(IDS_RB_LIST); }
+#endif
 
    int	NumParamBlocks() { return 1; }					// return number of ParamBlocks in this instance
    IParamBlock2* GetParamBlock(int i) { return pblock2; } // return i'th ParamBlock
@@ -127,7 +131,7 @@ public:
    const TCHAR *	ClassName() { return GetString(IDS_RB_LIST_CLASS); }
    SClass_ID		SuperClassID() { return HELPER_CLASS_ID; }
    Class_ID		   ClassID() { return BHKLISTOBJECT_CLASS_ID; }
-   const TCHAR* 	Category() { return "NifTools"; }
+   const TCHAR* 	Category() { return TEXT("NifTools"); }
 
    const TCHAR*	InternalName() { return _T("bhkListShape"); }	// returns fixed parsable name (scripter-visible name)
    HINSTANCE		HInstance() { return hInstance; }			// returns owning module handle
@@ -159,13 +163,13 @@ static ParamBlockDesc2 param_blk (
     // params
     PB_MATERIAL, _T("material"), TYPE_INT, P_ANIMATABLE,	IDS_DS_MATERIAL,
       p_default,	NP_DEFAULT_HVK_MATERIAL,
-      end,
+      p_end,
 
 	PB_MESHLIST,   _T("meshList"),  TYPE_INODE_TAB,		0,	P_AUTO_UI|P_VARIABLE_SIZE,	IDS_MESHLIST,
 	  p_ui,       list_params, TYPE_NODELISTBOX, IDC_LIST1,IDC_ADD,0,IDC_REMOVE,
-	  end,
+	  p_end,
 
-    end
+    p_end
     );
 
 // bug in pb desc? forces us to use this rather than in inline version
@@ -295,8 +299,8 @@ INT_PTR ListParamDlgProc::DlgProc(TimeValue t,IParamMap2 *map,HWND hWnd,UINT msg
    case WM_INITDIALOG: 
       {
 		  mCbMaterial.init(GetDlgItem(hWnd, IDC_CB_MATERIAL));
-		  mCbMaterial.add("<Default>");
-		  for (const char **str = NpHvkMaterialNames; *str; ++str)
+		  mCbMaterial.add(TEXT("<Default>"));
+		  for (const TCHAR **str = NpHvkMaterialNames; *str; ++str)
 			  mCbMaterial.add(*str);
 		  Interval valid;
 		  int sel = NP_INVALID_HVK_MATERIAL;

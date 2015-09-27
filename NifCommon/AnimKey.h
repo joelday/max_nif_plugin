@@ -146,7 +146,7 @@ inline int GetKeys(Control *subCtrl, vector<T>& keys, float time)
          ikeys->GetKey(i, key);
          keys.push_back( MapKey<T>(*key, time) );
       }
-      return keys.size();
+      return static_cast<int>(keys.size());
    }
    return 0;
 }

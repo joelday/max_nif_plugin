@@ -19,7 +19,7 @@ HISTORY:
 class AppSettings
 {
 public:
-   AppSettings(const std::string& name) 
+   AppSettings(const tstring& name) 
       : Name(name)
       , parsedImages(false) 
       , useSkeleton(false)
@@ -30,72 +30,73 @@ public:
 	  , doNotReuseExistingBones(false)
    {}
 
-   std::string Name;
-   std::string rootPath;
+   tstring Name;
+   tstring rootPath;
    bool parsedImages;
-   stringlist searchPaths;
-   stringlist textureRootPaths;
-   stringlist rootPaths;
-   stringlist extensions;
-   std::string Skeleton;
+   tstringlist searchPaths;
+   tstringlist textureRootPaths;
+   tstringlist rootPaths;
+   tstringlist extensions;
+   tstring Skeleton;
    bool useSkeleton;
    bool goToSkeletonBindPosition;
    bool disableCreateNubsForBones;
    int textureUseFullPath;
    NameValueCollection Environment;
    NameValueCollection imgTable;
-   stringlist dummyNodeMatches;
+   tstringlist dummyNodeMatches;
    int applyOverallTransformToSkinAndBones;
-   std::string NiVersion;
+   tstring NiVersion;
    int NiUserVersion;
-	int NiUserVersion2;
-   stringlist rotate90Degrees;
+   int NiUserVersion2;
+   tstringlist rotate90Degrees;
    bool supportPrnStrings;
    bool doNotReuseExistingBones;
-   string skeletonCheck;
+   tstring skeletonCheck;
 
    static void Initialize(Interface *gi);
-   void ReadSettings(std::string iniFile);
+   void ReadSettings(tstring iniFile);
    void WriteSettings(Interface *gi);
-   std::string FindImage(const std::string& fname);
+   tstring FindImage(const tstring& fname);
 
    // Check whether the given file is a child of the root paths
-   bool IsFileInRootPaths(const std::string& fname);
+   bool IsFileInRootPaths(const tstring& fname);
 
    // Return the Relative Texture Path for filename or empty
-   std::string GetRelativeTexPath(const std::string& fname, const std::string& prefix);
+   tstring GetRelativeTexPath(const tstring& fname, const tstring& prefix);
+   tstring GetRelativeTexPath(LPCTSTR fname, LPCTSTR prefix);
 
    template<typename T>
-   inline T GetSetting(std::string setting){
+   inline T GetSetting(tstring setting){
       T v;
       NameValueCollection::iterator itr = Environment.find(setting);
       if (itr != Environment.end()){
-         stringstream sstr((*itr).second);
+         tstringstream sstr((*itr).second);
          sstr >> v;
       }
       return v;
    }
    template<>
-   inline std::string GetSetting(std::string setting){
+   inline tstring GetSetting(tstring setting){
       NameValueCollection::iterator itr = Environment.find(setting);
       if (itr != Environment.end())
          return (*itr).second;
-      return std::string();
+      return tstring();
    }
 
    template<typename T>
-   inline T GetSetting(std::string setting, T Default){
+   inline T GetSetting(tstring setting, T Default){
       NameValueCollection::iterator itr = Environment.find(setting);
       if (itr != Environment.end()){
          T v;
-         stringstream sstr((*itr).second);
+         tstringstream sstr((*itr).second);
          sstr >> v;
          return v;
       }
       return Default;
    }
    template<>
-   inline std::string GetSetting(std::string setting, std::string Default){
+   inline tstring GetSetting(tstring setting, tstring Default){
       NameValueCollection::iterator itr = Environment.find(setting);
       if (itr != Environment.end())
          return (*itr).second;
@@ -110,10 +111,10 @@ struct AppSettingsNameEquivalence : public ltstr
    bool operator()(const AppSettings& n1, const AppSettings& n2) const { 
       return ltstr::operator()(n1.Name, n2.Name);
    }
-   bool operator()(const string& n1, const AppSettings& n2) const { 
+   bool operator()(const tstring& n1, const AppSettings& n2) const { 
       return ltstr::operator()(n1, n2.Name);
    }
-   bool operator()(const AppSettings& n1, const string& n2) const { 
+   bool operator()(const AppSettings& n1, const tstring& n2) const { 
       return ltstr::operator()(n1.Name, n2);
    }
 };
@@ -122,13 +123,13 @@ struct AppSettingsNameEquivalence : public ltstr
 //  Global so that I dont have to parse the texture directories on every import
 extern AppSettingsMap TheAppSettings;
 
-inline AppSettings* FindAppSetting(const std::string& name){
+inline AppSettings* FindAppSetting(const tstring& name){
    AppSettingsNameEquivalence equiv;
    for (AppSettingsMap::iterator itr=TheAppSettings.begin(), end = TheAppSettings.end(); itr != end; ++itr){
       if (!equiv(*itr, name) && !equiv(name, *itr))
          return &(*itr);
    }
-   return NULL;
+   return nullptr;
 }
 
 #endif //_APPSETTINGS_H_

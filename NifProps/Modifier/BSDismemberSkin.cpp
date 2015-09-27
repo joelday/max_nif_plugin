@@ -38,70 +38,90 @@ HISTORY:
 
 const EnumLookupType BodyPartFlags[] = 
 {
-   {BP_TORSO, "Torso"},
-   {BP_HEAD, "Head"},
-   {BP_HEAD2, "Head 2"},
-   {BP_LEFTARM, "Left Arm"},
-   {BP_LEFTARM2, "Left Arm 2"},
-   {BP_RIGHTARM, "Right Arm"},
-   {BP_RIGHTARM2, "Right Arm 2"},
-   {BP_LEFTLEG, "Left Leg"},
-   {BP_LEFTLEG2, "Left Leg 2"},
-   {BP_LEFTLEG3, "Left Leg 3"},
-   {BP_RIGHTLEG, "Right Leg"},
-   {BP_RIGHTLEG2, "Right Leg 2"},
-   {BP_RIGHTLEG3, "Right Leg 3"},
-   {BP_BRAIN, "Brain"},
+   {BP_TORSO, TEXT("Torso")},
+   {BP_HEAD, TEXT("Head")},
+   {BP_HEAD2, TEXT("Head 2")},
+   {BP_LEFTARM, TEXT("Left Arm")},
+   {BP_LEFTARM2, TEXT("Left Arm 2")},
+   {BP_RIGHTARM, TEXT("Right Arm")},
+   {BP_RIGHTARM2, TEXT("Right Arm 2")},
+   {BP_LEFTLEG, TEXT("Left Leg")},
+   {BP_LEFTLEG2, TEXT("Left Leg 2")},
+   {BP_LEFTLEG3, TEXT("Left Leg 3")},
+   {BP_RIGHTLEG, TEXT("Right Leg")},
+   {BP_RIGHTLEG2, TEXT("Right Leg 2")},
+   {BP_RIGHTLEG3, TEXT("Right Leg 3")},
+   {BP_BRAIN, TEXT("Brain")},
 
-   {BP_SKY_HEAD, "Skyrim Head"},
-   {BP_SKY_TORSO1, "Skyrim Torso 1"},
-   {BP_SKY_TORSO2, "Skyrim Torso 2"},
-   {BP_SKY_HANDS1, "Skyrim Hands 1"},
-   {BP_SKY_HANDS2, "Skyrim Hands 2"},
-   {BP_SKY_FEET, "Skyrim Feet"},
-   {BP_SKY_UNK1, "Skyrim Unk 1"},
-   {BP_SKY_UNK2, "Skyrim Unk 2"},
-   {BP_SKY_UNK3, "Skyrim Unk 3"},
+	{SBP_30_HEAD, TEXT("Skyrim, Head(Human)")},
+	{SBP_31_HAIR, TEXT("Skyrim, Hair(human)")},
+	{SBP_32_BODY, TEXT("Skyrim, Main body")},
+	{SBP_33_HANDS, TEXT("Skyrim, Hands L/R")},
+	{SBP_34_FOREARMS, TEXT("Skyrim, Forearms L/R")},
+	{SBP_35_AMULET, TEXT("Skyrim, Amulet ")},
+	{SBP_36_RING, TEXT("Skyrim, Ring ")},
+	{SBP_37_FEET, TEXT("Skyrim, Feet L/R ")},
+	{SBP_38_CALVES, TEXT("Skyrim, Calves L/R ")},
+	{SBP_39_SHIELD, TEXT("Skyrim, Shield ")},
+	{SBP_40_TAIL, TEXT("Skyrim, Tail ")},
+	{SBP_41_LONGHAIR, TEXT("Skyrim, Long Hair(Human) ")},
+	{SBP_42_CIRCLET, TEXT("Skyrim, Circlet ")},
+	{SBP_43_EARS, TEXT("Skyrim, Ears ")},
+	{SBP_44_BLOODHEAD, TEXT("Skyrim, Bloodied dragon head ")},
+	{SBP_45_BLOODWINGL, TEXT("Skyrim, Left Bloodied dragon wing, Saddle(Horse) ")},
+	{SBP_46_BLOODWINGR, TEXT("Skyrim, Right Bloodied dragon wing ")},
+	{SBP_47_BLOODTAIL, TEXT("Skyrim, Bloodied dragon tail ")},
+	{SBP_50_DECAPITATEDHEAD, TEXT("Skyrim, Decapitated Head ")},
+	{SBP_51_DECAPITATE, TEXT("Skyrim, Decapitate, neck gore ")},
+	{SBP_61_FX01, TEXT("Skyrim, FX01(Humanoid) ")},
+	{SBP_130_HEAD, TEXT("Skyrim, Head slot, use on full-face helmets ")},
+	{SBP_131_HAIR, TEXT("Skyrim, Hair slot 1, use on hoods ")},
+	{SBP_141_LONGHAIR, TEXT("Skyrim, Hair slot 2, use for longer hair ")},
+	{SBP_142_CIRCLET, TEXT("Skyrim, Circlet slot 1, use for circlets ")},
+	{SBP_143_EARS, TEXT("Skyrim, Ear slot ")},
+	{SBP_150_DECAPITATEDHEAD, TEXT("Skyrim, neck gore on head side ")},
+	{SBP_230_HEAD, TEXT("Skyrim, Head slot, use for neck on character head ")},
 
-   {BP_SECTIONCAP_HEAD, "Section Cap | Head"},
-   {BP_SECTIONCAP_HEAD2, "Section Cap | Head 2"},
-   {BP_SECTIONCAP_LEFTARM, "Section Cap | Left Arm"},
-   {BP_SECTIONCAP_LEFTARM2, "Section Cap | Left Arm 2"},
-   {BP_SECTIONCAP_RIGHTARM, "Section Cap | Right Arm"},
-   {BP_SECTIONCAP_RIGHTARM2, "Section Cap | Right Arm 2"},
-   {BP_SECTIONCAP_LEFTLEG, "Section Cap | Left Leg"},
-   {BP_SECTIONCAP_LEFTLEG2, "Section Cap | Left Leg 2"},
-   {BP_SECTIONCAP_LEFTLEG3, "Section Cap | Left Leg 3"},
-   {BP_SECTIONCAP_RIGHTLEG, "Section Cap | Right Leg"},
-   {BP_SECTIONCAP_RIGHTLEG2, "Section Cap | Right Leg 2"},
-   {BP_SECTIONCAP_RIGHTLEG3, "Section Cap | Right Leg 3"},
-   {BP_SECTIONCAP_BRAIN, "Section Cap | Brain"},
-   {BP_TORSOCAP_HEAD, "Body Cap | Head"},
-   {BP_TORSOCAP_HEAD2, "Body Cap | Head 2"},
-   {BP_TORSOCAP_LEFTARM, "Body Cap | Left Arm"},
-   {BP_TORSOCAP_LEFTARM2, "Body Cap | Left Arm 2"},
-   {BP_TORSOCAP_RIGHTARM, "Body Cap | Right Arm"},
-   {BP_TORSOCAP_RIGHTARM2, "Body Cap | Right Arm 2"},
-   {BP_TORSOCAP_LEFTLEG, "Body Cap | Left Leg"},
-   {BP_TORSOCAP_LEFTLEG2, "Body Cap | Left Leg 2"},
-   {BP_TORSOCAP_LEFTLEG3, "Body Cap | Left Leg 3"},
-   {BP_TORSOCAP_RIGHTLEG, "Body Cap | Right Leg"},
-   {BP_TORSOCAP_RIGHTLEG2, "Body Cap | Right Leg 2"},
-   {BP_TORSOCAP_RIGHTLEG3, "Body Cap | Right Leg 3"},
-   {BP_TORSOCAP_BRAIN, "Body Cap | Brain"},
-   {BP_TORSOSECTION_HEAD, "Body | Head"},
-   {BP_TORSOSECTION_HEAD2, "Body | Head 2"},
-   {BP_TORSOSECTION_LEFTARM, "Body | Left Arm"},
-   {BP_TORSOSECTION_LEFTARM2, "Body | Left Arm 2"},
-   {BP_TORSOSECTION_RIGHTARM, "Body | Right Arm"},
-   {BP_TORSOSECTION_RIGHTARM2, "Body | Right Arm 2"},
-   {BP_TORSOSECTION_LEFTLEG, "Body | Left Leg"},
-   {BP_TORSOSECTION_LEFTLEG2, "Body | Left Leg 2"},
-   {BP_TORSOSECTION_LEFTLEG3, "Body | Left Leg 3"},
-   {BP_TORSOSECTION_RIGHTLEG, "Body | Right Leg"},
-   {BP_TORSOSECTION_RIGHTLEG2, "Body | Right Leg 2"},
-   {BP_TORSOSECTION_RIGHTLEG3, "Body | Right Leg 3"},
-   {BP_TORSOSECTION_BRAIN, "Body | Brain"},
+
+   {BP_SECTIONCAP_HEAD, TEXT("Section Cap | Head")},
+   {BP_SECTIONCAP_HEAD2, TEXT("Section Cap | Head 2")},
+   {BP_SECTIONCAP_LEFTARM, TEXT("Section Cap | Left Arm")},
+   {BP_SECTIONCAP_LEFTARM2, TEXT("Section Cap | Left Arm 2")},
+   {BP_SECTIONCAP_RIGHTARM, TEXT("Section Cap | Right Arm")},
+   {BP_SECTIONCAP_RIGHTARM2, TEXT("Section Cap | Right Arm 2")},
+   {BP_SECTIONCAP_LEFTLEG, TEXT("Section Cap | Left Leg")},
+   {BP_SECTIONCAP_LEFTLEG2, TEXT("Section Cap | Left Leg 2")},
+   {BP_SECTIONCAP_LEFTLEG3, TEXT("Section Cap | Left Leg 3")},
+   {BP_SECTIONCAP_RIGHTLEG, TEXT("Section Cap | Right Leg")},
+   {BP_SECTIONCAP_RIGHTLEG2, TEXT("Section Cap | Right Leg 2")},
+   {BP_SECTIONCAP_RIGHTLEG3, TEXT("Section Cap | Right Leg 3")},
+   {BP_SECTIONCAP_BRAIN, TEXT("Section Cap | Brain")},
+   {BP_TORSOCAP_HEAD, TEXT("Body Cap | Head")},
+   {BP_TORSOCAP_HEAD2, TEXT("Body Cap | Head 2")},
+   {BP_TORSOCAP_LEFTARM, TEXT("Body Cap | Left Arm")},
+   {BP_TORSOCAP_LEFTARM2, TEXT("Body Cap | Left Arm 2")},
+   {BP_TORSOCAP_RIGHTARM, TEXT("Body Cap | Right Arm")},
+   {BP_TORSOCAP_RIGHTARM2, TEXT("Body Cap | Right Arm 2")},
+   {BP_TORSOCAP_LEFTLEG, TEXT("Body Cap | Left Leg")},
+   {BP_TORSOCAP_LEFTLEG2, TEXT("Body Cap | Left Leg 2")},
+   {BP_TORSOCAP_LEFTLEG3, TEXT("Body Cap | Left Leg 3")},
+   {BP_TORSOCAP_RIGHTLEG, TEXT("Body Cap | Right Leg")},
+   {BP_TORSOCAP_RIGHTLEG2, TEXT("Body Cap | Right Leg 2")},
+   {BP_TORSOCAP_RIGHTLEG3, TEXT("Body Cap | Right Leg 3")},
+   {BP_TORSOCAP_BRAIN, TEXT("Body Cap | Brain")},
+   {BP_TORSOSECTION_HEAD, TEXT("Body | Head")},
+   {BP_TORSOSECTION_HEAD2, TEXT("Body | Head 2")},
+   {BP_TORSOSECTION_LEFTARM, TEXT("Body | Left Arm")},
+   {BP_TORSOSECTION_LEFTARM2, TEXT("Body | Left Arm 2")},
+   {BP_TORSOSECTION_RIGHTARM, TEXT("Body | Right Arm")},
+   {BP_TORSOSECTION_RIGHTARM2, TEXT("Body | Right Arm 2")},
+   {BP_TORSOSECTION_LEFTLEG, TEXT("Body | Left Leg")},
+   {BP_TORSOSECTION_LEFTLEG2, TEXT("Body | Left Leg 2")},
+   {BP_TORSOSECTION_LEFTLEG3, TEXT("Body | Left Leg 3")},
+   {BP_TORSOSECTION_RIGHTLEG, TEXT("Body | Right Leg")},
+   {BP_TORSOSECTION_RIGHTLEG2, TEXT("Body | Right Leg 2")},
+   {BP_TORSOSECTION_RIGHTLEG3, TEXT("Body | Right Leg 3")},
+   {BP_TORSOSECTION_BRAIN, TEXT("Body | Brain")},
    {0,  NULL},
 };
 
@@ -118,8 +138,12 @@ class PartSubObjType : public ISubObjType {
    int mIdx;
 public:
    TSTR& GetNameRef() { return name; }
-   void SetName(TCHAR *nm){name = nm;}
+   void SetName(const TCHAR *nm){name = nm;}
+#if VERSION_3DSMAX < (17000<<16) // Version 17 (2015)
    TCHAR *GetName() { return name;}
+#else
+   const MSTR& GetName() { return name; }
+#endif
    MaxIcon *GetIcon() { return NULL; }
 };
 
@@ -194,8 +218,12 @@ public:
 	void GetClassName(TSTR& s) {s = GetString(IDS_RB_BSDSMODIFIER);}  
 	virtual Class_ID ClassID() { return BSDSMODIFIER_CLASS_ID;}		
 	RefTargetHandle Clone(RemapDir& remap /*= DefaultRemapDir()*/);
-	TCHAR *GetObjectName() {return GetString(IDS_RB_BSDSMODIFIER);}
-   void* GetInterface(ULONG id) { 
+#if VERSION_3DSMAX < (17000<<16) // Version 17 (2015)
+	TCHAR *                 GetObjectName() { return _T(GetString(IDS_RB_BSDSMODIFIER)); }
+#else
+	const MCHAR*             GetObjectName() { return GetString(IDS_RB_BSDSMODIFIER); }
+#endif
+	void* GetInterface(ULONG id) {
       return (id == I_BSDISMEMBERSKINMODIFIER) ? (IBSDismemberSkinModifier*)this : Modifier::GetInterface(id); 
    }
 
@@ -254,8 +282,11 @@ public:
 	Animatable* SubAnim(int i) { return GetReference(i); }
 	TSTR SubAnimName(int i) {return GetString (IDS_RB_PARAMETERS);}
 
-	RefResult NotifyRefChanged( Interval changeInt,RefTargetHandle hTarget, 
-	   PartID& partID, RefMessage message);
+#if VERSION_3DSMAX < (17000<<16) // Version 17 (2015)
+	RefResult NotifyRefChanged(Interval changeInt, RefTargetHandle hTarget, PartID& partID, RefMessage message);
+#else
+	RefResult NotifyRefChanged(const Interval& changeInt, RefTargetHandle hTarget, PartID& partID, RefMessage message, BOOL propagate);
+#endif
 
 	void UpdateSelLevelDisplay ();
 	void SelectFrom(int from);
@@ -503,7 +534,7 @@ public:
 	void Redo();
 	int Size() { return 1; }
 	void EndHold() {d->held=FALSE;}
-	TSTR Description() { return TSTR(_T("SelectRestore")); }
+	TSTR Description() { return TSTR(TEXT("SelectRestore")); }
 };
 
 //--- ClassDescriptor and class vars ---------------------------------
@@ -524,7 +555,7 @@ class BSDSClassDesc:public ClassDesc2 {
 	SClass_ID		SuperClassID() { return OSM_CLASS_ID; }
 	Class_ID		ClassID() { return BSDSMODIFIER_CLASS_ID; }
 	const TCHAR* 	Category() { return GetString(IDS_CATEGORY);}
-	const TCHAR * InternalName () { return _T("BSDSModifier"); }
+	const TCHAR * InternalName () { return TEXT("BSDSModifier"); }
 	HINSTANCE HInstance () { return hInstance; }
 };
 
@@ -579,32 +610,32 @@ static ParamBlockDesc2 BSDS_desc ( ms_pblock,
 	ms_by_vertex, _T("byVertex"), TYPE_BOOL, P_RESET_DEFAULT, IDS_BY_VERTEX,
 		p_default, false,
 		p_ui, ms_map_main, TYPE_SINGLECHEKBOX, IDC_MS_SEL_BYVERT,
-		end,
+		p_end,
 
 	ms_ignore_backfacing, _T("ignoreBackfacing"), TYPE_BOOL, P_RESET_DEFAULT, IDS_IGNORE_BACKFACING,
 		p_default, false,
 		p_ui, ms_map_main, TYPE_SINGLECHEKBOX, IDC_MS_IGNORE_BACKFACES,
-		end,
+		p_end,
 
 	ms_matid, _T("materialID"), TYPE_INT, P_TRANSIENT|P_RESET_DEFAULT, IDS_RB_MATERIALID,
 		p_default, 1,
 		p_range, 1, 65535,
 		p_ui, ms_map_main, TYPE_SPINNER, EDITTYPE_INT,
 			IDC_MS_MATID, IDC_MS_MATIDSPIN, .5f,
-		end,
+		p_end,
 
 	ms_ignore_visible, _T("ignoreVisibleEdges"), TYPE_BOOL, P_RESET_DEFAULT, IDS_IGNORE_VISIBLE,
 		p_default, false,
 		p_ui, ms_map_main, TYPE_SINGLECHEKBOX, IDC_MS_IGNORE_VISEDGE,
-		end,
+		p_end,
 
 	ms_planar_threshold, _T("planarThreshold"), TYPE_ANGLE, P_RESET_DEFAULT, IDS_RB_THRESHOLD,
 		p_default, PI/4.0f,	// Default value for angles has to be in radians.
 		p_range, 0.0f, 180.0f,	// but range given in degrees.
 		p_ui, ms_map_main, TYPE_SPINNER, EDITTYPE_POS_FLOAT,
 			IDC_MS_PLANAR, IDC_MS_PLANARSPINNER, .1f,
-		end,
-	end
+		p_end,
+	p_end
 );
 
 static BSDSClassDesc BSDSDesc;
@@ -1094,7 +1125,7 @@ void BSDSModifier::LocalDataChanged() {
          for (int i=0; i<partitions.size(); ++i) {
             TSTR name = EnumToString(flags[i].bodyPart, BodyPartFlags);
             changed |= (name != partitions[i].GetNameRef()) ? true : false;
-            partitions[i].SetName( name );
+            partitions[i].SetName(name);
          }
 
          SetEnableStates ();
@@ -1603,7 +1634,7 @@ IOResult BSDSModifier::SaveLocalData(ISave *isave, LocalModData *ld) {
    for (int i=0; i<n; ++i) {
       BSDSPartitionData& flag = d->flags[i];
       res = isave->Write (&flag.partFlag, sizeof(int), &nb);
-      res = isave->Write (&flag.bodyPart, sizeof(int), &nb);
+      res = isave->Write ((DWORD*)&flag.bodyPart, sizeof(int), &nb);
       res = isave->Write (&flag.selLevel, sizeof(int), &nb);
    }
    isave->EndChunk();
@@ -1648,7 +1679,7 @@ IOResult BSDSModifier::LoadLocalData(ILoad *iload, LocalModData **pld) {
             for (int i=0; i<n; ++i) {
                BSDSPartitionData& flag = d->flags[i];
                res = iload->Read (&flag.partFlag, sizeof(int), &nb);
-               res = iload->Read (&flag.bodyPart, sizeof(int), &nb);
+               res = iload->Read ((DWORD*)&flag.bodyPart, sizeof(int), &nb);
                res = iload->Read (&flag.selLevel, sizeof(int), &nb);
             }
          }
@@ -2405,8 +2436,12 @@ void BSDSModifier::SetNumSelLabel() {
 	SetDlgItemText(hParams,IDC_MS_NUMBER_SEL,buf);
 }
 
-RefResult BSDSModifier::NotifyRefChanged (Interval changeInt, RefTargetHandle hTarget, 
-   		PartID& partID, RefMessage message) {
+#if VERSION_3DSMAX < (17000<<16) // Version 17 (2015)
+RefResult BSDSModifier::NotifyRefChanged(Interval changeInt, RefTargetHandle hTarget, PartID& partID, RefMessage message)
+#else
+RefResult BSDSModifier::NotifyRefChanged(const Interval& changeInt, RefTargetHandle hTarget, PartID& partID, RefMessage message, BOOL propagate)
+#endif
+ {
 	if ((message ==REFMSG_CHANGE) && (hTarget == pblock)) {
 		// if this was caused by a NotifyDependents from pblock, LastNotifyParamID()
 		// will contain ID to update, else it will be -1 => inval whole rollout

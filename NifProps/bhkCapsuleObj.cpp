@@ -29,7 +29,6 @@ HISTORY:
 #ifndef _countof
 #define _countof(x) (sizeof(x)/sizeof((x)[0]))
 #endif
-const float bhkScaleFactor = 7.0f;
 Class_ID BHKCAPSULEOBJECT_CLASS_ID = Class_ID(0x7f8f629a, BHKRIGIDBODYCLASS_DESC.PartB());
 
 class bhkCapsuleObject : public SimpleObject2
@@ -51,7 +50,11 @@ public:
    void BeginEditParams( IObjParam  *ip, ULONG flags,Animatable *prev);
    void EndEditParams( IObjParam *ip, ULONG flags,Animatable *next);
    RefTargetHandle Clone(RemapDir& remap);
-   TCHAR *GetObjectName() { return GetString(IDS_RB_CAPSULE); }
+#if VERSION_3DSMAX < (17000<<16) // Version 17 (2015)
+   TCHAR *                 GetObjectName() { return _T(GetString(IDS_RB_CAPSULE)); }
+#else
+   const MCHAR*             GetObjectName() { return GetString(IDS_RB_CAPSULE); }
+#endif
 
    // Animatable methods		
    void DeleteThis() {delete this;}
@@ -96,7 +99,7 @@ public:
    const TCHAR *	ClassName() { return GetString(IDS_RB_CAPSULE_CLASS); }
    SClass_ID		SuperClassID() { return HELPER_CLASS_ID; }
    Class_ID		   ClassID() { return BHKCAPSULEOBJECT_CLASS_ID; }
-   const TCHAR* 	Category() { return "NifTools"; }
+   const TCHAR* 	Category() { return TEXT("NifTools"); }
 
    const TCHAR*	InternalName() { return _T("bhkCapsule"); }	// returns fixed parsable name (scripter-visible name)
    HINSTANCE		HInstance() { return hInstance; }			// returns owning module handle
@@ -122,6 +125,7 @@ enum CapsuleParamIndicies
    PB_RADIUS1,
    PB_RADIUS2,
    PB_LENGTH,
+   PB_SCALE,
 };
 
 enum { box_params_panel, };
@@ -134,27 +138,33 @@ static ParamBlockDesc2 param_blk (
     // params
     PB_MATERIAL, _T("material"), TYPE_INT, P_ANIMATABLE,	IDS_DS_MATERIAL,
        p_default,	NP_DEFAULT_HVK_MATERIAL,
-       end,
+       p_end,
 
     PB_RADIUS1, _T("radius1"), TYPE_FLOAT, P_ANIMATABLE,	IDS_RB_RADIUS1,
        p_default,	   0.0,
        p_range,		float(0), float(1.0E30),
        p_ui, TYPE_SPINNER, EDITTYPE_UNIVERSE, IDC_RADIUS1, IDC_RADSPINNER1, SPIN_AUTOSCALE,
-       end,
+       p_end,
 
     PB_RADIUS2, _T("radius2"), TYPE_FLOAT, P_ANIMATABLE,	IDS_RB_RADIUS2,
        p_default,	   0.0,
        p_range,		float(0), float(1.0E30),
        p_ui, TYPE_SPINNER, EDITTYPE_UNIVERSE, IDC_RADIUS2, IDC_RADSPINNER2, SPIN_AUTOSCALE,
-       end,
+       p_end,
 
     PB_LENGTH, _T("length"), TYPE_FLOAT, P_ANIMATABLE,	IDS_DS_LENGTH,
        p_default,	   0.0,
        p_range,		float(-1.0E30), float(1.0E30),
        p_ui, TYPE_SPINNER, EDITTYPE_UNIVERSE, IDC_LENGTHEDIT, IDC_LENSPINNER, SPIN_AUTOSCALE,
-       end,
+       p_end,
 
-    end
+    PB_SCALE, _T("scale"), TYPE_FLOAT, P_ANIMATABLE,	IDS_DS_SCALE,
+       p_default,	   6.9969f,
+       p_range,		float(1.0f), float(1000.0f),
+       p_ui, TYPE_SPINNER, EDITTYPE_UNIVERSE, IDC_SCALEEDIT, IDC_SCALESPINNER, SPIN_AUTOSCALE,
+       p_end,
+
+    p_end
     );
 
 // static ClassDesc must be declared after static paramblock
@@ -200,8 +210,8 @@ INT_PTR CapsuleParamDlgProc::DlgProc(TimeValue t,IParamMap2 *map,HWND hWnd,UINT 
    case WM_INITDIALOG: 
       {
 		  mCbMaterial.init(GetDlgItem(hWnd, IDC_CB_MATERIAL));
-		  mCbMaterial.add("<Default>");
-		  for (const char **str = NpHvkMaterialNames; *str; ++str)
+		  mCbMaterial.add(TEXT("<Default>"));
+		  for (const TCHAR **str = NpHvkMaterialNames; *str; ++str)
 			  mCbMaterial.add(*str);
 		  Interval valid;
 		  int sel = NP_INVALID_HVK_MATERIAL;
@@ -275,10 +285,11 @@ void bhkCapsuleObject::BuildMesh(TimeValue t)
    //FixHeight(pblock,t,(pmapParam?pmapParam->GetHWnd():NULL),increate);
    ivalid = FOREVER;
 
-   float radius1, radius2, length;
+   float radius1, radius2, length, scale;
    pblock2->GetValue(PB_RADIUS1,t,radius1,ivalid);
    pblock2->GetValue(PB_RADIUS2,t,radius2,ivalid);
    pblock2->GetValue(PB_LENGTH,t,length,ivalid);
+   pblock2->GetValue(PB_SCALE,t,scale,ivalid);
    if (radius2 == 0.0f) radius2 = radius1;
 
    if (radius1 == 0.0f)
@@ -291,7 +302,8 @@ void bhkCapsuleObject::BuildMesh(TimeValue t)
    }
    else
    {
-      BuildScubaMesh(mesh, segs, smooth, hsegs, radius2*bhkScaleFactor, radius1*bhkScaleFactor, length*bhkScaleFactor);
+      BuildScubaMesh(mesh, segs, smooth, hsegs
+         , radius2*scale, radius1*scale, length*scale);
    }
 }
 
@@ -339,6 +351,7 @@ int CapsuleObjCreateCallBack::proc(ViewExp *vpt,int msg, int point, int flags, I
          }
          ob->pblock2->SetValue(PB_RADIUS1,0,0.0f);
          ob->pblock2->SetValue(PB_RADIUS2,0,0.0f);
+         ob->pblock2->SetValue(PB_SCALE,0,NifPropsGlobals::bhkScaleFactor);
          ob->suspendSnap = TRUE;				
          sp[0] = m;
          p[0] = vpt->SnapPoint(m,m,NULL,SNAP_IN_3D);
@@ -471,7 +484,7 @@ int bhkCapsuleObject::Display(TimeValue t, INode* inode, ViewExp *vpt, int flags
    gw->setTransform(m);
    DWORD rlim = gw->getRndLimits();
 
-   DWORD newrlim = GW_WIREFRAME/*|GW_Z_BUFFER*/;
+   DWORD newrlim = GW_WIREFRAME|GW_BACKCULL|GW_Z_BUFFER/*|GW_Z_BUFFER*/;
 #if VERSION_3DSMAX >= ((5000<<16)+(15<<8)+0) // Version 5+
    newrlim |= GW_EDGES_ONLY;
 #endif

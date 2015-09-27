@@ -11,7 +11,7 @@ public:
 
 	void			init(HWND hWnd);
 
-	int				add(const char *);
+	int				add(const TCHAR *);
 
 	int				count() const;
 	void			select(int i);

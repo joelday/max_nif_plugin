@@ -41,6 +41,8 @@ using Niflib::Vector3;
 
 #define NP_FRN_POS							_T("np_frn_pos")
 
+#define NP_NONAME							_T("np_noname")
+
 #define NP_ANM_PRI							_T("np_anm_pri")
 
 /* default values */

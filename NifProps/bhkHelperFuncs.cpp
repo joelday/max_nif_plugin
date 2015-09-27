@@ -76,7 +76,7 @@ static void MakeQuad(int nverts, Face *f, int a, int b , int c , int d, int sg, 
 void CalcAxisAlignedBox(Mesh& mesh, Box3& box)
 {
 	int nv = mesh.getNumVerts();
-	box.IncludePoints(mesh.getVertPtr(0), nv, NULL);
+	box.IncludePoints(mesh.getVertPtr(0), nv, nullptr);
 }
 
 void CalcAxisAlignedBox(Mesh& mesh, Box3& box, Matrix3 *tm)
@@ -793,27 +793,27 @@ public:
 
 	bool Initialize()
 	{
-		if (hMagicLib == NULL)
+		if (hMagicLib == nullptr)
 		{
-			char curfile[_MAX_PATH];
+			TCHAR curfile[_MAX_PATH];
 			GetModuleFileName(hInstance, curfile, MAX_PATH);
 			PathRemoveFileSpec(curfile);
-			PathAppend(curfile, "NifMagic.dll");
-			hMagicLib = LoadLibraryA( curfile );
-			if (hMagicLib == NULL)
-				hMagicLib = LoadLibraryA( "Nifmagic.dll" );
+			PathAppend(curfile, TEXT("NifMagic.dll"));
+			hMagicLib = LoadLibrary( curfile );
+			if (hMagicLib == nullptr)
+				hMagicLib = LoadLibrary( TEXT("Nifmagic.dll") );
 			CalcCapsule = (fnCalcCapsule)GetProcAddress( hMagicLib, "CalcCapsule" );
 			CalcOrientedBox = (fnCalcOrientedBox)GetProcAddress( hMagicLib, "CalcOrientedBox" );
 			CalcMassProps = (fnCalcMassProps)GetProcAddress( hMagicLib, "CalcMassProps" );
 		}
 		// Now returns TRUE if ANY of the desired methods are present.
 		// Checks for individual methods will need to check both Initialize() and the appropriate Has...() method.
-		return ( NULL != CalcCapsule || NULL != CalcOrientedBox || NULL != CalcMassProps );
+		return ( nullptr != CalcCapsule || nullptr != CalcOrientedBox || nullptr != CalcMassProps );
 	}
 
-	bool HasCalcCapsule() {return NULL != CalcCapsule;}
-	bool HasCalcOrientedBox() {return NULL != CalcOrientedBox;}
-	bool HasCalcMassProps() {return NULL != CalcMassProps;}
+	bool HasCalcCapsule() {return nullptr != CalcCapsule;}
+	bool HasCalcOrientedBox() {return nullptr != CalcOrientedBox;}
+	bool HasCalcMassProps() {return nullptr != CalcMassProps;}
 	void DoCalcCapsule(Mesh &mesh, Point3& pt1, Point3& pt2, float& r1, float& r2)
 	{
 		if (Initialize() && HasCalcCapsule())

@@ -36,7 +36,7 @@ NifImporter::NifImporter()
 {
 }
 
-INode* NifImporter::CreateImportNode(const char *name, Object *obj, INode* parent)
+INode* NifImporter::CreateImportNode(const TCHAR *name, Object *obj, INode* parent)
 {
 #if USE_IMPORTNODE
 	ImpNode* impNode = i->CreateNode();
@@ -58,8 +58,7 @@ INode* NifImporter::CreateImportNode(const char *name, Object *obj, INode* paren
 #else
 	if ( INode* n = gi->CreateObjectNode(obj) )
 	{
-		n->SetName(const_cast<TCHAR*>(name));
-		this->RegisterNode(name, n);
+		this->SetNodeName(n, name);
 		if (parent)
 		{
 			parent->AttachChild(n);
@@ -67,7 +66,7 @@ INode* NifImporter::CreateImportNode(const char *name, Object *obj, INode* paren
 		}
 		return n;
 	}
-	return NULL;
+	return nullptr;
 	
 #endif
 }
@@ -78,17 +77,26 @@ void NifImporter::ReadBlocks()
 	Niflib::NifInfo info;
 	Niflib::NifOptions opts;
 	opts.exceptionOnErrors = false;
-	root = ReadNifTree(name, &info, &opts);
+	root = ReadNifTree(T2AString(name), &info, &opts);
 	nifVersion = info.version;
 	userVersion = info.userVersion;
+	this->unnamedCounter = 0;
 	BuildNodes();
 }
 
 
-static void BuildNodes(NiNodeRef object, vector<NiNodeRef>& nodes)
+void NifImporter::BuildNodes(NiNodeRef object, vector<NiNodeRef>& nodes)
 {
    if (!object)
       return;
+
+   // Handle nodes without names by setting before importing.  Really a hack but so is editing in nifskope and not settings names
+   string name = object->GetName();
+   if (name.empty())
+   {
+	   name = FormatString("noname:%d", ++unnamedCounter);
+	   object->SetName(name);
+   }
    nodes.push_back(object);
    vector<NiNodeRef> links = DynamicCast<NiNode>(object->GetChildren());
    for (vector<NiNodeRef>::iterator itr = links.begin(), end = links.end(); itr != end; ++itr)
@@ -97,7 +105,7 @@ static void BuildNodes(NiNodeRef object, vector<NiNodeRef>& nodes)
 
 void NifImporter::BuildNodes()
 {
-   ::BuildNodes(root, nodes);
+   BuildNodes(root, nodes);
    std::sort(nodes.begin(), nodes.end(), NodeEquivalence());
 }
 
@@ -109,19 +117,19 @@ void NifImporter::Initialize()
          GoToSkeletonBindPosition(nodes);
 
       // Only support biped if CreateNewBiped can be found.
-      useBiped &= (Max8CreateNewBiped != NULL || Max7CreateNewBiped != NULL);
+      useBiped &= (Max8CreateNewBiped != nullptr || Max7CreateNewBiped != nullptr);
 
       hasSkeleton = HasSkeleton();
       isBiped = IsBiped();
       skeleton = GetSkeleton(appSettings);
-      importSkeleton = (appSettings != NULL) ? appSettings->useSkeleton : false;
+      importSkeleton = (appSettings != nullptr) ? appSettings->useSkeleton : false;
       importSkeleton &= hasSkeleton;
 	  importSkeleton &= !isBiped;
 
       // Guess that the skeleton is the same one in the current directory
       if (importSkeleton && !defaultSkeletonName.empty()) {
          TCHAR buffer[MAX_PATH];
-         GetFullPathName(name.c_str(), _countof(buffer), buffer, NULL);
+         GetFullPathName(name.c_str(), _countof(buffer), buffer, nullptr);
          PathRemoveFileSpec(buffer);
          PathAddBackslash(buffer);
          PathAppend(buffer, defaultSkeletonName.c_str());
@@ -131,13 +139,13 @@ void NifImporter::Initialize()
    }
 }
 
-string NifImporter::GetSkeleton(AppSettings *appSettings)
+tstring NifImporter::GetSkeleton(AppSettings *appSettings)
 {
-   string skeleton = (appSettings != NULL) ? appSettings->Skeleton : "";
+   tstring skeleton = (appSettings != nullptr) ? appSettings->Skeleton : TEXT("");
    // Guess that the skeleton is the same one in the current directory
    if (importSkeleton && !defaultSkeletonName.empty()) {
       TCHAR buffer[MAX_PATH];
-      GetFullPathName(name.c_str(), _countof(buffer), buffer, NULL);
+      GetFullPathName(name.c_str(), _countof(buffer), buffer, nullptr);
       PathRemoveFileSpec(buffer);
       PathAddBackslash(buffer);
       PathAppend(buffer, defaultSkeletonName.c_str());
@@ -152,21 +160,21 @@ void NifImporter::LoadIniSettings()
    TCHAR iniName[MAX_PATH];
    GetIniFileName(iniName);
    this->iniFileName = iniName;
-   iniFileValid = (-1 != _access(iniName, 0));
+   iniFileValid = (-1 != _taccess(iniName, 0));
 
    // Locate which application to use. If Auto, find first app where this file appears in the root path list
-   appSettings = NULL;
-   string curapp = GetIniValue<string>(NifImportSection, "CurrentApp", "AUTO");
-   if (0 == _tcsicmp(curapp.c_str(), "AUTO")) {
+   appSettings = nullptr;
+   tstring curapp = GetIniValue<tstring>(NifImportSection, TEXT("CurrentApp"), TEXT("AUTO"));
+   if (0 == _tcsicmp(curapp.c_str(), TEXT("AUTO"))) {
       autoDetect = true;
       // Scan Root paths
       bool versionmatch = false;
-      int version = GetNifVersion(this->name);
+      int version = GetNifVersion(T2AString(this->name));
       for (AppSettingsMap::iterator itr = TheAppSettings.begin(), end = TheAppSettings.end(); itr != end; ++itr){
          if ((*itr).IsFileInRootPaths(this->name)) {
             appSettings = &(*itr);
             break;
-         } else if ( !versionmatch && ParseVersionString((*itr).NiVersion) == version ) {
+         } else if ( !versionmatch && ParseVersionString(T2AString((*itr).NiVersion)) == version ) {
             // Version matching is an ok fit but we want the other if possible. And we want the first match if possible.
             appSettings = &(*itr);
             versionmatch = true;
@@ -176,67 +184,67 @@ void NifImporter::LoadIniSettings()
       autoDetect = false;
       appSettings = FindAppSetting(curapp);
    }
-   if (appSettings == NULL && !TheAppSettings.empty()){
+   if (appSettings == nullptr && !TheAppSettings.empty()){
       appSettings = &TheAppSettings.front();
    }
 
    // General System level
-   useBiped = GetIniValue(NifImportSection, "UseBiped", false);
-   skeletonCheck = GetIniValue<string>(NifImportSection, "SkeletonCheck", "Bip*");
-   showTextures = GetIniValue(NifImportSection, "ShowTextures", true);
-   removeIllegalFaces = GetIniValue(NifImportSection, "RemoveIllegalFaces", true);
-   removeDegenerateFaces = GetIniValue(NifImportSection, "RemoveDegenerateFaces", true);
-   enableAutoSmooth = GetIniValue(NifImportSection, "EnableAutoSmooth", true);
-   autoSmoothAngle = GetIniValue(NifImportSection, "AutoSmoothAngle", 30.0f);
-   flipUVTextures = GetIniValue(NifImportSection, "FlipUVTextures", true);
-   enableSkinSupport = GetIniValue(NifImportSection, "EnableSkinSupport", true);
-   enableCollision = GetIniValue(NifImportSection, "EnableCollision", true);
-   enableLights = GetIniValue(NifImportSection, "Lights", false);
-   enableCameras = GetIniValue(NifImportSection, "Cameras", false);
-   vertexColorMode = GetIniValue<int>(NifImportSection, "VertexColorMode", 1);
-   useNiftoolsShader = GetIniValue<int>(NifImportSection, "UseNiftoolsShader", 1);
-   mergeNonAccum = GetIniValue(NifImportSection, "MergeNonAccum", true);
-   importUPB = GetIniValue(NifImportSection, "ImportUPB", true);
-   ignoreRootNode = GetIniValue(NifImportSection, "IgnoreRootNode", true);
-   weldVertices = GetIniValue(NifImportSection, "WeldVertices", false);
-   weldVertexThresh = GetIniValue(NifImportSection, "WeldVertexThresh", 0.01f);
-   dummyBonesAsLines = GetIniValue(NifImportSection, "DummyBonesAsLines", false);
-   
+   useBiped = GetIniValue(NifImportSection, TEXT("UseBiped"), false);
+   skeletonCheck = GetIniValue<tstring>(NifImportSection, TEXT("SkeletonCheck"), TEXT("Bip*"));
+   showTextures = GetIniValue(NifImportSection, TEXT("ShowTextures"), true);
+   removeIllegalFaces = GetIniValue(NifImportSection, TEXT("RemoveIllegalFaces"), true);
+   removeDegenerateFaces = GetIniValue(NifImportSection, TEXT("RemoveDegenerateFaces"), true);
+   enableAutoSmooth = GetIniValue(NifImportSection, TEXT("EnableAutoSmooth"), true);
+   autoSmoothAngle = GetIniValue(NifImportSection, TEXT("AutoSmoothAngle"), 30.0f);
+   flipUVTextures = GetIniValue(NifImportSection, TEXT("FlipUVTextures"), true);
+   enableSkinSupport = GetIniValue(NifImportSection, TEXT("EnableSkinSupport"), true);
+   enableCollision = GetIniValue(NifImportSection, TEXT("EnableCollision"), true);
+   enableLights = GetIniValue(NifImportSection, TEXT("Lights"), false);
+   enableCameras = GetIniValue(NifImportSection, TEXT("Cameras"), false);
+   vertexColorMode = GetIniValue<int>(NifImportSection, TEXT("VertexColorMode"), 1);
+   useNiftoolsShader = GetIniValue<int>(NifImportSection, TEXT("UseNiftoolsShader"), 1);
+   mergeNonAccum = GetIniValue(NifImportSection, TEXT("MergeNonAccum"), true);
+   importUPB = GetIniValue(NifImportSection, TEXT("ImportUPB"), true);
+   ignoreRootNode = GetIniValue(NifImportSection, TEXT("IgnoreRootNode"), true);
+   weldVertices = GetIniValue(NifImportSection, TEXT("WeldVertices"), false);
+   weldVertexThresh = GetIniValue(NifImportSection, TEXT("WeldVertexThresh"), 0.01f);
+   dummyBonesAsLines = GetIniValue(NifImportSection, TEXT("DummyBonesAsLines"), false);
+   importBonesAsDummy = GetIniValue(NifImportSection, TEXT("ImportBonesAsDummy"), false);   
 
    // Biped
-   importBones = GetIniValue(BipedImportSection, "ImportBones", true);
-   bipedHeight = GetIniValue(BipedImportSection, "BipedHeight", 131.90f);
-   bipedAngle = GetIniValue(BipedImportSection, "BipedAngle", 90.0f);
-   bipedAnkleAttach = GetIniValue(BipedImportSection, "BipedAnkleAttach", 0.2f);
-   bipedTrianglePelvis = GetIniValue(BipedImportSection, "BipedTrianglePelvis", false);
-   removeUnusedImportedBones = GetIniValue(BipedImportSection, "RemoveUnusedImportedBones", false);
-   forceRotation = GetIniValue(BipedImportSection, "ForceRotation", true);
-   browseForSkeleton = GetIniValue(BipedImportSection, "BrowseForSkeleton", true);
-   defaultSkeletonName = GetIniValue<string>(BipedImportSection, "DefaultSkeletonName", "Skeleton.Nif");
-   minBoneWidth = GetIniValue(BipedImportSection, "MinBoneWidth", 0.5f);
-   maxBoneWidth = GetIniValue(BipedImportSection, "MaxBoneWidth", 3.0f);
-   boneWidthToLengthRatio = GetIniValue(BipedImportSection, "BoneWidthToLengthRatio", 0.25f);
-   createNubsForBones = GetIniValue(BipedImportSection, "CreateNubsForBones", true);
-   dummyNodeMatches = TokenizeString(GetIniValue<string>(BipedImportSection, "DummyNodeMatches", "").c_str(), ";");
-   convertBillboardsToDummyNodes = GetIniValue(BipedImportSection, "ConvertBillboardsToDummyNodes", true);
-   uncontrolledDummies = GetIniValue(BipedImportSection, "UncontrolledDummies", true);
+   importBones = GetIniValue(BipedImportSection, TEXT("ImportBones"), true);
+   bipedHeight = GetIniValue(BipedImportSection, TEXT("BipedHeight"), 131.90f);
+   bipedAngle = GetIniValue(BipedImportSection, TEXT("BipedAngle"), 90.0f);
+   bipedAnkleAttach = GetIniValue(BipedImportSection, TEXT("BipedAnkleAttach"), 0.2f);
+   bipedTrianglePelvis = GetIniValue(BipedImportSection, TEXT("BipedTrianglePelvis"), false);
+   removeUnusedImportedBones = GetIniValue(BipedImportSection, TEXT("RemoveUnusedImportedBones"), false);
+   forceRotation = GetIniValue(BipedImportSection, TEXT("ForceRotation"), true);
+   browseForSkeleton = GetIniValue(BipedImportSection, TEXT("BrowseForSkeleton"), true);
+   defaultSkeletonName = GetIniValue<tstring>(BipedImportSection, TEXT("DefaultSkeletonName"), TEXT("Skeleton.Nif"));
+   minBoneWidth = GetIniValue(BipedImportSection, TEXT("MinBoneWidth"), 0.5f);
+   maxBoneWidth = GetIniValue(BipedImportSection, TEXT("MaxBoneWidth"), 3.0f);
+   boneWidthToLengthRatio = GetIniValue(BipedImportSection, TEXT("BoneWidthToLengthRatio"), 0.25f);
+   createNubsForBones = GetIniValue(BipedImportSection, TEXT("CreateNubsForBones"), true);
+   dummyNodeMatches = TokenizeString(GetIniValue<tstring>(BipedImportSection, TEXT("DummyNodeMatches"), TEXT("")).c_str(), TEXT(";"));
+   convertBillboardsToDummyNodes = GetIniValue(BipedImportSection, TEXT("ConvertBillboardsToDummyNodes"), true);
+   uncontrolledDummies = GetIniValue(BipedImportSection, TEXT("UncontrolledDummies"), true);
 
    // Animation
-   replaceTCBRotationWithBezier = GetIniValue(AnimImportSection, "ReplaceTCBRotationWithBezier", true);
-   enableAnimations = GetIniValue(AnimImportSection, "EnableAnimations", true);
-   requireMultipleKeys = GetIniValue(AnimImportSection, "RequireMultipleKeys", true);
-   applyOverallTransformToSkinAndBones = GetIniValue(AnimImportSection, "ApplyOverallTransformToSkinAndBones", true);
-   clearAnimation = GetIniValue(AnimImportSection, "ClearAnimation", true);
-   addNoteTracks = GetIniValue(AnimImportSection, "AddNoteTracks", true);
-   addTimeTags = GetIniValue(AnimImportSection, "AddTimeTags", true);
+   replaceTCBRotationWithBezier = GetIniValue(AnimImportSection, TEXT("ReplaceTCBRotationWithBezier"), true);
+   enableAnimations = GetIniValue(AnimImportSection, TEXT("EnableAnimations"), true);
+   requireMultipleKeys = GetIniValue(AnimImportSection, TEXT("RequireMultipleKeys"), true);
+   applyOverallTransformToSkinAndBones = GetIniValue(AnimImportSection, TEXT("ApplyOverallTransformToSkinAndBones"), true);
+   clearAnimation = GetIniValue(AnimImportSection, TEXT("ClearAnimation"), true);
+   addNoteTracks = GetIniValue(AnimImportSection, TEXT("AddNoteTracks"), true);
+   addTimeTags = GetIniValue(AnimImportSection, TEXT("AddTimeTags"), true);
 
-   rotate90Degrees = TokenizeString(GetIniValue<string>(NifImportSection, "Rotate90Degrees", "").c_str(), ";");
+   rotate90Degrees = TokenizeString(GetIniValue<tstring>(NifImportSection, TEXT("Rotate90Degrees"), TEXT("")).c_str(), TEXT(";"));
 
    // Collision
-   bhkScaleFactor = GetIniValue<float>(CollisionSection, "bhkScaleFactor", 7.0f);
-   ApplyAppSettings();
+   bhkScaleFactor = GetIniValue<float>(CollisionSection, TEXT("bhkScaleFactor"), 6.9969f);
+   ApplyAppSettings(true);
 }
-void NifImporter::ApplyAppSettings()
+void NifImporter::ApplyAppSettings(bool initialize)
 {
    goToSkeletonBindPosition = false;
    // Override specific settings
@@ -251,45 +259,45 @@ void NifImporter::ApplyAppSettings()
       if (!appSettings->rotate90Degrees.empty())
          rotate90Degrees = appSettings->rotate90Degrees;
       supportPrnStrings = appSettings->supportPrnStrings;
-
 	  doNotReuseExistingBones = appSettings->doNotReuseExistingBones;
-
 	  if (!appSettings->skeletonCheck.empty())
 		skeletonCheck = appSettings->skeletonCheck;
+      bhkScaleFactor = appSettings->GetSetting(TEXT("bhkScaleFactor"), bhkScaleFactor);
    }
 }
 
 void NifImporter::SaveIniSettings()
 {
-   SetIniValue(NifImportSection, "UseBiped", useBiped);
-   SetIniValue(NifImportSection, "EnableSkinSupport", enableSkinSupport);
-   SetIniValue(NifImportSection, "VertexColorMode", vertexColorMode);
-   SetIniValue(NifImportSection, "EnableCollision", enableCollision);
-   SetIniValue(NifImportSection, "Lights", enableLights);
-   SetIniValue(NifImportSection, "Cameras", enableCameras);
+   SetIniValue(NifImportSection, TEXT("UseBiped"), useBiped);
+   SetIniValue(NifImportSection, TEXT("EnableSkinSupport"), enableSkinSupport);
+   SetIniValue(NifImportSection, TEXT("VertexColorMode"), vertexColorMode);
+   SetIniValue(NifImportSection, TEXT("EnableCollision"), enableCollision);
+   SetIniValue(NifImportSection, TEXT("Lights"), enableLights);
+   SetIniValue(NifImportSection, TEXT("Cameras"), enableCameras);
    
-   //SetIniValue(NifImportSection, "EnableFurniture", enableAnimations);
+   //SetIniValue(NifImportSection, TEXT("EnableFurniture"), enableAnimations);
 
-   SetIniValue(NifImportSection, "FlipUVTextures", flipUVTextures);
-   SetIniValue(NifImportSection, "ShowTextures", showTextures);
-   SetIniValue(NifImportSection, "EnableAutoSmooth", enableAutoSmooth);
-   SetIniValue(NifImportSection, "RemoveIllegalFaces", removeIllegalFaces);
-   SetIniValue(NifImportSection, "RemoveDegenerateFaces", removeDegenerateFaces);
-   SetIniValue(NifImportSection, "ImportUPB", importUPB);
-   SetIniValue(NifImportSection, "IgnoreRootNode", ignoreRootNode);
+   SetIniValue(NifImportSection, TEXT("FlipUVTextures"), flipUVTextures);
+   SetIniValue(NifImportSection, TEXT("ShowTextures"), showTextures);
+   SetIniValue(NifImportSection, TEXT("EnableAutoSmooth"), enableAutoSmooth);
+   SetIniValue(NifImportSection, TEXT("RemoveIllegalFaces"), removeIllegalFaces);
+   SetIniValue(NifImportSection, TEXT("RemoveDegenerateFaces"), removeDegenerateFaces);
+   SetIniValue(NifImportSection, TEXT("ImportUPB"), importUPB);
+   SetIniValue(NifImportSection, TEXT("IgnoreRootNode"), ignoreRootNode);
 
-   SetIniValue(BipedImportSection, "ImportBones", importBones);
-   SetIniValue(BipedImportSection, "RemoveUnusedImportedBones", removeUnusedImportedBones);  
+   SetIniValue(BipedImportSection, TEXT("ImportBones"), importBones);
+   SetIniValue(BipedImportSection, TEXT("RemoveUnusedImportedBones"), removeUnusedImportedBones);  
 
-   SetIniValue(AnimImportSection, "EnableAnimations", enableAnimations);
-   SetIniValue(AnimImportSection, "ClearAnimation", clearAnimation);
-   SetIniValue(AnimImportSection, "AddNoteTracks", addNoteTracks);
-   SetIniValue(AnimImportSection, "AddTimeTags", addTimeTags);
-   SetIniValue(NifImportSection, "WeldVertices", weldVertices);
-   SetIniValue(NifImportSection, "WeldVertexThresh", weldVertexThresh);
-   SetIniValue(NifImportSection, "DummyBonesAsLines", dummyBonesAsLines);
+   SetIniValue(AnimImportSection, TEXT("EnableAnimations"), enableAnimations);
+   SetIniValue(AnimImportSection, TEXT("ClearAnimation"), clearAnimation);
+   SetIniValue(AnimImportSection, TEXT("AddNoteTracks"), addNoteTracks);
+   SetIniValue(AnimImportSection, TEXT("AddTimeTags"), addTimeTags);
+   SetIniValue(NifImportSection, TEXT("WeldVertices"), weldVertices);
+   SetIniValue(NifImportSection, TEXT("WeldVertexThresh"), weldVertexThresh);
+   SetIniValue(NifImportSection, TEXT("DummyBonesAsLines"), dummyBonesAsLines);
+   SetIniValue(NifImportSection, TEXT("ImportBonesAsDummy"), importBonesAsDummy);
 
-   SetIniValue<string>(NifImportSection, "CurrentApp", autoDetect ? "AUTO" : appSettings->Name );
+   SetIniValue<tstring>(NifImportSection, TEXT("CurrentApp"), autoDetect ? TEXT("AUTO") : appSettings->Name );
 }
 
 void NifImporter::RegisterNode(Niflib::NiObjectNETRef node, INode* inode)
@@ -300,7 +308,7 @@ void NifImporter::RegisterNode(Niflib::NiObjectNETRef node, INode* inode)
 INode* NifImporter::FindNode(Niflib::NiObjectNETRef node)
 {
 	// may want to make this a map if its hit a lot
-	if (NULL == node) return NULL;
+	if (nullptr == node) return nullptr;
 
 	NodeToNodeMap::iterator itr = nodeMap.find(node);
 	if (itr != nodeMap.end())
@@ -308,6 +316,23 @@ INode* NifImporter::FindNode(Niflib::NiObjectNETRef node)
 
 	//return gi->GetINodeByName(node->GetName().c_str());
 	return GetNode(node->GetName());
+}
+
+void NifImporter::SetNodeName(INode* inode, const LPCTSTR name)
+{
+	if (name == nullptr || name[0] == 0)
+	{
+		TSTR str;
+		str.printf(TEXT("noname:%d"), ++unnamedCounter);
+		SetNodeName(inode, str);
+		inode->SetUserPropBool(NP_NONAME, TRUE);
+	}
+	else if (wildmatch(TEXT("noname*"), name))
+	{
+		inode->SetUserPropBool(NP_NONAME, TRUE);
+	}
+	inode->SetName(name);
+	this->RegisterNode(name, inode);
 }
 
 INode *NifImporter::GetNode(Niflib::NiNodeRef node)
@@ -328,23 +353,38 @@ INode *NifImporter::GetNode(Niflib::NiObjectNETRef obj)
 }
 
 void NifImporter::RegisterNode(const string& name, INode* inode){
-	nodeNameMap[name] = inode;
+	nodeNameMap[A2TString(name)] = inode;
+}
+void NifImporter::RegisterNode(const wstring& name, INode* inode) {
+	nodeNameMap[W2TString(name)] = inode;
 }
 INode *NifImporter::GetNode(const string& name){
-	
-	NameToNodeMap::iterator itr = nodeNameMap.find(name);
+	tstring tname = A2TString(name);
+	NameToNodeMap::iterator itr = nodeNameMap.find(tname);
 	if (itr != nodeNameMap.end())
 		return (*itr).second;
 
-	INode *node  = gi->GetINodeByName(name.c_str());
-	if (node != NULL) {
-		nodeNameMap[name] = node;
+	INode *node  = gi->GetINodeByName(tname.c_str());
+	if (node != nullptr) {
+		nodeNameMap[tname] = node;
+	}
+	return node;
+}
+INode *NifImporter::GetNode(const wstring& name) {
+	tstring tname = W2TString(name);
+	NameToNodeMap::iterator itr = nodeNameMap.find(tname);
+	if (itr != nodeNameMap.end())
+		return (*itr).second;
+
+	INode *node = gi->GetINodeByName(tname.c_str());
+	if (node != nullptr) {
+		nodeNameMap[tname] = node;
 	}
 	return node;
 }
 
 INode *NifImporter::GetNode(const TSTR& name){
-	return GetNode( string(name.data()) );
+	return GetNode( tstring(name.data()) );
 }
 
 bool NifImporter::DoImport()
@@ -355,10 +395,11 @@ bool NifImporter::DoImport()
       if (!ShowDialog())
          return true;
 
-      ApplyAppSettings();
+      ApplyAppSettings(false);
       SaveIniSettings();
    }
 
+   unnamedCounter = 0;
    vector<string> importedBones;
    if (!isBiped && importSkeleton && importBones)
    {
@@ -375,6 +416,7 @@ bool NifImporter::DoImport()
                skelImport.enableCollision = false;
                skelImport.enableAnimations = false;
                skelImport.suppressPrompts = true;
+			   skelImport.doNotReuseExistingBones = true; // ignore dupes while importing skeleton regardless of other settings
                skelImport.DoImport();
                if (!skelImport.useBiped && removeUnusedImportedBones)
                   importedBones = GetNamesOfNodes(skelImport.nodes);
@@ -426,7 +468,7 @@ bool NifImporter::DoImport()
                importedBones.begin(), importedBones.end(),
                importedNodes.begin(), importedNodes.end(), results.begin());
             for (vector<string>::iterator itr = results.begin(); itr != end; ++itr){
-               if (INode *node = gi->GetINodeByName((*itr).c_str())){
+               if (INode *node = gi->GetINodeByName(A2TString(*itr).c_str())){
 				   gi->DeleteNode(node, FALSE);
                }
             }

@@ -28,7 +28,6 @@ HISTORY:
 #ifndef _countof
 #define _countof(x) (sizeof(x)/sizeof((x)[0]))
 #endif
-const float bhkScaleFactor = 7.0f;
 Class_ID bhkBoxObject_CLASS_ID = Class_ID(0x86e19816, BHKRIGIDBODYCLASS_DESC.PartB());
 
 static ParamBlockDesc2* GetbhkBoxParamBlockDesc();
@@ -52,11 +51,15 @@ public:
    void BeginEditParams( IObjParam  *ip, ULONG flags,Animatable *prev);
    void EndEditParams( IObjParam *ip, ULONG flags,Animatable *next);
    RefTargetHandle Clone(RemapDir& remap);
-   TCHAR *GetObjectName() { return GetString(IDS_RB_BOX); }
+#if VERSION_3DSMAX < (17000<<16) // Version 17 (2015)
+   TCHAR *                 GetObjectName() { return _T(GetString(IDS_RB_BOX)); }
+#else
+   const MCHAR*             GetObjectName() { return GetString(IDS_RB_BOX); }
+#endif
 
    int	NumParamBlocks() { return 1; }					// return number of ParamBlocks in this instance
    IParamBlock2* GetParamBlock(int i) { return pblock2; } // return i'th ParamBlock
-   IParamBlock2* GetParamBlockByID(BlockID id) { return (pblock2->ID() == id) ? pblock2 : NULL; } // return id'd ParamBlock
+   IParamBlock2* GetParamBlockByID(BlockID id) { return (pblock2->ID() == id) ? pblock2 : nullptr; } // return id'd ParamBlock
 
    // Animatable methods		
    void DeleteThis() {delete this;}
@@ -87,9 +90,9 @@ public:
    const TCHAR *	ClassName() { return GetString(IDS_RB_BOX_CLASS); }
    SClass_ID		SuperClassID() { return HELPER_CLASS_ID; }
    Class_ID		   ClassID() { return bhkBoxObject_CLASS_ID; }
-   const TCHAR* 	Category() { return "NifTools"; }
+   const TCHAR* 	Category() { return TEXT("NifTools"); }
 
-   const TCHAR*	InternalName() { return _T("bhkBox"); }	// returns fixed parsable name (scripter-visible name)
+   const TCHAR*	InternalName() { return TEXT("bhkBox"); }	// returns fixed parsable name (scripter-visible name)
    HINSTANCE		HInstance() { return hInstance; }			// returns owning module handle
 };
 
@@ -98,8 +101,8 @@ extern ClassDesc2* GetbhkBoxDesc();
 // in prim.cpp  - The dll instance handle
 extern HINSTANCE hInstance;
 
-IParamMap2 *bhkBoxObject::pmapParam  = NULL;
-IObjParam *bhkBoxObject::ip         = NULL;
+IParamMap2 *bhkBoxObject::pmapParam  = nullptr;
+IObjParam *bhkBoxObject::ip         = nullptr;
 
 //--- Parameter map/block descriptors -------------------------------
 
@@ -111,39 +114,47 @@ enum
    PB_LENGTH,
    PB_WIDTH,
    PB_HEIGHT,
+   PB_SCALE,
 };
 
 enum { box_params_panel, };
 
 static ParamBlockDesc2 param_blk ( 
-    box_params, _T("parameters"),  0, NULL, P_AUTO_CONSTRUCT + P_AUTO_UI + P_MULTIMAP, 0,
+    box_params, _T("parameters"),  0, nullptr, P_AUTO_CONSTRUCT + P_AUTO_UI + P_MULTIMAP, 0,
     //rollout
     1,
-    box_params, IDD_BOXPARAM1, IDS_PARAMS, 0, 0, NULL, 
+    box_params, IDD_BOXPARAM1, IDS_PARAMS, 0, 0, nullptr, 
 
     // params
     PB_MATERIAL, _T("material"), TYPE_INT, P_ANIMATABLE,	IDS_DS_MATERIAL,
       p_default,	NP_INVALID_HVK_MATERIAL,
-      end,
+	p_end,
 
     PB_LENGTH, _T("length"), TYPE_FLOAT, P_ANIMATABLE,	IDS_DS_LENGTH,
       p_default,	   0.0,
       p_range,		0.0, float(1.0E30),
       p_ui, box_params, TYPE_SPINNER, EDITTYPE_UNIVERSE, IDC_LENGTHEDIT, IDC_LENSPINNER, SPIN_AUTOSCALE,
-      end,
+	p_end,
 
     PB_WIDTH, _T("width"), TYPE_FLOAT, P_ANIMATABLE,	IDS_DS_WIDTH,
       p_default,	   0.0,
       p_range,		0.0, float(1.0E30),
       p_ui, box_params, TYPE_SPINNER, EDITTYPE_UNIVERSE, IDC_WIDTHEDIT, IDC_WIDTHSPINNER, SPIN_AUTOSCALE,
-      end,
+	p_end,
 
     PB_HEIGHT, _T("height"), TYPE_FLOAT, P_ANIMATABLE,	IDS_DS_HEIGHT,
       p_default,	   0.0,
       p_range,		float(-1.0E30), float(1.0E30),
       p_ui, box_params, TYPE_SPINNER, EDITTYPE_UNIVERSE, IDC_HEIGHTEDIT, IDC_HEIGHTSPINNER, SPIN_AUTOSCALE,
-      end,
-    end
+	p_end,
+
+   PB_SCALE, _T("scale"), TYPE_FLOAT, P_ANIMATABLE,	IDS_DS_SCALE,
+      p_default,	   6.9969f,
+      p_range,		float(1.0f), float(1000.0f),
+      p_ui, box_params, TYPE_SPINNER, EDITTYPE_UNIVERSE, IDC_SCALEEDIT, IDC_SCALESPINNER, SPIN_AUTOSCALE,
+	p_end,
+
+	p_end
     );
 
 // bug in pb desc? forces us to use this rather than in inline version
@@ -159,7 +170,7 @@ public:
    HWND thishWnd;
    NpComboBox		mCbMaterial;
 
-   BoxParamDlgProc(bhkBoxObject *s) {so=s;thishWnd=NULL;}
+   BoxParamDlgProc(bhkBoxObject *s) {so=s;thishWnd=nullptr;}
    INT_PTR DlgProc(TimeValue t,IParamMap2 *map,HWND hWnd,UINT msg,WPARAM wParam,LPARAM lParam);
    void Update(TimeValue t);
    void DeleteThis() {delete this;}
@@ -189,8 +200,8 @@ INT_PTR BoxParamDlgProc::DlgProc(TimeValue t,IParamMap2 *map,HWND hWnd,UINT msg,
 	case WM_INITDIALOG: 
 		{
 			mCbMaterial.init(GetDlgItem(hWnd, IDC_CB_MATERIAL));
-			mCbMaterial.add("<Default>");
-			for (const char **str = NpHvkMaterialNames; *str; ++str)
+			mCbMaterial.add(TEXT("<Default>"));
+			for (const TCHAR **str = NpHvkMaterialNames; *str; ++str)
 				mCbMaterial.add(*str);
 			Interval valid;
 			int sel = NP_INVALID_HVK_MATERIAL;
@@ -227,7 +238,7 @@ bhkBoxObject::~bhkBoxObject()
 {
    param_blk.SetUserDlgProc();
    if (pmapParam) {
-      pmapParam  = NULL;
+      pmapParam  = nullptr;
    }
 }
 
@@ -235,7 +246,7 @@ void bhkBoxObject::BeginEditParams(IObjParam *ip,ULONG flags,Animatable *prev)
 {
    SimpleObject::BeginEditParams(ip,flags,prev);
 
-   //if (pmapParam == NULL) {
+   //if (pmapParam == nullptr) {
    //   pmapParam = CreateCPParamMap2(
    //      0,
    //      pblock2,
@@ -266,11 +277,11 @@ void bhkBoxObject::EndEditParams( IObjParam *ip, ULONG flags,Animatable *next )
    param_blk.SetUserDlgProc();
 
    SimpleObject::EndEditParams(ip,flags,next);
-   this->ip = NULL;
-   pmapParam = NULL;
+   this->ip = nullptr;
+   pmapParam = nullptr;
    //if (pmapParam && flags&END_EDIT_REMOVEUI ) {
    //   DestroyCPParamMap2 (pmapParam);
-   //   pmapParam = NULL;
+   //   pmapParam = nullptr;
    //}
 
    // tear down the appropriate auto-rollouts
@@ -279,7 +290,7 @@ void bhkBoxObject::EndEditParams( IObjParam *ip, ULONG flags,Animatable *next )
 
 void bhkBoxObject::UpdateUI()
 {
-   if (ip == NULL)
+   if (ip == nullptr)
       return;
    BoxParamDlgProc* dlg = static_cast<BoxParamDlgProc*>(pmapParam->GetUserDlgProc());
    dlg->Update(ip->GetTime());
@@ -289,12 +300,13 @@ void bhkBoxObject::BuildMesh(TimeValue t)
 {
 	extern void BuildBox(Mesh&mesh, float l, float w, float h);
 
-	float l, w, h;
+	float l, w, h, s;
 	ivalid = FOREVER;	
 	pblock2->GetValue(PB_LENGTH,t,l,ivalid);
 	pblock2->GetValue(PB_WIDTH,t,w,ivalid);
 	pblock2->GetValue(PB_HEIGHT,t,h,ivalid);
-	BuildBox(mesh, (l * bhkScaleFactor * 2), (w * bhkScaleFactor * 2), (h * bhkScaleFactor * 2));
+   pblock2->GetValue(PB_SCALE,t,s,ivalid);
+	BuildBox(mesh, (l * s * 2), (w * s * 2), (h * s * 2));
 }
 
 
@@ -327,9 +339,10 @@ public:
 
 int BoxObjCreateCallBack::proc(ViewExp *vpt,int msg, int point, int flags, IPoint2 m, Matrix3& mat ) {
    Point3 d;
+   float s;
    if (msg == MOUSE_FREEMOVE)
    {
-      vpt->SnapPreview(m,m,NULL, SNAP_IN_3D);
+      vpt->SnapPreview(m,m,nullptr, SNAP_IN_3D);
    }
 
    else if (msg==MOUSE_POINT||msg==MOUSE_MOVE) {
@@ -347,14 +360,15 @@ int BoxObjCreateCallBack::proc(ViewExp *vpt,int msg, int point, int flags, IPoin
             ob->pblock2->SetValue(PB_WIDTH,0,0.0f);
             ob->pblock2->SetValue(PB_LENGTH,0,0.0f);
             ob->pblock2->SetValue(PB_HEIGHT,0,0.0f);
+            ob->pblock2->SetValue(PB_SCALE,0,NifPropsGlobals::bhkScaleFactor);
             ob->suspendSnap = TRUE;								
-            p0 = vpt->SnapPoint(m,m,NULL,SNAP_IN_3D);
+            p0 = vpt->SnapPoint(m,m,nullptr,SNAP_IN_3D);
             p1 = p0 + Point3(.01,.01,.01);
             mat.SetTrans(float(.5)*(p0+p1));				
             break;
          case 1:
             sp1 = m;
-            p1 = vpt->SnapPoint(m,m,NULL,SNAP_IN_3D);
+            p1 = vpt->SnapPoint(m,m,nullptr,SNAP_IN_3D);
             p1.z = p0.z +(float).01; 
             if (flags&MOUSE_CTRL) {
                mat.SetTrans(p0);
@@ -373,9 +387,10 @@ int BoxObjCreateCallBack::proc(ViewExp *vpt,int msg, int point, int flags, IPoin
                square = TRUE;
             }
 
-            ob->pblock2->SetValue(PB_WIDTH,0,float(fabs(d.x / bhkScaleFactor / 2.0f)));
-            ob->pblock2->SetValue(PB_LENGTH,0,float(fabs(d.y / bhkScaleFactor / 2.0f)));
-            ob->pblock2->SetValue(PB_HEIGHT,0,float(fabs(d.z / bhkScaleFactor / 2.0f)));
+            s = NifPropsGlobals::bhkScaleFactor;
+            ob->pblock2->SetValue(PB_WIDTH,0,float(fabs(d.x / s / 2.0f)));
+            ob->pblock2->SetValue(PB_LENGTH,0,float(fabs(d.y / s / 2.0f)));
+            ob->pblock2->SetValue(PB_HEIGHT,0,float(fabs(d.z / s / 2.0f)));
             ob->pmapParam->Invalidate();										
 
             if (msg==MOUSE_POINT && (Length(sp1-sp0)<3 || Length(d)<0.1f)) {
@@ -401,9 +416,10 @@ int BoxObjCreateCallBack::proc(ViewExp *vpt,int msg, int point, int flags, IPoin
                d.x = d.y = 2.0f * len;					
             }
 
-            ob->pblock2->SetValue(PB_WIDTH,0,float(fabs(d.x / bhkScaleFactor / 2.0f)));
-            ob->pblock2->SetValue(PB_LENGTH,0,float(fabs(d.y / bhkScaleFactor / 2.0f)));
-            ob->pblock2->SetValue(PB_HEIGHT,0,float(d.z / bhkScaleFactor / 2.0f));
+            s = NifPropsGlobals::bhkScaleFactor;
+            ob->pblock2->SetValue(PB_WIDTH,0,float(fabs(d.x / s / 2.0f)));
+            ob->pblock2->SetValue(PB_LENGTH,0,float(fabs(d.y / s / 2.0f)));
+            ob->pblock2->SetValue(PB_HEIGHT,0,float(fabs(d.z / s / 2.0f)));
             ob->pmapParam->Invalidate();				
 
             if (msg==MOUSE_POINT) 
@@ -473,7 +489,7 @@ int bhkBoxObject::Display(TimeValue t, INode* inode, ViewExp *vpt, int flags)
       gw->setColor( LINE_COLOR, color);
 
    //UpdateMesh(t);
-   mesh.render( gw, mtl, NULL, COMP_ALL);	
+   mesh.render( gw, mtl, nullptr, COMP_ALL);	
    gw->setRndLimits(rlim);
    return 0;
 }

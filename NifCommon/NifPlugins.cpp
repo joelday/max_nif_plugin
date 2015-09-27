@@ -74,11 +74,11 @@ bool npGetProp(INode *node, const TSTR &prop, Vector3 &value, const Vector3 def)
 		{
 			value = def;
 			TCHAR *endp = NULL;
-			value.x = _tcstod(tmp, &endp);
+			value.x = (float)_tcstod(tmp, &endp);
 			if (endp)
-				value.y = _tcstod(endp, &endp);
+				value.y = (float)_tcstod(endp, &endp);
 			if (endp)
-				value.z = _tcstod(endp, &endp);
+				value.z = (float)_tcstod(endp, &endp);
 
 			ret = true;
 		} else
@@ -104,7 +104,7 @@ void npSetProp(INode *node, const TSTR &prop, const Vector3 &value)
 		// TSTR's printf function seems to be locale-aware (prints ',')
 		// so we have to do it this way...
 		TCHAR tmp[256];
-		_stprintf(tmp, "%f %f %f", value.x, value.y, value.z);
+		_stprintf(tmp, TEXT("%f %f %f"), value.x, value.y, value.z);
 		node->SetUserPropString(prop, tmp);
 	}
 }

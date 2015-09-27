@@ -15,7 +15,7 @@ bool Exporter::mVertexColors=true;
 float Exporter::mWeldThresh=0.01f;
 float	Exporter::mNormThresh=0.01f;
 float	Exporter::mUVWThresh=0.01f;
-string Exporter::mTexPrefix="textures";
+tstring Exporter::mTexPrefix=TEXT("textures");
 bool Exporter::mExportCollision=true;
 bool Exporter::mRemapIndices=true;
 bool Exporter::mUseRegistry=false;
@@ -25,8 +25,8 @@ bool Exporter::mUserPropBuffer=false;
 bool Exporter::mFlattenHierarchy=false;
 bool Exporter::mRemoveUnreferencedBones=false;
 bool Exporter::mSortNodesToEnd=false;
-string Exporter::mGameName = "User";
-string Exporter::mNifVersion = "20.0.0.5";
+tstring Exporter::mGameName = TEXT("User");
+tstring Exporter::mNifVersion = TEXT("20.0.0.5");
 int Exporter::mNifVersionInt = VER_20_0_0_5;
 int Exporter::mNifUserVersion = 0;
 int Exporter::mNifUserVersion2 = 0;
@@ -42,22 +42,22 @@ int Exporter::mBonesPerPartition = 20;
 bool Exporter::mUseTimeTags = false;
 bool Exporter::mAutoDetect = true;
 bool Exporter::mAllowAccum = true;
-string Exporter::mCreatorName;
+tstring Exporter::mCreatorName;
 bool Exporter::mCollapseTransforms = false;
 bool Exporter::mZeroTransforms = false;
 bool Exporter::mFixNormals = false;
 bool Exporter::mTangentAndBinormalExtraData = false;
 bool Exporter::mSupportPrnStrings = false;
-stringlist Exporter::mRotate90Degrees;
+tstringlist Exporter::mRotate90Degrees;
 bool Exporter::mSuppressPrompts = false;
 bool Exporter::mUseAlternateStripper = false;
-float Exporter::bhkScaleFactor = 7.0f;
+float Exporter::bhkScaleFactor = 6.9969f;
 int Exporter::mTangentAndBinormalMethod = 0;
 bool Exporter::mStartNifskopeAfterStart = false;
-string Exporter::mNifskopeDir;
+tstring Exporter::mNifskopeDir;
 bool Exporter::mTriPartStrips = true;
-string Exporter::mRootType;
-stringlist Exporter::mRootTypes;
+tstring Exporter::mRootType;
+tstringlist Exporter::mRootTypes;
 
 #ifndef FOOTPRINT_CLASS_ID
 #  define FOOTPRINT_CLASS_ID Class_ID(0x3011,0)        
@@ -85,13 +85,15 @@ Exporter::Exporter(Interface *i, AppSettings *appSettings)
 {
    memset(progressCounters, 0, sizeof(progressCounters));
    memset(progressMax, 0, sizeof(progressMax));
+   bhkAppScaleFactor = mAppSettings->GetSetting(TEXT("bhkScaleFactor"), Exporter::bhkScaleFactor);
 }
 
 Exporter::Result Exporter::doExport(NiNodeRef &root, INode *node)
 {
+	USES_CONVERSION;
 	root->SetName("Scene Root");
 
-	int nifVersion = ParseVersionString(Exporter::mNifVersion);
+	int nifVersion = ParseVersionString(T2A(Exporter::mNifVersion.c_str()));
 
 	if (mUseTimeTags && nifVersion >= VER_20_0_0_4) {
 		throw runtime_error("Time tag sequences are not supported for version 20.0.0.4 or higher.");
@@ -253,7 +255,7 @@ Exporter::Result Exporter::doExport(NiNodeRef &root, INode *node)
 Exporter::Result Exporter::exportNodes(NiNodeRef &parent, INode *node)
 {
 	TSTR nodeName = node->GetName();
-	ProgressUpdate(Geometry, FormatText("'%s' Geometry", nodeName.data()));
+	ProgressUpdate(Geometry, FormatText(TEXT("'%s' Geometry"), nodeName.data()));
 	//bool coll = npIsCollision(node);
 	bool coll = isCollision(node);
 	// Abort if is a collision node or is hidden and we are not exporting hidden
@@ -279,11 +281,11 @@ Exporter::Result Exporter::exportNodes(NiNodeRef &parent, INode *node)
 		//os.obj->GetClassName(objClass);
 		SClass_ID oscid = os.obj->SuperClassID();
 		Class_ID oncid = os.obj->ClassID();
-		if (wildmatch("Bip?? Footsteps", nodeName))
+		if (wildmatch(TEXT("Bip?? Footsteps"), nodeName))
 		{
 			// ignore footsteps
 		}
-		else if (Exporter::mNifVersionInt <= VER_4_2_2_0 && strmatch("Bounding Box", nodeName))
+		else if (Exporter::mNifVersionInt <= VER_4_2_2_0 && strmatch(TEXT("Bounding Box"), nodeName))
 		{
 			// Morrowind style 
 			newParent = exportBone(nodeParent, node);

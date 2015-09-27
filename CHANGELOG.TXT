@@ -12,6 +12,7 @@ NifTools MaxPlugin
       - Update Dismember enumeration list
       - Update Skyrim Texture export support specular map
       - New bone import routines using dummy
+      - Fixed issues with niflib merges (Mopp Export, Vertex Colors)
       
       3.6
     o Unreleased build

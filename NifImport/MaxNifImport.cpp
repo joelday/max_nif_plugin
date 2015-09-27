@@ -50,7 +50,7 @@ class MaxNifImport : public SceneImport {
 		MaxNifImport();
 		~MaxNifImport();		
 
-      string iniFileName;
+      tstring iniFileName;
 };
 
 
@@ -81,9 +81,9 @@ MaxNifImport::MaxNifImport()
    TCHAR iniName[MAX_PATH];
    GetIniFileName(iniName);
    iniFileName = iniName;
-   shortDescription = GetIniValue<TSTR>("System", "ShortDescription", "Netimmerse/Gamebryo", iniFileName.c_str());
-   webSite = GetIniValue<TSTR>("System", "Website", "http://niftools.sourceforge.net", iniFileName.c_str());
-   wikiSite = GetIniValue<TSTR>("System", "Wiki", "http://niftools.sourceforge.net/wiki/3ds_Max", iniFileName.c_str());
+   shortDescription = GetIniValue<TSTR>(TEXT("System"), TEXT("ShortDescription"), TEXT("Netimmerse/Gamebryo"), iniFileName.c_str());
+   webSite = GetIniValue<TSTR>(TEXT("System"), TEXT("Website"), TEXT("http://niftools.sourceforge.net"), iniFileName.c_str());
+   wikiSite = GetIniValue<TSTR>(TEXT("System"), TEXT("Wiki"), TEXT("http://niftools.sourceforge.net/wiki/3ds_Max"), iniFileName.c_str());
 }
 
 MaxNifImport::~MaxNifImport() 
@@ -179,25 +179,25 @@ int MaxNifImport::DoImport(const TCHAR *filename,ImpInterface *i, Interface *gi,
 
       AppSettings::Initialize(gi);
 
-      std::string current_file = filename;
+      tstring current_file = filename;
 
       LPCTSTR ext = PathFindExtension(filename);
 
-      if (_tcsicmp(ext, ".NIF") == 0)
+      if (_tcsicmp(ext, TEXT(".NIF")) == 0)
       {
          NifImporter importer(filename, i, gi, suppressPrompts);
          if (!importer.isValid())
             return FALSE;
          ok = importer.DoImport();
       }
-      else if (_tcsicmp(ext, ".KFM") == 0)
+      else if (_tcsicmp(ext, TEXT(".KFM")) == 0)
       {
          KFMImporter importer(filename, i, gi, suppressPrompts);
          if (!importer.isValid())
             return FALSE;
          ok = importer.DoImport();
       }
-      else if (_tcsicmp(ext, ".KF") == 0)
+      else if (_tcsicmp(ext, TEXT(".KF")) == 0)
       {
          KFImporter importer(filename, i, gi, suppressPrompts);
          if (!importer.isValid())
@@ -207,19 +207,19 @@ int MaxNifImport::DoImport(const TCHAR *filename,ImpInterface *i, Interface *gi,
    }
    catch (exception &e)
    {
-      MessageBox(NULL, e.what(), "Import Error", MB_OK);
+      MessageBoxA(nullptr, e.what(), "Import Error", MB_OK);
       return TRUE;
    }
    catch (RuntimeError &e)
    {
 #if VERSION_3DSMAX > ((5000<<16)+(15<<8)+0) // Version 6+
-      MessageBox(NULL, e.desc1, "Import Error", MB_OK);
+      MessageBox(nullptr, e.desc1, TEXT("Import Error"), MB_OK);
 #endif
       return TRUE;
    }
    catch (...)
    {
-      MessageBox(NULL, "Unknown error.", "Import Error", MB_OK);
+      MessageBox(nullptr, TEXT("Unknown error."), TEXT("Import Error"), MB_OK);
       return TRUE;
    }
    return ok ? TRUE : FALSE;

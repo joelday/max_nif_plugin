@@ -192,7 +192,7 @@ void NifImporter::SetNormals(Mesh& mesh, const vector<Niflib::Triangle>& tris, c
 #if VERSION_3DSMAX > ((5000<<16)+(15<<8)+0) // Version 5
 			mesh.SpecifyNormals();
 			MeshNormalSpec *specNorms = mesh.GetSpecifiedNormals ();
-			if (NULL != specNorms)
+			if (nullptr != specNorms)
 			{
 				specNorms->ClearAndFree();
 				specNorms->SetNumFaces(tris.size());
@@ -232,7 +232,7 @@ bool NifImporter::ImportMesh(NiTriShapeRef triShape)
    if(!node) return false;
    TriObject *triObject = CreateNewTriObject();
    node->Reference(triObject);
-   string name = triShape->GetName();
+   tstring name = A2TString(triShape->GetName());
    node->SetName(name.c_str());
 
    INode *inode = node->GetINode();
@@ -240,7 +240,7 @@ bool NifImporter::ImportMesh(NiTriShapeRef triShape)
    // Texture
    Mesh& mesh = triObject->GetMesh();
    NiTriShapeDataRef triShapeData = DynamicCast<NiTriShapeData>(triShape->GetData());
-   if (triShapeData == NULL)
+   if (triShapeData == nullptr)
       return false;
 
    vector<Triangle> tris = triShapeData->GetTriangles();
@@ -257,13 +257,13 @@ bool NifImporter::ImportMesh(NiTriStripsRef triStrips)
    INode *inode = node->GetINode();
    TriObject *triObject = CreateNewTriObject();
    node->Reference(triObject);
-   string name = triStrips->GetName();
+   tstring name = A2TString(triStrips->GetName());
    node->SetName(name.c_str());
 
    // Texture
    Mesh& mesh = triObject->GetMesh();
    NiTriStripsDataRef triStripsData = DynamicCast<NiTriStripsData>(triStrips->GetData());
-   if (triStripsData == NULL)
+   if (triStripsData == nullptr)
       return false;
 
    vector<Triangle> tris = triStripsData->GetTriangles();
@@ -283,7 +283,7 @@ bool NifImporter::ImportMultipleGeometry(NiNodeRef parent, vector<NiTriBasedGeom
    TriObject *triObject = CreateNewTriObject();
    node->Reference(triObject);
 
-   string name = parent->GetName();
+   tstring name = A2TString(parent->GetName());
    node->SetName(name.c_str());
 
    // Texture
@@ -347,7 +347,7 @@ bool NifImporter::ImportMultipleGeometry(NiNodeRef parent, vector<NiTriBasedGeom
    mesh.buildNormals();
    bool bSpecNorms = false;
 
-   MultiMtl *mtl = NULL;
+   MultiMtl *mtl = nullptr;
    int igeom = 0;
    for (vector<NiTriBasedGeomRef>::iterator itr = glist.begin(), end = glist.end(); itr != end; ++itr, ++igeom) 
    {
@@ -371,7 +371,7 @@ bool NifImporter::ImportMultipleGeometry(NiNodeRef parent, vector<NiTriBasedGeom
             bSpecNorms = true;
             mesh.SpecifyNormals();
             MeshNormalSpec *specNorms = mesh.GetSpecifiedNormals();
-            if (NULL != specNorms) {
+            if (nullptr != specNorms) {
                specNorms->BuildNormals();
                //specNorms->ClearAndFree();
                //specNorms->SetNumFaces(tris.size());
@@ -379,7 +379,7 @@ bool NifImporter::ImportMultipleGeometry(NiNodeRef parent, vector<NiTriBasedGeom
             }
          }
          MeshNormalSpec *specNorms = mesh.GetSpecifiedNormals();
-         if (NULL != specNorms)
+         if (nullptr != specNorms)
          {
             Point3* norms = specNorms->GetNormalArray();
             for (int i=0, n=subnorms.size(); i<n; i++){
@@ -414,7 +414,7 @@ bool NifImporter::ImportMultipleGeometry(NiNodeRef parent, vector<NiTriBasedGeom
 
       if ( StdMat2* submtl = ImportMaterialAndTextures(node, (*itr)) )
       {
-         if (mtl == NULL) {
+         if (mtl == nullptr) {
             mtl = NewDefaultMultiMtl();
             gi->GetMaterialLibrary().Add(mtl);
             inode->SetMtl(mtl);
@@ -505,7 +505,7 @@ bool NifImporter::ImportVertexColor(INode *tnode, TriObject *o, vector<Triangle>
             mesh.setMapSupport(0, TRUE);
             mesh.setNumMapVerts(0, n, TRUE);
             mesh.setNumMapFaces(0, nt, FALSE);
-            mesh.setVCDisplayData(0, NULL, NULL);
+            mesh.setVCDisplayData(0, nullptr, nullptr);
             for (int i=0; i<nt; ++i)
                mesh.vcFaceData[i] = vcFace[i];
             for (int i=0; i<n; ++i)

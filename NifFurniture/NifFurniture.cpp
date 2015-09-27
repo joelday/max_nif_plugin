@@ -21,7 +21,11 @@ public:
 	IOResult				Save(ISave *isave) { return IO_OK; }
 
 	RefTargetHandle			Clone( RemapDir &remap );
+#if VERSION_3DSMAX < (17000<<16) // Version 17 (2015)
 	RefResult				NotifyRefChanged(Interval changeInt, RefTargetHandle hTarget, PartID& partID,  RefMessage message);
+#else
+	RefResult				NotifyRefChanged(const Interval& changeInt, RefTargetHandle hTarget, PartID& partID, RefMessage message, BOOL propagate);
+#endif
 
 	/* BaseObject */
     void					GetMat(TimeValue t, INode* inode, ViewExp* vpt, Matrix3& tm);
@@ -30,7 +34,11 @@ public:
 	CreateMouseCallBack		*GetCreateMouseCallBack();
 	void					BeginEditParams( IObjParam *ip, ULONG flags,Animatable *prev);
 	void					EndEditParams( IObjParam *ip, ULONG flags,Animatable *next);
-    TCHAR					*GetObjectName() { return _T(GetString(IDS_FURNITURE_MARKER)); }
+#if VERSION_3DSMAX < (17000<<16) // Version 17 (2015)
+	TCHAR *                 GetObjectName() { return _T(GetString(IDS_FURNITURE_MARKER)); }
+#else
+	const MCHAR*             GetObjectName() { return GetString(IDS_FURNITURE_MARKER); }
+#endif
 
 	/* Animatable */
 	int						IsKeyable(){ return 0;}
@@ -50,7 +58,7 @@ public:
 	int						UsesWireColor() { return TRUE; }
 
 	/* HelperObject */
-	void					InitNodeName(TSTR& s) { s = _T(GetString(IDS_FURNITURE_MARKER)); }
+	void					InitNodeName(TSTR& s) { s = GetString(IDS_FURNITURE_MARKER); }
  
 	// Object
 	ObjectState				Eval(TimeValue t);
@@ -208,11 +216,20 @@ INode *NifFurnitureMarker::getNode()
 	return GetCOREInterface()->GetINodeByHandle(handle);
 }
 
-RefResult NifFurnitureMarker::NotifyRefChanged(Interval changeInt, RefTargetHandle hTarget, 
-			PartID& partID,  RefMessage message)
+#if VERSION_3DSMAX < (17000<<16) // Version 17 (2015)
+RefResult NifFurnitureMarker::NotifyRefChanged(Interval changeInt, RefTargetHandle hTarget,
+	PartID& partID, RefMessage message)
 {
 	return REF_SUCCEED;
 }
+#else
+RefResult NifFurnitureMarker::NotifyRefChanged(const Interval& changeInt, 
+	RefTargetHandle hTarget, PartID& partID, RefMessage message, BOOL propagate)
+{
+	return REF_SUCCEED;
+}
+#endif
+
 
 RefTargetHandle NifFurnitureMarker::Clone(RemapDir &remap)
 {
@@ -423,14 +440,14 @@ BOOL NifFurnitureMarker::dlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
 	{
 		case WM_INITDIALOG:
 			mInstance->mCbType.init(GetDlgItem(hWnd, IDC_CB_TYPE));
-			mInstance->mCbType.add("Sleep Left");		// 1
-			mInstance->mCbType.add("Sleep Right");	// 2
-			mInstance->mCbType.add("Bedroll Left");	// 3
-			mInstance->mCbType.add("Bedroll Behind");	// 4
-			mInstance->mCbType.add("Sit Left");		// 11
-			mInstance->mCbType.add("Sit Right");		// 12
-			mInstance->mCbType.add("Sit Back");		// 13
-			mInstance->mCbType.add("Sit Front");		// 14
+			mInstance->mCbType.add(TEXT("Sleep Left"));		// 1
+			mInstance->mCbType.add(TEXT("Sleep Right"));	// 2
+			mInstance->mCbType.add(TEXT("Bedroll Left"));	// 3
+			mInstance->mCbType.add(TEXT("Bedroll Behind"));	// 4
+			mInstance->mCbType.add(TEXT("Sit Left"));		// 11
+			mInstance->mCbType.add(TEXT("Sit Right"));		// 12
+			mInstance->mCbType.add(TEXT("Sit Back"));		// 13
+			mInstance->mCbType.add(TEXT("Sit Front"));		// 14
 			break;
 
 		case WM_COMMAND:
@@ -471,7 +488,7 @@ public:
 	Class_ID		ClassID() { return FurnitureMarker_CLASS_ID; }
 	const TCHAR* 	Category() { return GetString(IDS_CATEGORY); }
 
-	const TCHAR*	InternalName() { return _T("NifFurnitureMarker"); }	// returns fixed parsable name (scripter-visible name)
+	const TCHAR*	InternalName() { return TEXT("NifFurnitureMarker"); }	// returns fixed parsable name (scripter-visible name)
 	HINSTANCE		HInstance() { return hInstance; }					// returns owning module handle
 };
 

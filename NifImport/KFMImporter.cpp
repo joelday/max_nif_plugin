@@ -25,14 +25,16 @@ void KFMImporter::ReadBlocks()
    try
    {
       Kfm kfm;
-      int ver = kfm.Read(name);
+	  string aname = T2AString(name);
+	  string apath = T2AString(path);
+      int ver = kfm.Read(aname);
       if (ver != VER_UNSUPPORTED)
       {
          TCHAR buffer[MAX_PATH];
-         GetFullPathName(name.c_str(), MAX_PATH, buffer, NULL);
+         GetFullPathName(name.c_str(), MAX_PATH, buffer, nullptr);
          PathRemoveFileSpec(buffer);
-         string nif_filename = path + '\\' + kfm.nif_filename;
-         if (_taccess(nif_filename.c_str(), 0) != -1)
+         string nif_filename = apath + '\\' + kfm.nif_filename;
+         if (_access(nif_filename.c_str(), 0) != -1)
             root = ReadNifTree(nif_filename);
 
          //root = kfm.MergeActions(string(buffer));
@@ -42,8 +44,8 @@ void KFMImporter::ReadBlocks()
          vector<NiControllerSequenceRef> ctrllist;
 
          for ( vector<KfmAction>::iterator it = kfm.actions.begin(); it != kfm.actions.end(); it++ ) {
-            string action_filename = path + '\\' + it->action_filename;
-            if (-1 != _taccess(action_filename.c_str(), 0)){
+            string action_filename = apath + '\\' + it->action_filename;
+            if (-1 != _access(action_filename.c_str(), 0)){
                if (action_filename != last_file) {
 				   Niflib::NifInfo info;
 				   Niflib::NifOptions opts;
@@ -101,7 +103,7 @@ bool KFMImporter::DoImport()
 
 void KFMImporter::SaveIniSettings()
 {
-   SetIniValue(AnimImportSection, "ClearAnimation", clearAnimation);
-   SetIniValue(AnimImportSection, "AddNoteTracks", addNoteTracks);
-   SetIniValue(AnimImportSection, "AddTimeTags", addTimeTags);
+   SetIniValue(AnimImportSection, TEXT("ClearAnimation"), clearAnimation);
+   SetIniValue(AnimImportSection, TEXT("AddNoteTracks"), addNoteTracks);
+   SetIniValue(AnimImportSection, TEXT("AddTimeTags"), addTimeTags);
 }

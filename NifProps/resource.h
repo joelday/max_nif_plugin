@@ -21,6 +21,8 @@
 #define IDC_HEIGHTEDIT                  1010
 #define IDC_WIDTHSPINNER                1011
 #define IDC_HEIGHTSPINNER               1012
+#define IDC_SCALESPINNER                1013
+#define IDC_SCALEEDIT                   1014
 #define IDC_LIST1                       1023
 #define IDC_ADD                         1024
 #define IDC_REMOVE                      1025
@@ -338,6 +340,7 @@
 #define IDC_ED_ANIM_PRIORITY            11601
 #define IDC_SP_ANIM_PRIORITY            11602
 #define IDC_ANIM_END                    11602
+#define IDS_DS_SCALE                    11603
 
 // Next default values for new objects
 // 

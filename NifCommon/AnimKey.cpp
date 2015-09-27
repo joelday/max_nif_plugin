@@ -406,9 +406,9 @@ Vector3Key& CopyKey( Vector3Key& dst, FloatKey& src, V3T type)
 
 void SplitKeys(vector<Vector3Key>&keys, vector<FloatKey>&xkeys, vector<FloatKey>&ykeys, vector<FloatKey>&zkeys)
 {
-   int n = keys.size();
+   size_t n = keys.size();
    xkeys.resize(n), ykeys.resize(n), zkeys.resize(n);
-   for (int i=0,n=keys.size(); i<n; ++i) {
+   for (size_t i=0,n=keys.size(); i<n; ++i) {
       Vector3Key& key = keys[i];
       CopyKey(xkeys[i], key, V3T_X), CopyKey(ykeys[i], key, V3T_Y), CopyKey(zkeys[i], key, V3T_Z);
    }
@@ -416,9 +416,9 @@ void SplitKeys(vector<Vector3Key>&keys, vector<FloatKey>&xkeys, vector<FloatKey>
 
 void JoinKeys(vector<Vector3Key>&keys, vector<FloatKey>&xkeys, vector<FloatKey>&ykeys, vector<FloatKey>&zkeys)
 {
-   int n = xkeys.size();
+   size_t n = xkeys.size();
    keys.resize(n);
-   for (int i=0; i<n; ++i) {
+   for (size_t i=0; i<n; ++i) {
       Vector3Key& key = keys[i];
       CopyKey(key, xkeys[i], V3T_X), CopyKey(key, ykeys[i], V3T_Y), CopyKey(key, zkeys[i], V3T_Z);
    }
@@ -480,7 +480,7 @@ void ScaleKey(FloatKey& key, float mult) {
 }
 
 void ScaleKeys(vector<FloatKey>&keys, float mult) {
-	for (int i=0, n = keys.size(); i<n; ++i) {
+	for (size_t i=0, n = keys.size(); i<n; ++i) {
 		ScaleKey(keys[i], mult);
 	}
 }

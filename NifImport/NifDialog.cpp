@@ -18,7 +18,7 @@ HISTORY:
 using namespace Niflib;
 
 static INT_PTR CALLBACK MaxNifImportOptionsDlgProc(HWND hWnd,UINT message,WPARAM wParam,LPARAM lParam) {
-   static NifImporter *imp = NULL;
+   static NifImporter *imp = nullptr;
    static DWORD dlgRes = IDCANCEL; 
 
    switch(message) {
@@ -27,9 +27,9 @@ static INT_PTR CALLBACK MaxNifImportOptionsDlgProc(HWND hWnd,UINT message,WPARAM
             dlgRes = IDCANCEL;
 
             // Append file version to dialog
-            TSTR version = GetFileVersion(NULL);
+            TSTR version = GetFileVersion((LPTSTR)nullptr);
             if (!version.isNull()) {
-               char buffer[256];
+               TCHAR buffer[256];
                GetWindowText(hWnd, buffer, _countof(buffer));
                _tcscat(buffer, TEXT(" "));
                _tcscat(buffer, version);
@@ -55,6 +55,7 @@ static INT_PTR CALLBACK MaxNifImportOptionsDlgProc(HWND hWnd,UINT message,WPARAM
             CheckDlgButton(hWnd, IDC_CHK_AUTOSMOOTH, imp->enableAutoSmooth);
             CheckDlgButton(hWnd, IDC_CHK_ILLEGAL, imp->removeIllegalFaces);
             CheckDlgButton(hWnd, IDC_CHK_REM_BONES, imp->removeUnusedImportedBones);
+            CheckDlgButton(hWnd, IDC_CHK_DUMMY_NODES, imp->importBonesAsDummy);
             CheckDlgButton(hWnd, IDC_CHK_CLEARANIM, imp->clearAnimation);
             CheckDlgButton(hWnd, IDC_CHK_KEYNOTES, imp->addNoteTracks);
             CheckDlgButton(hWnd, IDC_CHK_TIMETAGS, imp->addTimeTags);
@@ -64,7 +65,7 @@ static INT_PTR CALLBACK MaxNifImportOptionsDlgProc(HWND hWnd,UINT message,WPARAM
             CheckDlgButton(hWnd, IDC_CHK_BIPED, imp->useBiped);
             CheckDlgButton(hWnd, IDC_CHK_UPB, !imp->importUPB);           
             
-            string selection = (imp->appSettings) ? imp->appSettings->Name : "User";
+            tstring selection = (imp->appSettings) ? imp->appSettings->Name : TEXT("User");
             for (AppSettingsMap::iterator itr = TheAppSettings.begin(), end = TheAppSettings.end(); itr != end; ++itr)
                SendDlgItemMessage(hWnd, IDC_CB_GAME, CB_ADDSTRING, 0, LPARAM(itr->Name.c_str()));
             SendDlgItemMessage(hWnd, IDC_CB_GAME, CB_SELECTSTRING, WPARAM(-1), LPARAM(selection.c_str()));
@@ -82,7 +83,7 @@ static INT_PTR CALLBACK MaxNifImportOptionsDlgProc(HWND hWnd,UINT message,WPARAM
             }
 
 			// Weld Threshold
-			TSTR weldThresh; weldThresh.printf("%g", imp->weldVertexThresh);
+			TSTR weldThresh; weldThresh.printf(TEXT("%g"), imp->weldVertexThresh);
 			CheckDlgButton(hWnd, IDC_CHK_WELD, imp->weldVertices);
 			EnableWindow(GetDlgItem(hWnd, IDC_CHK_WELD), TRUE);
 
@@ -104,7 +105,7 @@ static INT_PTR CALLBACK MaxNifImportOptionsDlgProc(HWND hWnd,UINT message,WPARAM
          {
             if (HIWORD(wParam) == BN_CLICKED)
             {
-               char tmp[MAX_PATH];
+               TCHAR tmp[MAX_PATH];
                switch (LOWORD(wParam))
                {
                case IDOK:
@@ -124,6 +125,7 @@ static INT_PTR CALLBACK MaxNifImportOptionsDlgProc(HWND hWnd,UINT message,WPARAM
                   imp->removeDegenerateFaces =
                   imp->removeIllegalFaces = IsDlgButtonChecked(hWnd, IDC_CHK_ILLEGAL) ? true : false;
                   imp->removeUnusedImportedBones = IsDlgButtonChecked(hWnd, IDC_CHK_REM_BONES) ? true : false;
+                  imp->importBonesAsDummy = IsDlgButtonChecked(hWnd, IDC_CHK_DUMMY_NODES) ? true : false;
                   imp->clearAnimation = IsDlgButtonChecked(hWnd, IDC_CHK_CLEARANIM) ? true : false;
                   imp->addNoteTracks = IsDlgButtonChecked(hWnd, IDC_CHK_KEYNOTES) ? true : false;
                   imp->addTimeTags = IsDlgButtonChecked(hWnd, IDC_CHK_TIMETAGS) ? true : false;
@@ -144,7 +146,7 @@ static INT_PTR CALLBACK MaxNifImportOptionsDlgProc(HWND hWnd,UINT message,WPARAM
 				  // Weld Threshold
 				  imp->weldVertices = IsDlgButtonChecked(hWnd, IDC_CHK_WELD)? true : false;
 				  GetDlgItemText(hWnd, IDC_EDIT_WELDTHRESH, tmp, MAX_PATH);
-				  if (strlen(tmp) > 0) imp->weldVertexThresh = (float)atof(tmp);
+				  if (_tcslen(tmp) > 0) imp->weldVertexThresh = (float)_ttof(tmp);
 
                   EndDialog(hWnd, dlgRes=IDOK);
                   return TRUE;
@@ -157,11 +159,11 @@ static INT_PTR CALLBACK MaxNifImportOptionsDlgProc(HWND hWnd,UINT message,WPARAM
                   {
                      TCHAR filter[64], *pfilter=filter;
                      pfilter = _tcscpy(filter, shortDescription);
-                     pfilter = _tcscat(pfilter, " (*.NIF)");
-                     pfilter += strlen(pfilter);
+                     pfilter = _tcscat(pfilter, TEXT(" (*.NIF)"));
+                     pfilter += _tcslen(pfilter);
                      *pfilter++ = '\0';
-                     _tcscpy(pfilter, "*.NIF");
-                     pfilter += strlen(pfilter);
+                     _tcscpy(pfilter, TEXT("*.NIF"));
+                     pfilter += _tcslen(pfilter);
                      *pfilter++ = '\0';
                      *pfilter++ = '\0';
 
@@ -189,11 +191,11 @@ static INT_PTR CALLBACK MaxNifImportOptionsDlgProc(HWND hWnd,UINT message,WPARAM
 				   break;
 
                case IDC_LBL_LINK:
-                  ShellExecute(hWnd, "open", imp->webSite, NULL, NULL, SW_SHOWNORMAL);
+                  ShellExecute(hWnd, TEXT("open"), imp->webSite, nullptr, nullptr, SW_SHOWNORMAL);
                   break;
 
                case IDC_LBL_WIKI:
-                  ShellExecute(hWnd, "open", imp->wikiSite, NULL, NULL, SW_SHOWNORMAL);
+                  ShellExecute(hWnd, TEXT("open"), imp->wikiSite, nullptr, nullptr, SW_SHOWNORMAL);
                   break;
                }
             }
@@ -201,11 +203,11 @@ static INT_PTR CALLBACK MaxNifImportOptionsDlgProc(HWND hWnd,UINT message,WPARAM
             {
                if (LOWORD(wParam) == IDC_CB_GAME)
                {
-                  char tmp[MAX_PATH];
+                  TCHAR tmp[MAX_PATH];
                   GetDlgItemText(hWnd, IDC_CB_GAME, tmp, MAX_PATH);
                   if (AppSettings *appSettings = FindAppSetting(tmp))
                   {
-                     string skeleton = imp->GetSkeleton(appSettings);
+                     tstring skeleton = imp->GetSkeleton(appSettings);
                      BOOL enable = imp->HasSkeleton() ? TRUE : FALSE;
                      if (enable) {
                         SetDlgItemText(hWnd, IDC_ED_SKELETON, skeleton.c_str());

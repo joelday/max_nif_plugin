@@ -11,7 +11,7 @@ void NpComboBox::init(HWND hWnd)
 	mWnd = hWnd;
 }
 
-int	NpComboBox::add(const char *s)
+int	NpComboBox::add(const TCHAR *s)
 {
 	SendMessage(mWnd, CB_ADDSTRING, 0, (LPARAM)s);
 	return count()-1;

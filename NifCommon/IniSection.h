@@ -20,54 +20,54 @@ enum VARIABLETYPE
 
 struct VARIABLE
 {
-   VARIABLE() : ShortName(NULL), IniName(NULL), MemberAddr(0), Description(NULL), DefaultValue(NULL), ValueSize(0) {
+   VARIABLE() : ShortName(nullptr), IniName(nullptr), MemberAddr(0), Description(nullptr), DefaultValue(nullptr), ValueSize(0) {
    }
 
    ~VARIABLE() {
       if (ValueSize && DefaultValue) {
          delete DefaultValue;
-         DefaultValue = NULL;
+         DefaultValue = nullptr;
          ValueSize = 0;
       }
    }
 
    template<typename U>
    VARIABLE(LPCTSTR sName, LPCTSTR iName, const U& member, U default, LPCTSTR desc, VARIABLETYPE type) 
-      : ShortName(sName), IniName(iName), MemberAddr(NULL), Description(NULL), MemberType(type) {
+      : ShortName(sName), IniName(iName), MemberAddr((SIZE_T)nullptr), Description(nullptr), MemberType(type) {
       SetDefault(default);
    }
 
    template<>
    VARIABLE(LPCTSTR sName, LPCTSTR iName, const std::string& member, std::string default, LPCTSTR desc, VARIABLETYPE type) 
-      : ShortName(sName), IniName(iName), MemberAddr((DWORD)&member), Description(NULL) { 
+      : ShortName(sName), IniName(iName), MemberAddr((SIZE_T)&member), Description(nullptr) {
       MemberType = type==vtUnknown?vtText:type; 
       SetDefault(default);
    }
 
    template<>
    VARIABLE(LPCTSTR sName, LPCTSTR iName, const int& member, int default, LPCTSTR desc, VARIABLETYPE type) 
-      : ShortName(sName), IniName(iName), MemberAddr((DWORD)&member), Description(NULL) { 
+      : ShortName(sName), IniName(iName), MemberAddr((SIZE_T)&member), Description(nullptr) {
       MemberType = type==vtUnknown?vtInteger:type; 
       SetDefault(default);
    }
 
    template<>
    VARIABLE(LPCTSTR sName, LPCTSTR iName, const float& member, float default, LPCTSTR desc, VARIABLETYPE type) 
-      : ShortName(sName), IniName(iName), MemberAddr((DWORD)&member), Description(NULL) { 
+      : ShortName(sName), IniName(iName), MemberAddr((SIZE_T)&member), Description(nullptr) { 
       MemberType = type==vtUnknown?vtFloat:type; 
       SetDefault(default);
    }
 
    template<>
    VARIABLE(LPCTSTR sName, LPCTSTR iName, const double& member, double default, LPCTSTR desc, VARIABLETYPE type) 
-      : ShortName(sName), IniName(iName), MemberAddr((DWORD)&member), Description(NULL) { 
+      : ShortName(sName), IniName(iName), MemberAddr((SIZE_T)&member), Description(nullptr) {
          MemberType = type==vtUnknown?vtDouble:type; 
          SetDefault(default);
    }
 
    template<>
    VARIABLE(LPCTSTR sName, LPCTSTR iName, const bool& member, bool default, LPCTSTR desc, VARIABLETYPE type) 
-      : ShortName(sName), IniName(iName), MemberAddr((DWORD)&member), Description(NULL) { 
+      : ShortName(sName), IniName(iName), MemberAddr((SIZE_T)&member), Description(nullptr) {
       MemberType = type==vtUnknown?vtBoolean:type; 
       SetDefault(default);
    }
@@ -85,7 +85,7 @@ struct VARIABLE
 
    LPCTSTR ShortName;
    LPCTSTR IniName;
-   DWORD MemberAddr;
+   SIZE_T MemberAddr;
    VARIABLETYPE MemberType;
    LPCTSTR Description;
    LPVOID DefaultValue;
@@ -130,7 +130,7 @@ inline int GetIniDefSectionSize(IniFileSection *section) {
    int len = 0;
 
    for (const VARIABLE *inidef = section->GetInfDefmap()
-      ; inidef != NULL && inidef->ShortName
+      ; inidef != nullptr && inidef->ShortName
       ; ++inidef)
       ++len;
    return len;

@@ -1,7 +1,12 @@
-                        MaxPlugins 3.7.2
+                        MaxPlugins 3.8
                         ================
 
+    ATTENTION:
+    ----------
+    This is not the officially maintained edition of the NifTools plugin
  
+    Description:
+    ------------
     This plugin currently consists of an exporter, importer and a utility 
      plugin for 3ds max and gmax for read and writing Gamebryo/Netimmerse
      related files.
@@ -21,7 +26,7 @@
     ------------
 
       Plugins:
-        3D Studio Max 5, 6, 7, 8, 9, 2008, 2009, 2010, 2011, 2012
+        3D Studio Max 5, 6, 7, 8, 9, 2008, 2009, 2010, 2011, 2012, 2015
         gmax 1.2
 
     Installation

@@ -46,6 +46,7 @@
 #define IDC_LBL_WIKI                    10027
 #define IDC_CHK_IGNORE_ROOT2            10028
 #define IDC_CHK_USE_SHADER              10028
+#define IDC_CHK_DUMMY_NODES             10029
 
 // Next default values for new objects
 // 

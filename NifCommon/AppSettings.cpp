@@ -11,17 +11,17 @@ void AppSettings::Initialize(Interface *gi)
    TCHAR iniName[MAX_PATH];
    GetIniFileName(iniName);
    if (-1 != _taccess(iniName, 0)) {
-      bool reparse = GetIniValue<bool>("System", "Reparse", false, iniName);
+      bool reparse = GetIniValue<bool>(TEXT("System"), TEXT("Reparse"), false, iniName);
       if (reparse || TheAppSettings.empty()){
          TheAppSettings.clear();
       }
 
-      string Applications = GetIniValue<string>("System", "KnownApplications", "", iniName);
-      stringlist apps = TokenizeString(Applications.c_str(), ";");
-      apps.push_back(string("User")); // always ensure that user is present
-      for (stringlist::iterator appstr=apps.begin(); appstr != apps.end(); ++appstr){
+      tstring Applications = GetIniValue<tstring>(TEXT("System"), TEXT("KnownApplications"), TEXT(""), iniName);
+      tstringlist apps = TokenizeString(Applications.c_str(), TEXT(";"));
+      apps.push_back(tstring(TEXT("User"))); // always ensure that user is present
+      for (tstringlist::iterator appstr=apps.begin(); appstr != apps.end(); ++appstr){
          AppSettings* setting = FindAppSetting(*appstr);
-         if (NULL == setting){
+         if (nullptr == setting){
             AppSettingsMap::iterator itr = TheAppSettings.insert(TheAppSettings.end(), AppSettings(*appstr));
             (*itr).ReadSettings(iniName);
          }
@@ -29,7 +29,7 @@ void AppSettings::Initialize(Interface *gi)
    }
 }
 
-void AppSettings::ReadSettings(string iniFile)
+void AppSettings::ReadSettings(tstring iniFile)
 {
    NameValueCollection settings = ReadIniSection(Name.c_str(), iniFile.c_str());
 
@@ -47,29 +47,29 @@ void AppSettings::ReadSettings(string iniFile)
 
    std::swap(Environment, settings);
 
-   NiVersion = GetSetting<string>("NiVersion", "20.0.0.5");
-   NiUserVersion = GetSetting<int>("NiUserVersion", 0);
-	NiUserVersion2 = GetSetting<int>("NiUserVersion2", 0);
+   NiVersion = GetSetting<tstring>(TEXT("NiVersion"), TEXT("20.0.0.5"));
+   NiUserVersion = GetSetting<int>(TEXT("NiUserVersion"), 0);
+	NiUserVersion2 = GetSetting<int>(TEXT("NiUserVersion2"), 0);
 
-   rootPath = GetSetting<string>("RootPath");
-   rootPaths = TokenizeString(GetSetting<string>("RootPaths").c_str(), ";");
-   searchPaths = TokenizeString(GetSetting<string>("TextureSearchPaths").c_str(), ";");
-   extensions = TokenizeString(GetSetting<string>("TextureExtensions").c_str(), ";");
-   textureRootPaths = TokenizeString(GetSetting<string>("TextureRootPaths").c_str(), ";");
+   rootPath = GetSetting<tstring>(TEXT("RootPath"));
+   rootPaths = TokenizeString(GetSetting<tstring>(TEXT("RootPaths")).c_str(), TEXT(";"));
+   searchPaths = TokenizeString(GetSetting<tstring>(TEXT("TextureSearchPaths")).c_str(), TEXT(";"));
+   extensions = TokenizeString(GetSetting<tstring>(TEXT("TextureExtensions")).c_str(), TEXT(";"));
+   textureRootPaths = TokenizeString(GetSetting<tstring>(TEXT("TextureRootPaths")).c_str(), TEXT(";"));
 
-   Skeleton = GetSetting<string>("Skeleton");
-   useSkeleton = GetSetting<bool>("UseSkeleton", useSkeleton);
-   goToSkeletonBindPosition = GetSetting<bool>("GoToSkeletonBindPosition", goToSkeletonBindPosition);
-   disableCreateNubsForBones = GetSetting<bool>("DisableCreateNubsForBones", disableCreateNubsForBones);
-   applyOverallTransformToSkinAndBones = GetSetting<int>("ApplyOverallTransformToSkinAndBones", -1);
-   textureUseFullPath = GetSetting<int>("TextureUseFullPath", textureUseFullPath);
+   Skeleton = GetSetting<tstring>(TEXT("Skeleton"));
+   useSkeleton = GetSetting<bool>(TEXT("UseSkeleton"), useSkeleton);
+   goToSkeletonBindPosition = GetSetting<bool>(TEXT("GoToSkeletonBindPosition"), goToSkeletonBindPosition);
+   disableCreateNubsForBones = GetSetting<bool>(TEXT("DisableCreateNubsForBones"), disableCreateNubsForBones);
+   applyOverallTransformToSkinAndBones = GetSetting<int>(TEXT("ApplyOverallTransformToSkinAndBones"), -1);
+   textureUseFullPath = GetSetting<int>(TEXT("TextureUseFullPath"), textureUseFullPath);
 
-   dummyNodeMatches = TokenizeString(GetSetting<string>("DummyNodeMatches").c_str(), ";");
-   rotate90Degrees = TokenizeString(GetSetting<string>("Rotate90Degrees").c_str(), ";");
-   supportPrnStrings = GetSetting<bool>("SupportPrnStrings", supportPrnStrings);
-   doNotReuseExistingBones = GetSetting<bool>("DoNotReuseExistingBones", doNotReuseExistingBones);
+   dummyNodeMatches = TokenizeString(GetSetting<tstring>(TEXT("DummyNodeMatches")).c_str(), TEXT(";"));
+   rotate90Degrees = TokenizeString(GetSetting<tstring>(TEXT("Rotate90Degrees")).c_str(), TEXT(";"));
+   supportPrnStrings = GetSetting<bool>(TEXT("SupportPrnStrings"), supportPrnStrings);
+   doNotReuseExistingBones = GetSetting<bool>(TEXT("DoNotReuseExistingBones"), doNotReuseExistingBones);
 
-   skeletonCheck = GetSetting<string>("SkeletonCheck");
+   skeletonCheck = GetSetting<tstring>(TEXT("SkeletonCheck"));
 }
 
 void AppSettings::WriteSettings(Interface *gi)
@@ -78,14 +78,14 @@ void AppSettings::WriteSettings(Interface *gi)
    GetIniFileName(iniName);
    if (-1 != _taccess(iniName, 0)) 
    {
-      SetIniValue(Name.c_str(), "NiVersion", NiVersion.c_str(), iniName);
-      SetIniValue(Name.c_str(), "NiUserVersion", FormatString("%d", NiUserVersion).c_str(), iniName);
-		SetIniValue(Name.c_str(), "NiUserVersion2", FormatString("%d", NiUserVersion2).c_str(), iniName);
+      SetIniValue(Name.c_str(), TEXT("NiVersion"), NiVersion.c_str(), iniName);
+      SetIniValue(Name.c_str(), TEXT("NiUserVersion"), FormatString(TEXT("%d"), NiUserVersion).c_str(), iniName);
+		SetIniValue(Name.c_str(), TEXT("NiUserVersion2"), FormatString(TEXT("%d"), NiUserVersion2).c_str(), iniName);
    }
 }
 
 
-string AppSettings::FindImage(const string& fname){
+tstring AppSettings::FindImage(const tstring& fname){
    TCHAR buffer[MAX_PATH];
 
    // Simply check for fully qualified path
@@ -95,10 +95,10 @@ string AppSettings::FindImage(const string& fname){
    }
 
    // Test if its relative and in one of the specified root paths
-   for (stringlist::iterator itr = textureRootPaths.begin(), end = textureRootPaths.end(); itr != end; ++itr ){
+   for (tstringlist::iterator itr = textureRootPaths.begin(), end = textureRootPaths.end(); itr != end; ++itr ){
       PathCombine(buffer, itr->c_str(), fname.c_str());
       if (-1 != _taccess(buffer, 0)){
-         return string(buffer);
+         return tstring(buffer);
       }
    }
 
@@ -116,7 +116,7 @@ string AppSettings::FindImage(const string& fname){
       if (!rootPath.empty()) {
          _tcscpy(buffer, rootPath.c_str());
          PathCombine(buffer, rootPath.c_str(), ((*nmitr).second).c_str());
-         return string(buffer);
+         return tstring(buffer);
       } else {
          return (*nmitr).second;
       }
@@ -126,15 +126,15 @@ string AppSettings::FindImage(const string& fname){
 
 
 // Check whether the given file is a child of the root paths
-bool AppSettings::IsFileInRootPaths(const std::string& fname)
+bool AppSettings::IsFileInRootPaths(const tstring& fname)
 {
    TCHAR root[MAX_PATH];
    TCHAR file[MAX_PATH];
-   GetFullPathName(fname.c_str(), _countof(file), file, NULL);
+   GetFullPathName(fname.c_str(), _countof(file), file, nullptr);
    PathMakePretty(file);
 
-   for (stringlist::iterator itr = rootPaths.begin(), end = rootPaths.end(); itr != end; ++itr ){
-      GetFullPathName((*itr).c_str(), _countof(root), root, NULL);
+   for (tstringlist::iterator itr = rootPaths.begin(), end = rootPaths.end(); itr != end; ++itr ){
+      GetFullPathName((*itr).c_str(), _countof(root), root, nullptr);
       PathAddBackslash(root);
       PathMakePretty(root);
       if (-1 != _taccess(root,0)) {
@@ -147,40 +147,45 @@ bool AppSettings::IsFileInRootPaths(const std::string& fname)
 }
 
 // Return the Relative Texture Path for filename or empty
-std::string AppSettings::GetRelativeTexPath(const std::string& fname, const std::string& prefix)
+tstring AppSettings::GetRelativeTexPath(const tstring& fname, const tstring& prefix)
+{
+	return GetRelativeTexPath(fname.c_str(), prefix.c_str());
+}
+
+tstring AppSettings::GetRelativeTexPath(LPCTSTR fname, LPCTSTR prefix)
 {
    TCHAR buffer[MAX_PATH];
    if (textureUseFullPath == 1) // full path name
    {
-      GetFullPathName(fname.c_str(), _countof(buffer), buffer, NULL);
-      return string(buffer);
+      GetFullPathName(fname, _countof(buffer), buffer, nullptr);
+      return tstring(buffer);
    }
    else if (textureUseFullPath == -1) // only filename
    {
-	   return string(PathFindFileName(fname.c_str()));
+	   return tstring(PathFindFileName(fname));
    }
-   if (!PathIsRelative(fname.c_str())) 
+   if (!PathIsRelative(fname)) 
    {
       TCHAR root[MAX_PATH];
       TCHAR file[MAX_PATH];
-      GetFullPathName(fname.c_str(), _countof(file), file, NULL);
+      GetFullPathName(fname, _countof(file), file, nullptr);
       PathMakePretty(file);
 
-      for (stringlist::iterator itr = textureRootPaths.begin(), end = textureRootPaths.end(); itr != end; ++itr ){
-         GetFullPathName((*itr).c_str(), _countof(root), root, NULL);
+      for (tstringlist::iterator itr = textureRootPaths.begin(), end = textureRootPaths.end(); itr != end; ++itr ){
+         GetFullPathName((*itr).c_str(), _countof(root), root, nullptr);
          PathAddBackslash(root);
          PathMakePretty(root);
          if (-1 != _taccess(root,0)) {
             size_t len = _tcslen(root);
             if (0 == _tcsnicmp(root, file, len))
-               return string(file+len);
+               return tstring(file+len);
          }
       }
    }
    else // Test if its relative to one of the specified root paths just return the texture 
    {
-      for (stringlist::iterator itr = textureRootPaths.begin(), end = textureRootPaths.end(); itr != end; ++itr ){
-         PathCombine(buffer, itr->c_str(), fname.c_str());
+      for (tstringlist::iterator itr = textureRootPaths.begin(), end = textureRootPaths.end(); itr != end; ++itr ){
+         PathCombine(buffer, itr->c_str(), fname);
          if (-1 != _taccess(buffer, 0)){
             return fname;
          }
@@ -188,12 +193,12 @@ std::string AppSettings::GetRelativeTexPath(const std::string& fname, const std:
    }
 
 	// check if prefix is in place if so then just return fname as is
-	if (_tcsnicmp(fname.c_str(), prefix.c_str(), prefix.size()) == 0)
+	if (_tcsnicmp(fname, prefix, _tcslen(prefix)) == 0)
 	{
 		return fname;
 	}
 
    // Now just combine prefix with file portion of the name
-   PathCombine(buffer, prefix.c_str(), PathFindFileName(fname.c_str()));
-   return string(buffer);
+   PathCombine(buffer, prefix, PathFindFileName(fname));
+   return tstring(buffer);
 }
