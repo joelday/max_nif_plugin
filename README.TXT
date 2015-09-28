@@ -26,8 +26,7 @@
     ------------
 
       Plugins:
-        3D Studio Max 5, 6, 7, 8, 9, 2008, 2009, 2010, 2011, 2012, 2015
-        gmax 1.2
+        3D Studio Max 2016
 
     Installation
     ------------

@@ -66,7 +66,7 @@ void Exporter::makeTexture(NiAVObjectRef &parent, Mtl *mtl)
 		BSLightingShaderPropertyRef texProp = new BSLightingShaderProperty();
 
 		//0=default 1=EnvMap, 2=Glow, 5=Skin, 6=Hair, 7=Unknown, 11=Ice/Parallax, 15=Eye.
-      BSLightingShaderPropertyShaderType shaderType = Niflib::DEFAULT;
+		BSLightingShaderPropertyShaderType shaderType = Niflib::LSPST_DEFAULT;
 		texProp->SetSkyrimShaderType(shaderType);
 
 		BSShaderTextureSetRef texset = new BSShaderTextureSet();
@@ -743,7 +743,8 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 				if (shaderType < 100 || shaderType > 200)
 					shaderType = 0;
 				else
-               texProp->SetSkyrimShaderType((BSLightingShaderPropertyShaderType)(shaderType - 100));
+					shaderType -= 100;
+				texProp->SetSkyrimShaderType((BSLightingShaderPropertyShaderType)shaderType);
 
 				BSShaderTextureSetRef texset = new BSShaderTextureSet();
 				texProp->SetTextureSet(texset);
@@ -751,18 +752,18 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 				vector<string> textures;
 				textures.resize(9);
 
-            SkyrimShaderPropertyFlags1 flags1 = (SkyrimShaderPropertyFlags1)(SLSF1_SPECULAR|SLSF1_SKINNED|SLSF1_RECIEVE_SHADOWS|SLSF1_CAST_SHADOWS|SLSF1_OWN_EMIT|SLSF1_REMAPPABLE_TEXTURES|SLSF1_ZBUFFER_TEST);
-            SkyrimShaderPropertyFlags2 flags2 = (SkyrimShaderPropertyFlags2)(SLSF2_ZBUFFER_WRITE|SF_REFRACTION);
+				SkyrimShaderPropertyFlags1 flags1 = (SkyrimShaderPropertyFlags1)(SLSF1_SPECULAR | SLSF1_SKINNED | SLSF1_RECIEVE_SHADOWS | SLSF1_CAST_SHADOWS | SLSF1_OWN_EMIT | SLSF1_REMAPPABLE_TEXTURES | SLSF1_ZBUFFER_TEST);
+				SkyrimShaderPropertyFlags2 flags2 = (SkyrimShaderPropertyFlags2)(SLSF2_ZBUFFER_WRITE | SF_REFRACTION);
 
 				if (shaderType == 5)
-               flags2 = (SkyrimShaderPropertyFlags2)(flags2 | SLSF2_SOFT_LIGHTING);
+					flags2 = (SkyrimShaderPropertyFlags2)(flags2 | SLSF2_SOFT_LIGHTING);
 
-            texProp->SetSpecularPower_Glossiness(80);
+				texProp->SetSpecularPower_Glossiness(80);
 				texProp->SetSpecularColor(Color3(0.933f, 0.855f, 0.804f));
 				texProp->SetSpecularStrength(1.0f);
 				texProp->SetLightingEffect1(0.3f);
 				texProp->SetLightingEffect2(2.0f);
-            texProp->SetEnvironmentMapScale(1.0f);
+				texProp->SetEnvironmentMapScale(1.0f);
 
 				TSTR diffuseStr, normalStr, glowStr, dispStr, envStr, envMaskStr, specularStr, parallaxStr;
 
@@ -829,7 +830,7 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 						}
 						if (m->GetMapState(C_PARALLAX) == 2) {
 							if (Texmap *texMap = m->GetSubTexmap(C_PARALLAX)) {
-                        GetTexFullName(texMap, parallaxStr);
+								GetTexFullName(texMap, parallaxStr);
 							}
 						}
 					}
@@ -846,8 +847,8 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 					if (!glowStr.isNull())
 					{
 						textures[2] = T2AString(mAppSettings->GetRelativeTexPath(glowStr, sTexPrefix));
-                  flags1 = (SkyrimShaderPropertyFlags1)(flags1 | SLSF1_SKINNED | SLSF1_FACEGEN_RGB_TINT);
-                  flags2 = (SkyrimShaderPropertyFlags2)(flags2 | SLSF2_SOFT_LIGHTING);               
+						flags1 = (SkyrimShaderPropertyFlags1)(flags1 | SLSF1_SKINNED | SLSF1_FACEGEN_RGB_TINT);
+						flags2 = (SkyrimShaderPropertyFlags2)(flags2 | SLSF2_SOFT_LIGHTING);
 					}
 					if (!dispStr.isNull())
 					{
@@ -857,31 +858,31 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 					if (!envStr.isNull())
 					{
 						textures[4] = T2AString(mAppSettings->GetRelativeTexPath(envStr, sTexPrefix));
-                  flags1 = (SkyrimShaderPropertyFlags1)(flags1 | Niflib::SLSF1_ENVIRONMENT_MAPPING);
+						flags1 = (SkyrimShaderPropertyFlags1)(flags1 | Niflib::SLSF1_ENVIRONMENT_MAPPING);
 					}
 					if (!envMaskStr.isNull())
 					{
 						textures[5] = T2AString(mAppSettings->GetRelativeTexPath(envMaskStr, sTexPrefix));
-                  flags1 = (SkyrimShaderPropertyFlags1)(flags1 | Niflib::SLSF1_ENVIRONMENT_MAPPING);
+						flags1 = (SkyrimShaderPropertyFlags1)(flags1 | Niflib::SLSF1_ENVIRONMENT_MAPPING);
 					}
 					if (!specularStr.isNull())
 					{
 						textures[7] = T2AString(mAppSettings->GetRelativeTexPath(specularStr, sTexPrefix));
-                  flags1 = (SkyrimShaderPropertyFlags1)(flags1 | Niflib::SLSF1_MODEL_SPACE_NORMALS);
-               }
-               if (!parallaxStr.isNull())
-               {
-                  textures[8] = T2AString(mAppSettings->GetRelativeTexPath(parallaxStr, sTexPrefix));
+						flags1 = (SkyrimShaderPropertyFlags1)(flags1 | Niflib::SLSF1_MODEL_SPACE_NORMALS);
+					}
+					if (!parallaxStr.isNull())
+					{
+						textures[8] = T2AString(mAppSettings->GetRelativeTexPath(parallaxStr, sTexPrefix));
 					}
 
-               if ( m->GetTwoSided() ) flags2 = (SkyrimShaderPropertyFlags2)(flags2 | SLSF2_DOUBLE_SIDED);
+					if (m->GetTwoSided()) flags2 = (SkyrimShaderPropertyFlags2)(flags2 | SLSF2_DOUBLE_SIDED);
 
 
 					texProp->SetShaderFlags1(flags1);
 					texProp->SetShaderFlags2(flags2);
 
 					TimeValue t = 0;
-               texProp->SetSpecularPower_Glossiness(m->GetShininess(t) * 100.0f);
+					texProp->SetSpecularPower_Glossiness(m->GetShininess(t) * 100.0f);
 					//texProp->SetSpecularColor(m->getsh);
 					//texProp->SetSpecularStrength(m->GetShinStr(t) < 1.0f ? 3.0f : 0.0f);
 					texProp->SetAlpha(m->GetOpacity(t) / 100.0f);

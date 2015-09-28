@@ -3,6 +3,11 @@ NifTools MaxPlugin
 
     Change log
     ----------
+	  3.8
+	o All
+	  - Switched to Visual Studio 2015 VC++ Compiler
+	  - Add 3ds Max 2015 support.  Support for prior releases no longer maintained.
+
       3.7
     o All
       - Recompiled with Skyrim modified niflib

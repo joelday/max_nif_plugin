@@ -75,9 +75,7 @@ void NifImporter::ReadBlocks()
 {
    //blocks = ReadNifList( name );
 	Niflib::NifInfo info;
-	Niflib::NifOptions opts;
-	opts.exceptionOnErrors = false;
-	root = ReadNifTree(T2AString(name), &info, &opts);
+	root = ReadNifTree(T2AString(name), &info);
 	nifVersion = info.version;
 	userVersion = info.userVersion;
 	this->unnamedCounter = 0;
