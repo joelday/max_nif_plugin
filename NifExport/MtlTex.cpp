@@ -611,9 +611,17 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 	int ShaderViewerTechnique = 0, ShaderExportTechnique = 0;
 	bool UseNormalMaps = false;
 	int NormalMapTechnique = 0;
+	float envmapscale = 1.0f, specularStrength = 1.0f, refractionStrength = 0.0f, lighteff1 = 0.3f, lighteff2 = 2.0f;
+
+	Color skinTintColor = Color(0.0f, 0.0f, 0.0f), hairTintColor = Color(0.0f, 0.0f, 0.0f);
+	float maxPasses = 1.0f, parallaxScale = 1.0f;
+	float parallaxInnerThickness, parallaxRefractionScale = 0.0f;
+	Point2 parallaxInnerTextureScale;
+	float parallaxEnvmapStr = 0.0f, eyeCubemapScale = 0.0f;
+	Point3 leftEyeReflCenter, rightEyeReflCenter;
+
 
 	bool ok = true;
-
 	if (ok) ok &= getMAXScriptValue(ref, TEXT("ambient"), 0, ambient);
 	if (ok) ok &= getMAXScriptValue(ref, TEXT("diffuse"), 0, diffuse);
 	if (ok) ok &= getMAXScriptValue(ref, TEXT("specular"), 0, specular);
@@ -625,7 +633,6 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 	if (ok) ok &= getMAXScriptValue(ref, TEXT("Bump_Map_Luma_offset"), 0, LumaOffset);
 	if (ok) ok &= getMAXScriptValue(ref, TEXT("TestRef"), 0, TestRef);
 	if (ok) ok &= getMAXScriptValue(ref, TEXT("AlphaTestEnable"), 0, AlphaTestEnable);
-	if (ok) ok &= getMAXScriptValue(ref, TEXT("Vertex_Color_Enable"), 0, VertexColorsEnable);
 	if (ok) ok &= getMAXScriptValue(ref, TEXT("SpecularEnable"), 0, SpecularEnable);
 	if (ok) ok &= getMAXScriptValue(ref, TEXT("NoSorter"), 0, NoSorter);
 	if (ok) ok &= getMAXScriptValue(ref, TEXT("Dither"), 0, Dither);
@@ -637,6 +644,42 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 	if (ok) ok &= getMAXScriptValue(ref, TEXT("LightingMode"), 0, LightingMode);
 	if (ok) ok &= getMAXScriptValue(ref, TEXT("alphaMode"), 0, alphaMode);
 	if (ok) ok &= getMAXScriptValue(ref, TEXT("CustomShader"), 0, CustomShader);
+	if (!getMAXScriptValue(ref, TEXT("EnvMapScale"), 0, envmapscale))
+		envmapscale = 1.0f;
+	if (!getMAXScriptValue(ref, TEXT("specularLevel"), 0, specularStrength))
+		specularStrength = 1.0f;
+	if (!getMAXScriptValue(ref, TEXT("RefractionStrength"), 0, refractionStrength))
+		refractionStrength = 0.0f;
+	if (!getMAXScriptValue(ref, TEXT("LightingEffect1"), 0, lighteff1))
+		lighteff1 = 0.3f;
+	if (!getMAXScriptValue(ref, TEXT("LightingEffect2"), 0, lighteff2))
+		lighteff2 = 2.0f;
+	if (!getMAXScriptValue(ref, TEXT("SkinTintColor"), 0, skinTintColor))
+		skinTintColor = Color(0.0f, 0.0f, 0.0f);
+	if (!getMAXScriptValue(ref, TEXT("HairTintColor"), 0, hairTintColor))
+		hairTintColor = Color(0.0f, 0.0f, 0.0f);
+	if (!getMAXScriptValue(ref, TEXT("MaxPasses"), 0, maxPasses))
+		maxPasses = 1.0f;
+	if (!getMAXScriptValue(ref, TEXT("ParallaxScale"), 0, parallaxScale))
+		parallaxScale = 1.0f;
+	if (!getMAXScriptValue(ref, TEXT("ParallaxInnerThickness"), 0, parallaxInnerThickness))
+		parallaxInnerThickness = 0.0f;
+	if (!getMAXScriptValue(ref, TEXT("ParallaxRefractionScale"), 0, parallaxRefractionScale))
+		parallaxRefractionScale = 0.0f;
+	//if (!getMAXScriptValue(ref, TEXT("ParallaxInnerTextureScale"), 0, parallaxInnerTextureScale))
+	//	parallaxInnerTextureScale = Point2();
+	if (!getMAXScriptValue(ref, TEXT("ParallaxEnvmapStr"), 0, parallaxEnvmapStr))
+		parallaxEnvmapStr = 0.0f;
+	if (!getMAXScriptValue(ref, TEXT("EyeCubemapScale"), 0, eyeCubemapScale))
+		eyeCubemapScale = 0.0f;
+	//if (!getMAXScriptValue(ref, TEXT("LeftEyeReflCenter"), 0, leftEyeReflCenter))
+	//	leftEyeReflCenter = Point3();
+	//if (!getMAXScriptValue(ref, TEXT("RightEyeReflCenter"), 0, rightEyeReflCenter))
+	//	rightEyeReflCenter = Point3();
+	if (!getMAXScriptValue(ref, TEXT("Vertex_Color_Enable"), 0, VertexColorsEnable) &&
+		!getMAXScriptValue(ref, TEXT("VertexColorsEnable"), 0, VertexColorsEnable))
+		VertexColorsEnable = false;
+
 
 	if (ok) // civ4 shader
 	{
@@ -753,7 +796,7 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 				textures.resize(9);
 
 				SkyrimShaderPropertyFlags1 flags1 = (SkyrimShaderPropertyFlags1)(SLSF1_SPECULAR | SLSF1_SKINNED | SLSF1_RECIEVE_SHADOWS | SLSF1_CAST_SHADOWS | SLSF1_OWN_EMIT | SLSF1_REMAPPABLE_TEXTURES | SLSF1_ZBUFFER_TEST);
-				SkyrimShaderPropertyFlags2 flags2 = (SkyrimShaderPropertyFlags2)(SLSF2_ZBUFFER_WRITE | SF_REFRACTION);
+				SkyrimShaderPropertyFlags2 flags2 = (SkyrimShaderPropertyFlags2)(SLSF2_ZBUFFER_WRITE | SLSF2_BACK_LIGHTING);
 
 				if (shaderType == 5)
 					flags2 = (SkyrimShaderPropertyFlags2)(flags2 | SLSF2_SOFT_LIGHTING);
@@ -764,6 +807,7 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 				texProp->SetLightingEffect1(0.3f);
 				texProp->SetLightingEffect2(2.0f);
 				texProp->SetEnvironmentMapScale(1.0f);
+				texProp->SetTextureClampMode(WRAP_S_WRAP_T);
 
 				TSTR diffuseStr, normalStr, glowStr, dispStr, envStr, envMaskStr, specularStr, parallaxStr;
 
@@ -859,11 +903,13 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 					{
 						textures[4] = T2AString(mAppSettings->GetRelativeTexPath(envStr, sTexPrefix));
 						flags1 = (SkyrimShaderPropertyFlags1)(flags1 | Niflib::SLSF1_ENVIRONMENT_MAPPING);
+						flags2 = (SkyrimShaderPropertyFlags2)(flags2 | Niflib::SLSF2_ENVMAP_LIGHT_FADE);
 					}
 					if (!envMaskStr.isNull())
 					{
 						textures[5] = T2AString(mAppSettings->GetRelativeTexPath(envMaskStr, sTexPrefix));
 						flags1 = (SkyrimShaderPropertyFlags1)(flags1 | Niflib::SLSF1_ENVIRONMENT_MAPPING);
+						flags2 = (SkyrimShaderPropertyFlags2)(flags2 | Niflib::SLSF2_ENVMAP_LIGHT_FADE);
 					}
 					if (!specularStr.isNull())
 					{
@@ -877,44 +923,50 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 
 					if (m->GetTwoSided()) flags2 = (SkyrimShaderPropertyFlags2)(flags2 | SLSF2_DOUBLE_SIDED);
 
+					if (VertexColorsEnable)
+						flags2 = (SkyrimShaderPropertyFlags2)(flags2 | SLSF2_VERTEX_COLORS);
+					if (SpecularEnable)
+						flags1 = (SkyrimShaderPropertyFlags1)(flags1 | SLSF1_SPECULAR);
 
+					//NiTriBasedGeomRef shape(DynamicCast<NiTriBasedGeom>(parent));
+					//if (shape != nullptr) {
+					//	NiGeometryDataRef data = shape->GetData();
+					//	if (data != nullptr) {
+					//		if (data->GetNormals().size() > 0)
+					//			flags1 = (SkyrimShaderPropertyFlags1)(flags1 | SLSF1_MODEL_SPACE_NORMALS);
+					//	}
+					//}
 					texProp->SetShaderFlags1(flags1);
 					texProp->SetShaderFlags2(flags2);
 
 					TimeValue t = 0;
 					texProp->SetSpecularPower_Glossiness(m->GetShininess(t) * 100.0f);
-					//texProp->SetSpecularColor(m->getsh);
 					//texProp->SetSpecularStrength(m->GetShinStr(t) < 1.0f ? 3.0f : 0.0f);
-					texProp->SetAlpha(m->GetOpacity(t) / 100.0f);
 					texProp->SetSpecularColor(TOCOLOR3(m->GetSpecular(t)));
+					texProp->SetEmissiveColor(TOCOLOR3(emittance));
+					texProp->SetAlpha(m->GetOpacity(t) / 100.0f);
+					texProp->SetEnvironmentMapScale(envmapscale);
+					texProp->SetSpecularStrength(specularStrength);
+					texProp->SetRefractionStrength(refractionStrength);
+					texProp->SetLightingEffect1(lighteff1);
+					texProp->SetLightingEffect2(lighteff2);
+
+					texProp->SetEnvironmentMapScale(envmapscale);
+					texProp->SetSkinTintColor(TOCOLOR3(skinTintColor));
+					texProp->SetHairTintColor(TOCOLOR3(hairTintColor));
+					texProp->SetMaxPasses(maxPasses);
+					texProp->SetScale(parallaxScale);
+					texProp->SetParallaxInnerLayerThickness(parallaxInnerThickness);
+					texProp->SetParallaxRefractionScale(parallaxRefractionScale);
+					texProp->SetParallaxInnerLayerTextureScale(TexCoord(parallaxInnerTextureScale.x, parallaxInnerTextureScale.y));
+					texProp->SetEnvironmentMapScale(parallaxEnvmapStr);
+					texProp->SetEyeCubemapScale(eyeCubemapScale);
+					texProp->SetLeftEyeReflectionCenter(TOVECTOR3(leftEyeReflCenter));
+					texProp->SetRightEyeReflectionCenter(TOVECTOR3(rightEyeReflCenter));
+
 					//texProp->SetEmissiveColor(TOCOLOR(m->GetEmmis(t)));
-
-					//texProp->SetLightingEffect1(0.3f);
-					//texProp->SetLightingEffect1(2.0f);
-					//texProp->SetEnvironmentMapStrength(1.0f);
 				}
-
-				textures[0] = T2AString(mAppSettings->GetRelativeTexPath(diffuseStr, sTexPrefix));
-				if (normalStr.isNull()) {
-					char path_buffer[_MAX_PATH], drive[_MAX_DRIVE], dir[_MAX_DIR], fname[_MAX_FNAME], ext[_MAX_EXT];
-					_splitpath(textures[0].c_str(), drive, dir, fname, ext);
-					strcat(fname, "_n");
-					_makepath(path_buffer, drive, dir, fname, ext);
-					textures[1] = path_buffer;
-				}
-				else
-					textures[1] = T2AString(mAppSettings->GetRelativeTexPath(normalStr, sTexPrefix));
-				if (!glowStr.isNull())
-					textures[2] = T2AString(mAppSettings->GetRelativeTexPath(glowStr, sTexPrefix));
-				if (!parallaxStr.isNull())
-					textures[3] = T2AString(mAppSettings->GetRelativeTexPath(parallaxStr, sTexPrefix));
-				if (!envStr.isNull())
-					textures[4] = T2AString(mAppSettings->GetRelativeTexPath(envStr, sTexPrefix));
-				if (!envMaskStr.isNull())
-					textures[5] = T2AString(mAppSettings->GetRelativeTexPath(envMaskStr, sTexPrefix));
-				if (!envStr.isNull())
-					textures[5] = T2AString(mAppSettings->GetRelativeTexPath(envStr, sTexPrefix));
-
+				
 				texset->SetTextures(textures);
 
 				// shader must be first, alpha can be second

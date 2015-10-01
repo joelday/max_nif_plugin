@@ -265,6 +265,7 @@ StdMat2 *NifImporter::ImportMaterialAndTextures(ImpNode *node, NiAVObjectRef avO
 			m->SetShininess(matRef->GetGlossiness() / 100.0, 0);
 			m->SetOpacity(matRef->GetTransparency(), 0);
 		}
+
 		bool hasShaderAttributes = (wireRef != nullptr) || (stencilRef != nullptr) || (shadeRef != nullptr);
 		if (m->SupportsShaders() && hasShaderAttributes) {
 			if (Shader *s = m->GetShader()) {
@@ -653,6 +654,10 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 			mtl->SetSubTexmap(ID_DI, tex);
 		}
 	}
+	//if (BSShaderPropertyRef shaderRef = SelectFirstObjectOfType<BSShaderProperty>(props)) {
+	//	float envmapscale = shaderRef->GetEnvmapScale();
+	//	setMAXScriptValue(ref, TEXT("EnvMapScale"), 0, envmapscale);		
+	//}
 	if (BSShaderNoLightingPropertyRef noLightShadeRef = SelectFirstObjectOfType<BSShaderNoLightingProperty>(props)) {
 		if (Texmap* tex = CreateTexture(A2TString(noLightShadeRef->GetFileName()))) {
 			mtl->SetSubTexmap(ID_DI, tex);
@@ -728,9 +733,34 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 			Color emittance = TOCOLOR(lightingShaderRef->GetEmissiveColor());
 			float shininess = lightingShaderRef->GetSpecularPower_Glossiness();
 			float alpha = lightingShaderRef->GetAlpha();
+			float refractionStr = lightingShaderRef->GetRefractionStrength();
+			float lighteff1 = lightingShaderRef->GetLightingEffect1();
+			float lighteff2 = lightingShaderRef->GetLightingEffect2();
+			float specularStr = lightingShaderRef->GetSpecularStrength();
+
+			float envmapscale = lightingShaderRef->GetEnvironmentMapScale();
+			Color skinTintColor = TOCOLOR(lightingShaderRef->GetSkinTintColor());
+			Color hairTintColor = TOCOLOR(lightingShaderRef->GetHairTintColor());
+			float maxPasses = lightingShaderRef->GetMaxPasses();
+			float parallaxScale = lightingShaderRef->GetScale();
+			float parallaxInnerThickness = lightingShaderRef->GetParallaxInnerLayerThickness();
+			float parallaxRefractionScale = lightingShaderRef->GetParallaxRefractionScale();
+			TexCoord tx = lightingShaderRef->GetParallaxInnerLayerTextureScale();
+			Point2 parallaxInnerTextureScale(tx.u, tx.v);			
+			float parallaxEnvmapStr = lightingShaderRef->GetEnvironmentMapScale();
+			float eyeCubemapScale = lightingShaderRef->GetEyeCubemapScale();
+			Point3 leftEyeReflCenter = TOPOINT3(lightingShaderRef->GetLeftEyeReflectionCenter());
+			Point3 rightEyeReflCenter = TOPOINT3(lightingShaderRef->GetRightEyeReflectionCenter());
 
 			Color ambient = Color(0.588f, 0.588f, 0.588f);
 			Color diffuse = Color(0.588f, 0.588f, 0.588f);
+
+			bool VertexColorsEnable = (lightingShaderRef->GetShaderFlags2() & SLSF2_VERTEX_COLORS) != 0;
+			setMAXScriptValue(ref, TEXT("Vertex_Color_Enable"), 0, VertexColorsEnable);
+			setMAXScriptValue(ref, TEXT("VertexColorsEnable"), 0, VertexColorsEnable);
+
+			bool specularEnable = (lightingShaderRef->GetShaderFlags2() & SLSF1_SPECULAR) != 0;
+			setMAXScriptValue(ref, TEXT("SpecularEnable"), 0, specularEnable);
 
 			mtl->SetShinStr(0.0, 0);
 			mtl->SetShininess(shininess / 100.0, 0);
@@ -742,6 +772,24 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 			setMAXScriptValue(ref, TEXT("emittance"), 0, emittance);
 			setMAXScriptValue(ref, TEXT("shininess"), 0, shininess);
 			setMAXScriptValue(ref, TEXT("alpha"), 0, alpha);
+
+			setMAXScriptValue(ref, TEXT("specularLevel"), 0, specularStr);
+			setMAXScriptValue(ref, TEXT("RefractionStrength"), 0, refractionStr);
+			setMAXScriptValue(ref, TEXT("LightingEffect1"), 0, lighteff1);
+			setMAXScriptValue(ref, TEXT("LightingEffect2"), 0, lighteff2);
+
+			setMAXScriptValue(ref, TEXT("EnvMapScale"), 0, envmapscale);
+			setMAXScriptValue(ref, TEXT("SkinTintColor"), 0, skinTintColor);
+			setMAXScriptValue(ref, TEXT("HairTintColor"), 0, hairTintColor);
+			setMAXScriptValue(ref, TEXT("MaxPasses"), 0, maxPasses);
+			setMAXScriptValue(ref, TEXT("ParallaxScale"), 0, parallaxScale);
+			setMAXScriptValue(ref, TEXT("ParallaxInnerThickness"), 0, parallaxInnerThickness);
+			setMAXScriptValue(ref, TEXT("ParallaxRefractionScale"), 0, parallaxRefractionScale);
+			//setMAXScriptValue(ref, TEXT("ParallaxInnerTextureScale"), 0, parallaxInnerTextureScale);
+			setMAXScriptValue(ref, TEXT("ParallaxEnvmapStr"), 0, parallaxEnvmapStr);
+			setMAXScriptValue(ref, TEXT("EyeCubemapScale"), 0, eyeCubemapScale);
+			//setMAXScriptValue(ref, TEXT("LeftEyeReflCenter"), 0, leftEyeReflCenter);
+			//setMAXScriptValue(ref, TEXT("RightEyeReflCenter"), 0, rightEyeReflCenter);
 		}
 		// Texture Set
 		{

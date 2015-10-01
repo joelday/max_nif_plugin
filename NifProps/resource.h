@@ -106,10 +106,44 @@
 #define IDC_EDT_TESTREF                 1811
 #define IDC_SPN_TESTREF                 1812
 #define IDC_CLR_AMBIENT                 1813
+#define IDC_EDT_ENVMAP_SCALE            1814
 #define IDC_CLR_DIFFUSE                 1815
 #define IDC_CLR_SPECULAR                1816
 #define IDC_MAP_DIFFUSE                 1817
 #define IDC_CLR_EMITTANCE               1818
+#define IDC_SPN_ALPHA2                  1819
+#define IDC_EDT_REFRACT_STR             1819
+#define IDC_SPN_ENVMAP_SCALE            1820
+#define IDC_SPN_REFRACT_STR             1821
+#define IDC_EDT_LIGHTEFF_1              1822
+#define IDC_SPN_LIGHTEFF_1              1823
+#define IDC_EDT_LIGHTEFF_2              1824
+#define IDC_SPN_LIGHTEFF_2              1825
+#define IDC_EDT_MAX_PASSES              1826
+#define IDC_SPN_MAX_PASSES              1827
+#define IDC_EDT_PARALLAX_SCALE          1828
+#define IDC_SPN_PARALLAX_SCALE          1829
+#define IDC_CLR_SKINTINT                1830
+#define IDC_CLR_HAIRTINT                1831
+#define IDC_EDT_CUBEMAP_SCALE           1832
+#define IDC_SPN_CUBEMAP_SCALE           1833
+#define IDC_EDT_PARALLAX_LAYER_THICK    1834
+#define IDC_SPN_PARALLAX_LAYER_THICK    1835
+#define IDC_EDT_PARALLAX_REFRACT_SCALE  1836
+#define IDC_SPN_PARALLAX_REFRACT_SCALE  1837
+#define IDC_EDT_PARALLAX_ENVMAP_STR     1838
+#define IDC_SPN_PARALLAX_ENVMAP_STR     1839
+#define IDC_LBL_ENVMAP_SCALE            1840
+#define IDC_LBL_MAX_PASSES              1841
+#define IDC_LBL_PARALLAX_SCALE          1842
+#define IDC_LBL_SKINTINT                1843
+#define IDC_LBL_HAIRTINT                1844
+#define IDC_LBL_CUBEMAP_SCALE           1845
+#define IDC_LBL_PARALLAX_LAYER_THICK    1846
+#define IDC_LBL_PARALLAX_REFRACT_SCALE  1847
+#define IDC_LBL_PARALLAX_ENVMAP_STR     1848
+#define IDC_EDT_SPECULAR_STR            1849
+#define IDC_SPN_SPECULAR_STR            1850
 #define IDC_LENGTHEDIT                  3009
 #define IDC_WIDTHEDIT                   3010
 #define IDC_OPT_BIAS                    6007
@@ -161,6 +195,7 @@
 #define IDS_DS_RESTITUTION              11014
 #define IDD_RB_MOD_PANEL5               11014
 #define IDS_DS_LINEAR_DAMPING           11015
+#define IDD_NIFSHADER_ADV               11015
 #define IDS_DS_ANGULAR_DAMPING          11016
 #define IDS_DS_MAX_LINEAR_VELOCITY      11017
 #define IDS_DS_MAX_ANGULAR_VELOCITY     11018
@@ -300,6 +335,21 @@
 #define IDS_CHAN_OPACITY                11152
 #define IDS_CHAN_SPECULAR               11153
 #define IDS_CHAN_PARALLAX               11154
+#define IDS_LIGHTEFF1                   11155
+#define IDS_LIGHTEFF2                   11156
+#define IDS_SKIN_TINT_COLOR             11157
+#define IDS_HAIR_TINT_COLOR             11158
+#define IDS_MAX_PASSES                  11159
+#define IDS_SHADER_SCALE                11160
+#define IDS_PARALLAX_INNER_THICKNESS    11161
+#define IDS_PARALLAX_REFRACTION_SCALE   11162
+#define IDS_PARALLAX_INNER_TEXTURE_SCALE 11163
+#define IDS_PARALLAX_ENVMAP_STR         11164
+#define IDS_SPARKLE_PARAMETERS          11165
+#define IDS_EYE_CUBEMAP_SCALE           11166
+#define IDS_LEFT_EYE_REFL_CENTER        11167
+#define IDS_RIGHT_EYE_REFL_CENTER       11168
+#define IDS_SPECULAR_STR                11169
 #define IDC_ED_CENTER_X                 11490
 #define IDC_SP_CENTER_X                 11491
 #define IDC_ED_CENTER_Y                 11492
@@ -341,12 +391,14 @@
 #define IDC_SP_ANIM_PRIORITY            11602
 #define IDC_ANIM_END                    11602
 #define IDS_DS_SCALE                    11603
+#define IDS_ENVMAP_SCALE                11604
+#define IDS_REFRACTION_STR              11605
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        118
+#define _APS_NEXT_RESOURCE_VALUE        120
 #define _APS_NEXT_COMMAND_VALUE         40005
 #define _APS_NEXT_CONTROL_VALUE         1725
 #define _APS_NEXT_SYMED_VALUE           101
