@@ -460,7 +460,11 @@ void Exporter::CalcBoundingBox(INode *node, Box3& box, int all)
 				else
 				{
 					Box3 local;
+#if VERSION_3DSMAX < (15000<<16) // Version 15 (2013)
+					o->GetLocalBoundBox(0, node, mI->GetActiveViewport(), local);
+#else
 					o->GetLocalBoundBox(0, node, &mI->GetActiveViewExp(), local);
+#endif
 					box.IncludePoints(&local.Min(), 1, nullptr);
 					box.IncludePoints(&local.Max(), 1, nullptr);
 				}

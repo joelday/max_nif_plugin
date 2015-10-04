@@ -39,11 +39,7 @@ popd
 </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>if exist "%25MaxInstallDir%25\plugcfg" (
-if not exist "%25MaxInstallDir%25\plugcfg\MaxNifTools.ini" (
-copy "$(SolutionDir)MaxNifTools.ini" "%25MaxInstallDir%25\plugcfg\MaxNifTools.ini"
-)
-)
+      <Command>
 xcopy /D /Y /I "$(SolutionDir)Readme.txt" "$(OutDir)"
 xcopy /D /Y /I "$(SolutionDir)license.txt" "$(OutDir)"
 xcopy /D /Y /I "$(SolutionDir)ChangeLog.txt" "$(OutDir)"

@@ -132,7 +132,7 @@ const ULONG I_BSDISMEMBERSKINMODIFIER = I_USERINTERFACE + 0x0000E271;
 const ULONG I_BSDISMEMBERSKINMODIFIERDATA = I_USERINTERFACE + 0x0000E272;
 
 class IBSDismemberSkinModifier
-	   : public MaxHeapOperators 
+	   //: public MaxHeapOperators 
 {
 public:
 	/*! \remarks This method must be called when the <b>LocalModData</b> of
@@ -148,7 +148,7 @@ public:
 
 
 class IBSDismemberSkinModifierData
-	   : public MaxHeapOperators 
+	   //: public MaxHeapOperators 
 {
 public:
 

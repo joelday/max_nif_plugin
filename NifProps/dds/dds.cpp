@@ -698,6 +698,14 @@ int  BitmapIO_DDS::ReadDDSHeader(FILE *stream)
   return 1;
 }
 
+#ifdef printf
+#undef printf
+#endif
+extern "C"
+int _printf(char const* const _Format, ...) {
+	//vprintf(_Format, _agList;)
+	return 0;
+}
 
 //-----------------------------------------------------------------------------
 // Interface

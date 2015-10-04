@@ -53,7 +53,7 @@ TSTR FormatText(const char* format, ...)
 	text.Resize(Size);
 	LPSTR buffer = static_cast<LPSTR>(alloca(Size*sizeof(char)));
 	_vsnprintf(buffer, Size, format, args);
-	mbstowcs(text.dataForWrite(), buffer, Size);
+	mbstowcs(DataForWrite(text), buffer, Size);
 #else
 	char buffer[512];
 	int nChars = _vsnprintf(buffer, _countof(buffer), format, args);
@@ -62,7 +62,7 @@ TSTR FormatText(const char* format, ...)
 	}
 	size_t Size = _vscprintf(format, args);
 	text.Resize(Size);
-	nChars = _vsnprintf(text.dataForWrite(), Size, format, args);
+	nChars = _vsnprintf(DataForWrite(text), Size, format, args);
 #endif
 	va_end(args);
 	return text;
@@ -78,7 +78,7 @@ TSTR FormatText(const wchar_t* format, ...)
 	text.Resize(Size);
 	LPWSTR buffer = static_cast<LPWSTR>(alloca(Size*sizeof(wchar_t)));
 	_vsnwprintf(buffer, Size, format, args);
-	wcstombs(text.dataForWrite(), buffer, Size);
+	wcstombs(DataForWrite(text), buffer, Size);
 #else
 	wchar_t buffer[512];
 	int nChars = _vsnwprintf(buffer, _countof(buffer), format, args);
@@ -87,7 +87,7 @@ TSTR FormatText(const wchar_t* format, ...)
 	}
 	size_t Size = _vscwprintf(format, args);
 	text.Resize(Size);
-	nChars = _vsnwprintf(text.dataForWrite(), Size, format, args);
+	nChars = _vsnwprintf(DataForWrite(text), Size, format, args);
 #endif
 	va_end(args);
 	return text;
@@ -782,13 +782,13 @@ void RenameNode(Interface *gi, LPCSTR SrcName, LPCSTR DstName)
 {
 	USES_CONVERSION;
 	INode *node = gi->GetINodeByName(A2T(SrcName));
-	if (node != nullptr) node->SetName(A2T(DstName));
+	if (node != nullptr) node->SetName(const_cast<LPTSTR>(A2T(DstName)));
 }
 void RenameNode(Interface *gi, LPCWSTR SrcName, LPCWSTR DstName)
 {
 	USES_CONVERSION;
 	INode *node = gi->GetINodeByName(W2T(SrcName));
-	if (node != nullptr) node->SetName(W2T(DstName));
+	if (node != nullptr) node->SetName(const_cast<LPTSTR>(W2T(DstName)));
 }
 
 Point3 TOEULER(const Matrix3 &m)
@@ -1301,12 +1301,12 @@ TSTR GetFileVersion(const wchar_t *fileName)
 					if (VerQueryValueW(versionInfo, L"\\VarFileInfo\\Translation", &version, (UINT *)&vLen) && vLen == 4)
 					{
 						DWORD langD = *(DWORD*)version;
-						wsprintf(fileVersion, L"\\StringFileInfo\\%02X%02X%02X%02X\\ProductVersion",
+						swprintf(fileVersion, L"\\StringFileInfo\\%02X%02X%02X%02X\\ProductVersion",
 							(langD & 0xff00) >> 8, langD & 0xff, (langD & 0xff000000) >> 24, (langD & 0xff0000) >> 16);
 					}
 					else
 					{
-						wsprintf(fileVersion, L"\\StringFileInfo\\%04X04B0\\ProductVersion", GetUserDefaultLangID());
+						swprintf(fileVersion, L"\\StringFileInfo\\%04X04B0\\ProductVersion", GetUserDefaultLangID());
 					}
 					LPCTSTR value = nullptr;
 					if (VerQueryValueW(versionInfo, fileVersion, &version, (UINT *)&vLen))
@@ -1315,9 +1315,9 @@ TSTR GetFileVersion(const wchar_t *fileName)
 						value = LPCTSTR(version);
 					if (value != nullptr)
 					{
-						wstringlist val = TokenizeString(value, L",", true);
+						tstringlist val = TokenizeString(value, TEXT(","), true);
 						if (val.size() >= 4) {
-							retval = W2T(FormatText(L"%s.%s.%s.%s", val[0].c_str(), val[1].c_str(), val[2].c_str(), val[3].c_str()));
+							retval = FormatText(TEXT("%s.%s.%s.%s"), val[0].c_str(), val[1].c_str(), val[2].c_str(), val[3].c_str());
 						}
 					}
 					free(versionInfo);
@@ -1578,7 +1578,7 @@ void GetIniFileNameW(wchar_t *iniName)
 {
 	char tmpName[MAX_PATH];
 	GetIniFileName(tmpName);
-	mbstowcs(iniName, tmpName, wcslen(tmpName) + 1);
+	mbstowcs(iniName, tmpName, strlen(tmpName) + 1);
 }
 #endif
 

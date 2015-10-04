@@ -331,7 +331,7 @@ void NifImporter::SetNodeName(INode* inode, const LPCTSTR name)
 	{
 		inode->SetUserPropBool(NP_NONAME, TRUE);
 	}
-	inode->SetName(name);
+	inode->SetName(const_cast<LPTSTR>(name));
 	this->RegisterNode(name, inode);
 }
 

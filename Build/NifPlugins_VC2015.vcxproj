@@ -500,8 +500,8 @@
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 2012|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Max_Version_2012.props" />
+    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Release_Settings.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - Max 2012|Win32'" Label="PropertySheets">
@@ -512,8 +512,8 @@
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 2011|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Max_Version_2011.props" />
+    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Release_Settings.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - Max 2011|Win32'" Label="PropertySheets">
@@ -524,8 +524,8 @@
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 2010|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Max_Version_2010.props" />
+    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Release_Settings.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - Max 2010|Win32'" Label="PropertySheets">
@@ -536,8 +536,8 @@
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 2009|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Max_Version_2009.props" />
+    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Release_Settings.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - Max 2009|Win32'" Label="PropertySheets">
@@ -548,8 +548,8 @@
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 2008|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Max_Version_2008.props" />
+    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Release_Settings.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - Max 2008|Win32'" Label="PropertySheets">
@@ -560,8 +560,8 @@
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 4.2|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Max_Version_42.props" />
+    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Release_Settings.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - Max 4.2|Win32'" Label="PropertySheets">
@@ -572,8 +572,8 @@
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - gmax|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\gmax_Version_12.props" />
+    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Release_Settings.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - gmax|Win32'" Label="PropertySheets">
@@ -590,26 +590,26 @@
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 4|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Max_Version_4.props" />
+    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Release_Settings.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 9|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Max_Version_9.props" />
+    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Release_Settings.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - Max 9|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Max_Version_9.props" />
+    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Debug_Settings.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 5|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Max_Version_5.props" />
+    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Release_Settings.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - Max 5|Win32'" Label="PropertySheets">
@@ -620,14 +620,14 @@
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - Max 8|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Max_Version_8.props" />
+    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Debug_Settings.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 8|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Max_Version_8.props" />
+    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Release_Settings.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - Max 7|Win32'" Label="PropertySheets">
@@ -638,8 +638,8 @@
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 7|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Max_Version_7.props" />
+    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Release_Settings.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - Max 6|Win32'" Label="PropertySheets">
@@ -650,8 +650,8 @@
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 6|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Max_Version_6.props" />
+    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Release_Settings.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 2013|x64'" Label="PropertySheets">
@@ -705,8 +705,8 @@
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 2012|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Max_Version_2012.props" />
+    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Release_Settings.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - Max 2012|x64'" Label="PropertySheets">
@@ -717,8 +717,8 @@
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 2011|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Max_Version_2011.props" />
+    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Release_Settings.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - Max 2011|x64'" Label="PropertySheets">
@@ -729,8 +729,8 @@
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 2010|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Max_Version_2010.props" />
+    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Release_Settings.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - Max 2010|x64'" Label="PropertySheets">
@@ -741,8 +741,8 @@
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 2009|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Max_Version_2009.props" />
+    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Release_Settings.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - Max 2009|x64'" Label="PropertySheets">
@@ -753,8 +753,8 @@
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 2008|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Max_Version_2008.props" />
+    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Release_Settings.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - Max 2008|x64'" Label="PropertySheets">
@@ -783,14 +783,14 @@
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 9|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Max_Version_9.props" />
+    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Release_Settings.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - Max 9|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Max_Version_9.props" />
+    <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
     <Import Project="$(ProjectDir)Sheets\Debug_Settings.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 5|x64'" Label="PropertySheets">
@@ -1029,7 +1029,12 @@
     <Link>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention />
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+      <ForceFileOutput>UndefinedSymbolOnly</ForceFileOutput>
     </Link>
+    <ClCompile>
+      <ExceptionHandling>Sync</ExceptionHandling>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - gmax|x64'">
     <Link>
@@ -1078,17 +1083,6 @@
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention />
     </Link>
-    <PostBuildEvent>
-      <Command>if exist "%25MaxInstallDir%25\plugcfg" (
-if not exist "%25MaxInstallDir%25\plugcfg\MaxNifTools.ini" (
-copy "$(SolutionDir)MaxNifTools.ini" "%25MaxInstallDir%25\plugcfg\MaxNifTools.ini"
-)
-)
-xcopy /D /Y /I "$(SolutionDir)Readme.txt" "$(OutDir)"
-xcopy /D /Y /I "$(SolutionDir)MaxNifTools.ini" "$(OutDir)"
-xcopy /D /Y /I "$(TargetPath)" "$(OutDir)"
-</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 2008|x64'">
     <Link>
@@ -1113,17 +1107,6 @@ xcopy /D /Y /I "$(TargetPath)" "$(OutDir)"
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention />
     </Link>
-    <PostBuildEvent>
-      <Command>if exist "%25MaxInstallDir%25\plugcfg" (
-if not exist "%25MaxInstallDir%25\plugcfg\MaxNifTools.ini" (
-copy "$(SolutionDir)MaxNifTools.ini" "%25MaxInstallDir%25\plugcfg\MaxNifTools.ini"
-)
-)
-xcopy /D /Y /I "$(SolutionDir)Readme.txt" "$(OutDir)"
-xcopy /D /Y /I "$(SolutionDir)MaxNifTools.ini" "$(OutDir)"
-xcopy /D /Y /I "$(TargetPath)" "$(OutDir)"
-</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 2009|x64'">
     <Link>
@@ -1148,17 +1131,6 @@ xcopy /D /Y /I "$(TargetPath)" "$(OutDir)"
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention />
     </Link>
-    <PostBuildEvent>
-      <Command>if exist "%25MaxInstallDir%25\plugcfg" (
-if not exist "%25MaxInstallDir%25\plugcfg\MaxNifTools.ini" (
-copy "$(SolutionDir)MaxNifTools.ini" "%25MaxInstallDir%25\plugcfg\MaxNifTools.ini"
-)
-)
-xcopy /D /Y /I "$(SolutionDir)Readme.txt" "$(OutDir)"
-xcopy /D /Y /I "$(SolutionDir)MaxNifTools.ini" "$(OutDir)"
-xcopy /D /Y /I "$(TargetPath)" "$(OutDir)"
-</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 2010|x64'">
     <Link>
@@ -1183,17 +1155,7 @@ xcopy /D /Y /I "$(TargetPath)" "$(OutDir)"
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention />
     </Link>
-    <PostBuildEvent>
-      <Command>if exist "%25MaxInstallDir%25\plugcfg" (
-if not exist "%25MaxInstallDir%25\plugcfg\MaxNifTools.ini" (
-copy "$(SolutionDir)MaxNifTools.ini" "%25MaxInstallDir%25\plugcfg\MaxNifTools.ini"
-)
-)
-xcopy /D /Y /I "$(SolutionDir)Readme.txt" "$(OutDir)"
-xcopy /D /Y /I "$(SolutionDir)MaxNifTools.ini" "$(OutDir)"
-xcopy /D /Y /I "$(TargetPath)" "$(OutDir)"
-</Command>
-    </PostBuildEvent>
+    <ClCompile />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 2011|x64'">
     <Link>
@@ -1218,17 +1180,6 @@ xcopy /D /Y /I "$(TargetPath)" "$(OutDir)"
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention />
     </Link>
-    <PostBuildEvent>
-      <Command>if exist "%25MaxInstallDir%25\plugcfg" (
-if not exist "%25MaxInstallDir%25\plugcfg\MaxNifTools.ini" (
-copy "$(SolutionDir)MaxNifTools.ini" "%25MaxInstallDir%25\plugcfg\MaxNifTools.ini"
-)
-)
-xcopy /D /Y /I "$(SolutionDir)Readme.txt" "$(OutDir)"
-xcopy /D /Y /I "$(SolutionDir)MaxNifTools.ini" "$(OutDir)"
-xcopy /D /Y /I "$(TargetPath)" "$(OutDir)"
-</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 2012|x64'">
     <Link>
@@ -1275,9 +1226,7 @@ xcopy /D /Y /I "$(TargetPath)" "$(OutDir)"
       <DataExecutionPrevention />
       <AdditionalDependencies>niflib_static_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <ProjectReference>
-      <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
-    </ProjectReference>
+    <ProjectReference />
     <ClCompile />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - Max 2016|x64'">

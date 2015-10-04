@@ -87,7 +87,7 @@ Texmap* NifImporter::CreateTexture(TexDesc& desc)
 				name = buffer;
 			}
 			bmpTex->SetName(name.c_str());
-			bmpTex->SetMapName(FindImage(filename).c_str());
+			bmpTex->SetMapName(const_cast<LPTSTR>(FindImage(filename).c_str()));
 			bmpTex->SetAlphaAsMono(TRUE);
 			bmpTex->SetAlphaSource(ALPHA_DEFAULT);
 
@@ -191,7 +191,7 @@ Texmap* NifImporter::CreateTexture(const tstring& filename)
 			name = buffer;
 		}
 		bmpTex->SetName(name.c_str());
-		bmpTex->SetMapName(FindImage(filename).c_str());
+		bmpTex->SetMapName(const_cast<LPTSTR>(FindImage(filename).c_str()));
 		bmpTex->SetAlphaAsMono(TRUE);
 		bmpTex->SetAlphaSource(ALPHA_DEFAULT);
 
@@ -472,7 +472,7 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 
 	Class_ID shaderID = mtl->ClassID();
 	bool isGamebryoShader = (shaderID == civ4Shader);
-	bool isCiv4Shader = isGamebryoShader && (shaderByName == TEXT("CivilizationIV Shader"));
+	bool isCiv4Shader = isGamebryoShader && strmatch(shaderByName, TEXT("CivilizationIV Shader"));
 
 	RefTargetHandle ref = mtl->GetReference(2/*shader*/);
 	if (!ref)

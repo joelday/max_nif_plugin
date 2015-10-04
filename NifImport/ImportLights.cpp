@@ -107,7 +107,7 @@ bool NifImporter::ImportLights(vector<NiLightRef> lights)
 		if (INode *n = CreateImportNode(A2T(light->GetName().c_str()), ob, NULL)) {
 			string name = light->GetName();
 			if (!name.empty()) {
-				n->SetName(A2T(name.c_str()));
+				n->SetName(const_cast<LPTSTR>(A2T(name.c_str())));
 			}
 			Matrix44 m4 = light->GetWorldTransform();
 			Vector3 pos; Matrix33 rot; float scale;

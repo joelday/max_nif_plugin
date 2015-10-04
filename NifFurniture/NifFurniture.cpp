@@ -34,7 +34,7 @@ public:
 	CreateMouseCallBack		*GetCreateMouseCallBack();
 	void					BeginEditParams( IObjParam *ip, ULONG flags,Animatable *prev);
 	void					EndEditParams( IObjParam *ip, ULONG flags,Animatable *next);
-#if VERSION_3DSMAX < (17000<<16) // Version 17 (2015)
+#if VERSION_3DSMAX < (15000<<16) // Version 15 (2013)
 	TCHAR *                 GetObjectName() { return _T(GetString(IDS_FURNITURE_MARKER)); }
 #else
 	const MCHAR*             GetObjectName() { return GetString(IDS_FURNITURE_MARKER); }

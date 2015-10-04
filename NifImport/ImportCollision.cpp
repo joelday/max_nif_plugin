@@ -254,7 +254,7 @@ bool CollisionImport::ImportBase(bhkRigidBodyRef body, bhkShapeRef shape, INode*
 	// Now do common post processing for the node
 	if (shapeNode != NULL)
 	{
-		shapeNode->SetName(A2T(shape->GetType().GetTypeName().c_str()));
+		shapeNode->SetName(const_cast<LPTSTR>(A2T(shape->GetType().GetTypeName().c_str())));
 
 		if (!tm.IsIdentity())
 		{
@@ -758,7 +758,7 @@ bool CollisionImport::ImportCompressedMeshShape(INode *rbody, bhkRigidBodyRef bo
 			ImportBase(body, shape, parent, inode, ltm);
 			if (n > 1) inode->SetName(FormatText(TEXT("%s:%d"), TEXT("CMSD"), i++).data());
 			//AddShape(rbody, inode);
-			nodes.AppendNode(inode);
+			nodes.Append(1,&inode);
 		}
 
 		// TODO: Group nodes on import

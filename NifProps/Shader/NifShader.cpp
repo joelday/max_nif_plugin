@@ -1657,8 +1657,10 @@ void NifShaderDlg::CommitValues()
 	pb->SetValue(ns_lighteff2, 0, pLightingEff2Spinner->GetFVal(), 0);
 
 	pb->SetValue(ns_envmap_scale, 0, pEnvMapScaleSpinner->GetFVal(), 0);
+#if VERSION_3DSMAX > (8000<<16) // Version 16 (2014)
 	pb->SetValue(ns_skin_tint_color, 0, Color(clrSkinTintColor->GetColor()), 0);
 	pb->SetValue(ns_hair_tint_color, 0, Color(clrHairTintColor->GetColor()), 0);
+#endif
 	pb->SetValue(ns_max_passes, 0, pMaxPassesSpinner->GetFVal(), 0);
 	pb->SetValue(ns_shader_scale, 0, pParallaxScaleSpinner->GetFVal(), 0);
 	pb->SetValue(ns_parallax_inner_thickness, 0, pParallaxInnerThicknessSpinner->GetFVal(), 0);

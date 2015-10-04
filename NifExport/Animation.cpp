@@ -1040,7 +1040,7 @@ NiTimeControllerRef AnimationExport::exportController(INode *node, Interval rang
 			{
 				bool doprint = false;
 				TSTR name = node->NodeName();
-				if (name == TEXT("Bip01 R Clavicle"))
+				if (strmatch(name, TEXT("Bip01 R Clavicle")))
 				{
 					name = name;
 					doprint = true;

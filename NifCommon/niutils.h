@@ -57,6 +57,11 @@ typedef std::istringstream tistringstream;
 typedef std::ostringstream tostringstream;
 #endif
 
+#if VERSION_3DSMAX < (15000<<16) // Version 15 (2013)
+#define p_end ParamTags::end
+#endif
+
+
 const unsigned int IntegerInf = 0x7f7fffff;
 const unsigned int IntegerNegInf = 0xff7fffff;
 const float FloatINF = *(float*)&IntegerInf;
@@ -107,9 +112,9 @@ string W2AString(const wstring& str);
 
 #ifdef UNICODE
 #define A2T(lpa) A2W(lpa)
-#define W2T(lpa) (lpa)
+#define W2T(lpa) static_cast<LPCWSTR>(lpa)
 #define T2A(lpa) W2A(lpa)
-#define T2W(lpa) (lpa)
+#define T2W(lpa) static_cast<LPCWSTR>(lpa)
 #define T2AHelper W2AHelper
 #define T2WHelper(d,s,n) (s)
 #define A2THelper A2WHelper
@@ -119,18 +124,24 @@ string W2AString(const wstring& str);
 #define A2TString A2WString
 #define W2TString(s) (s)
 #else
-#define A2T(lpa) (lpa)
+#define A2T(lpa) static_cast<LPCSTR>(lpa)
 #define W2T(lpa) W2A(lpa)
-#define T2A(lpa) (lpa)
+#define T2A(lpa) static_cast<LPCSTR>(lpa)
 #define T2W(lpa) A2W(lpa)
-#define A2THelper A2WHelper
-#define W2THelper(d,s,n) (s)
-#define T2AHelper W2AHelper
-#define T2WHelper(d,s,n) (s)
+#define A2THelper(d,s,n) static_cast<LPCSTR>(s) 
+#define W2THelper W2AHelper
+#define T2AHelper(d,s,n) static_cast<LPCSTR>(s)
+#define T2WHelper A2WHelper
 #define T2AString(s) (s)
 #define T2WString A2WString
 #define A2TString(s) (s)
 #define W2TString W2AString
+#endif
+
+#if VERSION_3DSMAX < (15000<<16) // Version 15 (2013)
+inline LPTSTR DataForWrite(TSTR& str) { return str.data(); }
+#else
+inline LPTSTR DataForWrite(TSTR& str) { return DataForWrite(str); }
 #endif
 
 // Trim whitespace before and after a string
@@ -417,7 +428,7 @@ inline void SetIniValue(LPCWSTR Section, LPCWSTR Setting, T value, LPCWSTR iniFi
 
 // Specific override for string values
 template<>
-inline void SetIniValue<std::wstring>(LPCTSTR Section, LPCTSTR Setting, std::wstring value, LPCTSTR iniFileName){
+inline void SetIniValue<std::wstring>(LPCWSTR Section, LPCWSTR Setting, std::wstring value, LPCWSTR iniFileName){
    WritePrivateProfileStringW(Section, Setting, value.c_str(), iniFileName);
 }
 template<>

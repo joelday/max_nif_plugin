@@ -24,39 +24,50 @@ if "%MAXINSTALLPATH2010%" == "" set MAXINSTALLPATH2010=%Program_32%\AutoDesk\3ds
 if "%MAXINSTALLPATH2011%" == "" set MAXINSTALLPATH2011=%Program_32%\AutoDesk\Autodesk 3ds Max 2011 SDK
 if "%ADSK_3DSMAX_SDK_2012%" == "" set MAXINSTALLPATH2012=%ADSK_3DSMAX_SDK_2012%
 if "%MAXINSTALLPATH2012%" == "" set MAXINSTALLPATH2012=%Program_32%\AutoDesk\3ds Max 2012 SDK
+if "%MAXINSTALLPATH2013%" == "" set MAXINSTALLPATH2013=%Program_32%\AutoDesk\3ds Max 2013 SDK
+if "%MAXINSTALLPATH2014%" == "" set MAXINSTALLPATH2014=%Program_32%\AutoDesk\3ds Max 2014 SDK
+if "%MAXINSTALLPATH2015%" == "" set MAXINSTALLPATH2015=%Program_32%\AutoDesk\3ds Max 2015 SDK
+if "%MAXINSTALLPATH2016%" == "" set MAXINSTALLPATH2016=%Program_32%\AutoDesk\3ds Max 2016 SDK
 
 REM svn update
 call makeconfig.bat
-IF EXIST "%GMAXINSTALLPATH12%"  msbuild NifPlugins_VC2008.sln "/p:Configuration=Release - gmax" /p:Platform=Win32
-IF EXIST "%MAXINSTALLPATH42%" msbuild NifPlugins_VC2008.sln "/p:Configuration=Release - Max 4.2" /p:Platform=Win32
-IF EXIST "%MAXINSTALLPATH50%" msbuild NifPlugins_VC2008.sln "/p:Configuration=Release - Max 5" /p:Platform=Win32
-IF EXIST "%MAXINSTALLPATH60%" msbuild NifPlugins_VC2008.sln "/p:Configuration=Release - Max 6" /p:Platform=Win32
-IF EXIST "%MAXINSTALLPATH70%" msbuild NifPlugins_VC2008.sln "/p:Configuration=Release - Max 7" /p:Platform=Win32
-IF EXIST "%MAXINSTALLPATH80%" msbuild NifPlugins_VC2008.sln "/p:Configuration=Release - Max 8" /p:Platform=Win32
+IF EXIST "%GMAXINSTALLPATH12%"  msbuild NifPlugins.sln "/p:Configuration=Release - gmax" /p:Platform=Win32
+IF EXIST "%MAXINSTALLPATH42%" msbuild NifPlugins.sln "/p:Configuration=Release - Max 4.2" /p:Platform=Win32
+IF EXIST "%MAXINSTALLPATH50%" msbuild NifPlugins.sln "/p:Configuration=Release - Max 5" /p:Platform=Win32
+IF EXIST "%MAXINSTALLPATH60%" msbuild NifPlugins.sln "/p:Configuration=Release - Max 6" /p:Platform=Win32
+IF EXIST "%MAXINSTALLPATH70%" msbuild NifPlugins.sln "/p:Configuration=Release - Max 7" /p:Platform=Win32
+IF EXIST "%MAXINSTALLPATH80%" msbuild NifPlugins.sln "/p:Configuration=Release - Max 8" /p:Platform=Win32
 IF EXIST "%MAXINSTALLPATH90%" (
-    msbuild NifPlugins_VC2008.sln "/p:Configuration=Release - Max 9" /p:Platform=Win32
-    IF EXIST "%Program_64%" msbuild NifPlugins_VC2008.sln "/p:Configuration=Release - Max 9" /p:Platform=x64
+    msbuild NifPlugins.sln "/p:Configuration=Release - Max 9" /p:Platform=Win32
+    IF EXIST "%Program_64%" msbuild NifPlugins.sln "/p:Configuration=Release - Max 9" /p:Platform=x64
 )
 IF EXIST "%MAXINSTALLPATH2008%" (
-    msbuild NifPlugins_VC2008.sln "/p:Configuration=Release - Max 2008" /p:Platform=Win32
-    IF EXIST "%Program_64%" msbuild NifPlugins_VC2008.sln "/p:Configuration=Release - Max 2008" /p:Platform=x64
+    msbuild NifPlugins.sln "/p:Configuration=Release - Max 2008" /p:Platform=Win32
+    IF EXIST "%Program_64%" msbuild NifPlugins.sln "/p:Configuration=Release - Max 2008" /p:Platform=x64
 )
 IF EXIST "%MAXINSTALLPATH2009%" (
-    msbuild NifPlugins_VC2008.sln "/p:Configuration=Release - Max 2009" /p:Platform=Win32
-    IF EXIST "%Program_64%" msbuild NifPlugins_VC2008.sln "/p:Configuration=Release - Max 2009" /p:Platform=x64
+    msbuild NifPlugins.sln "/p:Configuration=Release - Max 2009" /p:Platform=Win32
+    IF EXIST "%Program_64%" msbuild NifPlugins.sln "/p:Configuration=Release - Max 2009" /p:Platform=x64
 )
 IF EXIST "%MAXINSTALLPATH2010%" (
-    msbuild NifPlugins_VC2008.sln "/p:Configuration=Release - Max 2010" /p:Platform=Win32
-    IF EXIST "%Program_64%" msbuild NifPlugins_VC2008.sln "/p:Configuration=Release - Max 2010" /p:Platform=x64
+    msbuild NifPlugins.sln "/p:Configuration=Release - Max 2010" /p:Platform=Win32
+    IF EXIST "%Program_64%" msbuild NifPlugins.sln "/p:Configuration=Release - Max 2010" /p:Platform=x64
 )
 IF EXIST "%MAXINSTALLPATH2011%" (
-    msbuild NifPlugins_VC2008.sln "/p:Configuration=Release - Max 2011" /p:Platform=Win32
-    IF EXIST "%Program_64%" msbuild NifPlugins_VC2008.sln "/p:Configuration=Release - Max 2011" /p:Platform=x64
+    msbuild NifPlugins.sln "/p:Configuration=Release - Max 2011" /p:Platform=Win32
+    IF EXIST "%Program_64%" msbuild NifPlugins.sln "/p:Configuration=Release - Max 2011" /p:Platform=x64
 )
 IF EXIST "%MAXINSTALLPATH2012%" (
-    msbuild NifPlugins_VC2008.sln "/p:Configuration=Release - Max 2012" /p:Platform=Win32
-    IF EXIST "%Program_64%" msbuild NifPlugins_VC2008.sln "/p:Configuration=Release - Max 2012" /p:Platform=x64
+    msbuild NifPlugins.sln "/p:Configuration=Release - Max 2012" /p:Platform=Win32
+    IF EXIST "%Program_64%" msbuild NifPlugins.sln "/p:Configuration=Release - Max 2012" /p:Platform=x64
 )
+IF EXIST "%MAXINSTALLPATH2013%" (
+    msbuild NifPlugins.sln "/p:Configuration=Release - Max 2013" /p:Platform=Win32
+    IF EXIST "%Program_64%" msbuild NifPlugins.sln "/p:Configuration=Release - Max 2013" /p:Platform=x64
+)
+IF EXIST "%MAXINSTALLPATH2014%" msbuild NifPlugins.sln "/p:Configuration=Release - Max 2014" /p:Platform=x64
+IF EXIST "%MAXINSTALLPATH2015%" msbuild NifPlugins.sln "/p:Configuration=Release - Max 2015" /p:Platform=x64
+IF EXIST "%MAXINSTALLPATH2016%" msbuild NifPlugins.sln "/p:Configuration=Release - Max 2016" /p:Platform=x64
 
 endlocal
 popd

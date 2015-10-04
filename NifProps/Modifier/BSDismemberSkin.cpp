@@ -138,7 +138,7 @@ class PartSubObjType : public ISubObjType {
 public:
 	TSTR& GetNameRef() { return name; }
 	void SetName(const TCHAR *nm) { name = nm; }
-#if VERSION_3DSMAX < (17000<<16) // Version 17 (2015)
+#if VERSION_3DSMAX < (15000<<16) // Version 15 (2013)
 	TCHAR *GetName() { return name; }
 #else
 	const MSTR& GetName() { return name; }
@@ -215,7 +215,7 @@ public:
 	void GetClassName(TSTR& s) { s = GetString(IDS_RB_BSDSMODIFIER); }
 	virtual Class_ID ClassID() { return BSDSMODIFIER_CLASS_ID; }
 	RefTargetHandle Clone(RemapDir& remap /*= DefaultRemapDir()*/);
-#if VERSION_3DSMAX < (17000<<16) // Version 17 (2015)
+#if VERSION_3DSMAX < (15000<<16) // Version 15 (2013)
 	TCHAR *                 GetObjectName() { return _T(GetString(IDS_RB_BSDSMODIFIER)); }
 #else
 	const MCHAR*             GetObjectName() { return GetString(IDS_RB_BSDSMODIFIER); }
@@ -779,12 +779,14 @@ void BSDSModifier::EndEditParams(IObjParam *ip, ULONG flags, Animatable *next) {
 
 int BSDSModifier::HitTest(TimeValue t, INode* inode, int type, int crossing, int flags, IPoint2 *p, ViewExp *vpt, ModContext* mc) {
 
+#if VERSION_3DSMAX >= (15000<<16) // Version 15 (2013)
 	if (!vpt || !vpt->IsAlive())
 	{
 		// why are we here
 		DbgAssert(!_T("Invalid viewport!"));
 		return FALSE;
 	}
+#endif
 
 	Interval valid;
 	int savedLimits, res = 0;
@@ -868,12 +870,14 @@ int BSDSModifier::HitTest(TimeValue t, INode* inode, int type, int crossing, int
 }
 
 int BSDSModifier::Display(TimeValue t, INode* inode, ViewExp *vpt, int flags, ModContext *mc) {
+#if VERSION_3DSMAX >= (15000<<16) // Version 15 (2013)
 	if (!vpt || !vpt->IsAlive())
 	{
 		// why are we here
 		DbgAssert(!_T("Invalid viewport!"));
 		return FALSE;
 	}
+#endif
 	if (!ip->GetShowEndResult()) return 0;
 	if (!mc->localData) return 0;
 

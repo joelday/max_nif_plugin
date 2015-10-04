@@ -54,7 +54,7 @@ public:
    void GetClassName(TSTR& s) { s = TEXT("bhkRigidBodyModifier"); }  
    virtual Class_ID ClassID() { return BHKRIGIDBODYMODIFIER_CLASS_ID; }		
    RefTargetHandle Clone(RemapDir& remap);
-#if VERSION_3DSMAX < (17000<<16) // Version 17 (2015)
+#if VERSION_3DSMAX < (15000<<16) // Version 15 (2013)
    TCHAR *                 GetObjectName() { return TEXT("bhkRigidBodyModifier"); }
 #else
    const MCHAR*             GetObjectName() { return TEXT("bhkRigidBodyModifier"); }

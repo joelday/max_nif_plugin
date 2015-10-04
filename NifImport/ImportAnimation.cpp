@@ -628,7 +628,7 @@ bool NifImporter::AddNoteTracks(float time, string name, string target, NiTextKe
 #if VERSION_3DSMAX >= ((7000<<16)+(15<<8)+0) // Version 7
 			if (IFrameTagManager *tagMgr = (IFrameTagManager*)GetCOREInterface(FRAMETAGMANAGER_INTERFACE)) {
 				for (vector<StringKey>::iterator itr = textKeys.begin(); itr != textKeys.end(); ++itr) {
-					tagMgr->CreateNewTag(A2THelper(buffer, (*itr).data.c_str(), _countof(buffer)), TimeToFrame(time + (*itr).time), 0, FALSE);
+					tagMgr->CreateNewTag(const_cast<LPTSTR>(A2THelper(buffer, (*itr).data.c_str(), _countof(buffer))), TimeToFrame(time + (*itr).time), 0, FALSE);
 				}
 			}
 #endif

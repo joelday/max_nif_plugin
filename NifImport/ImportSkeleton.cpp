@@ -446,8 +446,8 @@ void NifImporter::AlignBiped(IBipMaster* master, NiNodeRef node)
 	{
 		ImportBones(node, false);
 	}
-	for (TCHAR *p = s1.dataForWrite(); *p != 0; ++p) if (_istspace(*p)) *p = TEXT(' ');
-	for (TCHAR *p = s2.dataForWrite(); *p != 0; ++p) if (_istspace(*p)) *p = TEXT(' ');
+	for (TCHAR *p = DataForWrite(s1); *p != 0; ++p) if (_istspace(*p)) *p = TEXT(' ');
+	for (TCHAR *p = DataForWrite(s2); *p != 0; ++p) if (_istspace(*p)) *p = TEXT(' ');
 	OutputDebugString(s1 + TEXT("\n"));
 	OutputDebugString(s2 + TEXT("\n"));
 
@@ -779,7 +779,7 @@ bool NifImporter::ImportUPB(INode *node, Niflib::NiNodeRef block)
 							value.append(A2THelper(tbuf, line, _countof(tbuf)));
 							value.append(TEXT("\r\n")).append(buf);
 							if (wildmatch(TEXT("BSBoneLOD#*"), value)) {
-								TCHAR *data = value.dataForWrite();
+								TCHAR *data = DataForWrite(value);
 								data[0] = TEXT('N');
 								data[1] = TEXT('i'); // Use NIBoneLOD to be compatible with Civ4 code
 							}
