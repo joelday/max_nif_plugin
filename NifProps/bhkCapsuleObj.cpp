@@ -136,29 +136,29 @@ static ParamBlockDesc2 param_blk (
     IDD_CAPSULEPARAM, IDS_PARAMS, 0, 0, NULL, 
 
     // params
-    PB_MATERIAL, _T("material"), TYPE_INT, P_ANIMATABLE,	IDS_DS_MATERIAL,
+    PB_MATERIAL, _T("material"), TYPE_INT, 0,	IDS_DS_MATERIAL,
        p_default,	NP_DEFAULT_HVK_MATERIAL,
        p_end,
 
-    PB_RADIUS1, _T("radius1"), TYPE_FLOAT, P_ANIMATABLE,	IDS_RB_RADIUS1,
+    PB_RADIUS1, _T("radius1"), TYPE_FLOAT, 0,	IDS_RB_RADIUS1,
        p_default,	   0.0,
        p_range,		float(0), float(1.0E30),
        p_ui, TYPE_SPINNER, EDITTYPE_UNIVERSE, IDC_RADIUS1, IDC_RADSPINNER1, SPIN_AUTOSCALE,
        p_end,
 
-    PB_RADIUS2, _T("radius2"), TYPE_FLOAT, P_ANIMATABLE,	IDS_RB_RADIUS2,
+    PB_RADIUS2, _T("radius2"), TYPE_FLOAT, 0,	IDS_RB_RADIUS2,
        p_default,	   0.0,
        p_range,		float(0), float(1.0E30),
        p_ui, TYPE_SPINNER, EDITTYPE_UNIVERSE, IDC_RADIUS2, IDC_RADSPINNER2, SPIN_AUTOSCALE,
        p_end,
 
-    PB_LENGTH, _T("length"), TYPE_FLOAT, P_ANIMATABLE,	IDS_DS_LENGTH,
+    PB_LENGTH, _T("length"), TYPE_FLOAT, 0,	IDS_DS_LENGTH,
        p_default,	   0.0,
        p_range,		float(-1.0E30), float(1.0E30),
        p_ui, TYPE_SPINNER, EDITTYPE_UNIVERSE, IDC_LENGTHEDIT, IDC_LENSPINNER, SPIN_AUTOSCALE,
        p_end,
 
-    PB_SCALE, _T("scale"), TYPE_FLOAT, P_ANIMATABLE,	IDS_DS_SCALE,
+    PB_SCALE, _T("scale"), TYPE_FLOAT, 0,	IDS_DS_SCALE,
        p_default,	   6.9969f,
        p_range,		float(1.0f), float(1000.0f),
        p_ui, TYPE_SPINNER, EDITTYPE_UNIVERSE, IDC_SCALEEDIT, IDC_SCALESPINNER, SPIN_AUTOSCALE,
@@ -210,9 +210,8 @@ INT_PTR CapsuleParamDlgProc::DlgProc(TimeValue t,IParamMap2 *map,HWND hWnd,UINT 
    case WM_INITDIALOG: 
       {
 		  mCbMaterial.init(GetDlgItem(hWnd, IDC_CB_MATERIAL));
-		  mCbMaterial.add(TEXT("<Default>"));
-		  for (const TCHAR **str = NpHvkMaterialNames; *str; ++str)
-			  mCbMaterial.add(*str);
+		  InitMaterialTypeCombo(hWnd, IDC_CB_MATERIAL);
+
 		  Interval valid;
 		  int sel = NP_INVALID_HVK_MATERIAL;
 		  so->pblock2->GetValue( PB_MATERIAL, 0, sel, valid);

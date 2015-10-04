@@ -356,7 +356,7 @@
       <Filter>NifProps\Resources</Filter>
     </Image>
     <Image Include="..\NifProps\Modifier\bmp00003.bmp">
-      <Filter>NifProps\Modifier</Filter>
+      <Filter>NifProps\Resources</Filter>
     </Image>
   </ItemGroup>
   <ItemGroup>

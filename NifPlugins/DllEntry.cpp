@@ -139,6 +139,30 @@ static LPTSTR PathMerge(LPTSTR base, LPCTSTR file)
    return base;
 }
 
+static HMODULE DelayLoadLibraryA(LPCSTR dllname)
+{
+	CHAR curfile[_MAX_PATH];
+	GetModuleFileNameA(hInstance, curfile, MAX_PATH);
+	PathRemoveFileSpecA(curfile);
+	PathAppendA(curfile, dllname);
+	HMODULE hdll = LoadLibraryA(curfile);
+	if (hdll == nullptr)
+		return LoadLibraryA(dllname);
+	return hdll;
+}
+static HMODULE DelayLoadLibraryW(LPCWSTR dllname)
+{
+	WCHAR curfile[_MAX_PATH];
+	GetModuleFileNameW(hInstance, curfile, MAX_PATH);
+	PathRemoveFileSpecW(curfile);
+	PathAppendW(curfile, dllname);
+	HMODULE hdll = LoadLibraryW(curfile);
+	if (hdll == nullptr)
+		return LoadLibraryW(dllname);
+	return hdll;
+}
+
+
 // This function returns the number of plug-in classes this DLL
 //TODO: Must change this number when adding a new class
 __declspec( dllexport ) int LibNumberClasses()
@@ -279,13 +303,7 @@ static void DoNotifyNodeUnHide(void *param, NotifyInfo *info)
 #include "Inertia.h"
 static void InitializeHavok()
 {
-	TCHAR curfile[_MAX_PATH];
-	GetModuleFileName(hInstance, curfile, MAX_PATH);
-	PathRemoveFileSpec(curfile);
-	PathAppend(curfile, TEXT("NifMopp.dll"));
-	HMODULE hNifHavok = LoadLibrary( curfile );
-	if (hNifHavok == nullptr)
-		hNifHavok = LoadLibrary( TEXT("NifMopp.dll") );
+	HMODULE hNifHavok = DelayLoadLibraryA("NifMopp.dll");
 	if ( hNifHavok != nullptr )
 	{
 		Niflib::Inertia::SetCalcMassPropertiesBox( 
@@ -304,3 +322,38 @@ static void InitializeHavok()
 			(Niflib::Inertia::fnCombineMassProperties)GetProcAddress(hNifHavok, "CombineMassProperties") );
 	}
 }
+
+// Include delayloading
+//#include "DelayMaxCompat.cpp"
+#include <DelayImp.h>   // Required for hooking
+#pragma comment(lib, "Delayimp.lib")
+// delayHookFunc - Delay load hooking function
+FARPROC WINAPI delayHookFailureFunc(unsigned dliNotify, PDelayLoadInfo pdli)
+{
+	FARPROC fp = NULL;   // Default return value
+						 // NOTE: The members of the DelayLoadInfo structure pointed
+						 // to by pdli shows the results of progress made so far. 
+	switch (dliNotify) {
+
+	case dliFailLoadLib:
+		// LoadLibrary failed.
+		// In here a second attempt could be made to load the dll somehow. 
+		// If fp is still NULL, the ERROR_MOD_NOT_FOUND exception will be raised.
+		fp = (FARPROC)DelayLoadLibraryA(pdli->szDll);
+		break;
+
+	case dliFailGetProc:
+		// GetProcAddress failed.
+		// A second attempt could be made to get the function pointer somehow. 
+		// We can override and give our own function pointer in fp.
+		// Ofcourse, fp is still going to be NULL, 
+		// the ERROR_PROC_NOT_FOUND exception will be raised.
+		fp = (FARPROC)NULL;
+		break;
+	}
+
+	return(fp);
+}
+
+// __delayLoadHelper gets the hook function in here:
+PfnDliHook __pfnDliFailureHook2 = delayHookFailureFunc;

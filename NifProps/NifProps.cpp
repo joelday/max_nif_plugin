@@ -5,6 +5,7 @@
 #include "NifStrings.h"
 #include "NifPlugins.h"
 #include "NifGui.h"
+#include "bhkHelperFuncs.h"
 
 using namespace std;
 
@@ -154,13 +155,8 @@ void NifProps::BeginEditParams(Interface *ip, IUtil *iu)
 	mNode = NULL;
 
 	const TCHAR **str;
-	str = NpHvkMaterialNames;
-	while (*str)
-		mCbMaterial.add(*str++);
-
-	str = NpHvkLayerNames;
-	while (*str)
-		mCbLayer.add(*str++);
+	InitMaterialTypeCombo(mCbMaterial.mWnd, IDC_CB_MATERIAL);
+	InitLayerTypeCombo(mCbLayer.mWnd, IDC_CB_LAYER);
 
 	str = NpHvkMotionSystems;
 	while (*str)

@@ -132,7 +132,7 @@ const ULONG I_BSDISMEMBERSKINMODIFIER = I_USERINTERFACE + 0x0000E271;
 const ULONG I_BSDISMEMBERSKINMODIFIERDATA = I_USERINTERFACE + 0x0000E272;
 
 class IBSDismemberSkinModifier
-	//   : public MaxHeapOperators 
+	   : public MaxHeapOperators 
 {
 public:
 	/*! \remarks This method must be called when the <b>LocalModData</b> of
@@ -148,7 +148,7 @@ public:
 
 
 class IBSDismemberSkinModifierData
-	//   : public MaxHeapOperators 
+	   : public MaxHeapOperators 
 {
 public:
 
@@ -167,18 +167,9 @@ public:
 	/*! \remarks Sets the currently selected partition level of the modifier. */
 	virtual void SetActivePartition(DWORD partition) = 0;
 
-	virtual BitArray& GetVertSel(int index) = 0;
 	virtual BitArray& GetFaceSel(int index) = 0;
-	virtual BitArray& GetEdgeSel(int index) = 0;
-
-	virtual void SetVertSel(int index, BitArray &set, IBSDismemberSkinModifier *imod, TimeValue t) = 0;
 	virtual void SetFaceSel(int index, BitArray &set, IBSDismemberSkinModifier *imod, TimeValue t) = 0;
-	virtual void SetEdgeSel(int index, BitArray &set, IBSDismemberSkinModifier *imod, TimeValue t) = 0;
-
 	virtual Tab<BSDSPartitionData> & GetPartitionFlags() = 0;
-
-	virtual GenericNamedSelSetList & GetVertSelList() = 0;
-	virtual GenericNamedSelSetList & GetEdgeSelList() = 0;
 	virtual GenericNamedSelSetList & GetFaceSelList() = 0;
 };
 

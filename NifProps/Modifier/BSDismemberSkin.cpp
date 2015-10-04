@@ -10,24 +10,14 @@ HISTORY:
 **********************************************************************/
 #pragma warning( disable:4800 )
 #include <max.h>
-#include <shaders.h>
 #include "MAX_Mem.h"
-#include <map>
-#include "iparamm.h"
-#include "Simpobj.h"
-#include "surf_api.h"
-#include "notify.h"
-#include "macroRec.h"
 #include <custcont.h>
-#include <shlwapi.h>
 #include "..\NifProps\NifProps.h"
 
 //#include "mods.h"
 #include <iparamm2.h>
 #include <MeshDLib.h>
 #include <namesel.h>
-#include <nsclip.h>
-#include <istdplug.h>
 #include "NifGui.h"
 #include "..\NifProps\iNifProps.h"
 
@@ -137,13 +127,10 @@ const EnumLookupType BodyPartFlags[] =
    {0,  NULL},
 };
 
-#define SEL_OBJECT	0
-#define SEL_VERTEX	1
-#define SEL_EDGE	2
+#define SEL_OBJECT  0
 #define SEL_FACE	3
 #define SEL_POLY	4
 #define SEL_ELEMENT 5
-
 
 class PartSubObjType : public ISubObjType {
 	TSTR name;
@@ -201,8 +188,6 @@ public:
 static BSDSImageHandler theBSDSImageHandler;
 static BSDSPartImageHandler theBSDSPartImageHandler;
 
-#define IDC_SELVERTEX 0x3260
-#define IDC_SELEDGE 0x3261
 #define IDC_SELFACE 0x3262
 #define IDC_SELPOLY 0x3263
 #define IDC_SELELEMENT 0x3264
@@ -421,9 +406,7 @@ public:
 	Tab<BSDSPartitionData> flags;
 
 	// Lists of named selection sets
-	GenericNamedSelSetList vselSet;
 	GenericNamedSelSetList fselSet;
-	GenericNamedSelSetList eselSet;
 
 	BOOL held;
 	Mesh *mesh;
@@ -439,30 +422,11 @@ public:
 	void FreeCache();
 	void SynchBitArrays();
 
-	void SelVertByFace();
-	void SelVertByEdge();
-	void SelFaceByVert();
-	void SelFaceByEdge();
-	void SelPolygonByVert(float thresh, int igVis);
-	void SelPolygonByEdge(float thresh, int igVis);
-	void SelElementByVert();
-	void SelElementByEdge();
-	void SelEdgeByVert();
-	void SelEdgeByFace();
-
 	// From IMeshSelectData:
-	BitArray& GetVertSel() { return GetVertSel(activePartition); }
 	BitArray& GetFaceSel() { return GetFaceSel(activePartition); }
-	BitArray& GetEdgeSel() { return GetEdgeSel(activePartition); }
 
-	void SetVertSel(BitArray &set, BSDSModifier *imod, TimeValue t) {
-		SetVertSel(activePartition, set, imod, t);
-	}
 	void SetFaceSel(BitArray &set, BSDSModifier *imod, TimeValue t) {
 		SetFaceSel(activePartition, set, imod, t);
-	}
-	void SetEdgeSel(BitArray &set, BSDSModifier *imod, TimeValue t) {
-		SetEdgeSel(activePartition, set, imod, t);
 	}
 
 
@@ -489,14 +453,6 @@ public:
 	/*! \remarks Sets the currently selected partition level of the modifier. */
 	virtual void SetActivePartition(DWORD partition);
 
-	BitArray& GetVertSel(int index) {
-		BitArray* set = vselSet.GetSetByIndex(index);
-		if (!set) {
-			vselSet.InsertSet(index, BitArray());
-			set = vselSet.GetSetByIndex(index);
-		}
-		return *set;
-	}
 	BitArray& GetFaceSel(int index) {
 		BitArray* set = fselSet.GetSetByIndex(index);
 		if (!set) {
@@ -505,23 +461,11 @@ public:
 		}
 		return *set;
 	}
-	BitArray& GetEdgeSel(int index) {
-		BitArray* set = eselSet.GetSetByIndex(index);
-		if (!set) {
-			eselSet.InsertSet(index, BitArray());
-			set = eselSet.GetSetByIndex(index);
-		}
-		return *set;
-	}
 
-	virtual void SetVertSel(int index, BitArray &set, IBSDismemberSkinModifier *imod, TimeValue t);
 	virtual void SetFaceSel(int index, BitArray &set, IBSDismemberSkinModifier *imod, TimeValue t);
-	virtual void SetEdgeSel(int index, BitArray &set, IBSDismemberSkinModifier *imod, TimeValue t);
 
 	virtual Tab<BSDSPartitionData> & GetPartitionFlags() { return flags; }
 
-	GenericNamedSelSetList & GetVertSelList() { return vselSet; }
-	GenericNamedSelSetList & GetEdgeSelList() { return eselSet; }
 	GenericNamedSelSetList & GetFaceSelList() { return fselSet; }
 
 	void FixDuplicates();
@@ -621,34 +565,32 @@ static ParamBlockDesc2 BSDS_desc(ms_pblock,
 
 	// params
 	ms_by_vertex, _T("byVertex"), TYPE_BOOL, P_RESET_DEFAULT, IDS_BY_VERTEX,
-	p_default, false,
-	p_ui, ms_map_main, TYPE_SINGLECHEKBOX, IDC_MS_SEL_BYVERT,
-	p_end,
+		p_default, false,
+		p_ui, ms_map_main, TYPE_SINGLECHEKBOX, IDC_MS_SEL_BYVERT,
+		p_end,
 
 	ms_ignore_backfacing, _T("ignoreBackfacing"), TYPE_BOOL, P_RESET_DEFAULT, IDS_IGNORE_BACKFACING,
-	p_default, false,
-	p_ui, ms_map_main, TYPE_SINGLECHEKBOX, IDC_MS_IGNORE_BACKFACES,
-	p_end,
+		p_default, false,
+		p_ui, ms_map_main, TYPE_SINGLECHEKBOX, IDC_MS_IGNORE_BACKFACES,
+		p_end,
 
 	ms_matid, _T("materialID"), TYPE_INT, P_TRANSIENT | P_RESET_DEFAULT, IDS_RB_MATERIALID,
-	p_default, 1,
-	p_range, 1, 65535,
-	p_ui, ms_map_main, TYPE_SPINNER, EDITTYPE_INT,
-	IDC_MS_MATID, IDC_MS_MATIDSPIN, .5f,
-	p_end,
+		p_default, 1,
+		p_range, 1, 65535,
+		p_ui, ms_map_main, TYPE_SPINNER, EDITTYPE_INT, IDC_MS_MATID, IDC_MS_MATIDSPIN, .5f,
+		p_end,
 
 	ms_ignore_visible, _T("ignoreVisibleEdges"), TYPE_BOOL, P_RESET_DEFAULT, IDS_IGNORE_VISIBLE,
-	p_default, false,
-	p_ui, ms_map_main, TYPE_SINGLECHEKBOX, IDC_MS_IGNORE_VISEDGE,
-	p_end,
+		p_default, false,
+		p_ui, ms_map_main, TYPE_SINGLECHEKBOX, IDC_MS_IGNORE_VISEDGE,
+		p_end,
 
 	ms_planar_threshold, _T("planarThreshold"), TYPE_ANGLE, P_RESET_DEFAULT, IDS_RB_THRESHOLD,
-	p_default, PI / 4.0f,	// Default value for angles has to be in radians.
-	p_range, 0.0f, 180.0f,	// but range given in degrees.
-	p_ui, ms_map_main, TYPE_SPINNER, EDITTYPE_POS_FLOAT,
-	IDC_MS_PLANAR, IDC_MS_PLANARSPINNER, .1f,
-	p_end,
-	p_end
+		p_default, PI / 4.0f,	// Default value for angles has to be in radians.
+		p_range, 0.0f, 180.0f,	// but range given in degrees.
+		p_ui, ms_map_main, TYPE_SPINNER, EDITTYPE_POS_FLOAT, IDC_MS_PLANAR, IDC_MS_PLANARSPINNER, .1f,
+		p_end,
+		p_end
 	);
 
 static BSDSClassDesc BSDSDesc;
@@ -696,15 +638,9 @@ void BSDSModifier::ModifyObject(TimeValue t, ModContext &mc, ObjectState *os, IN
 	int level = 0;
 	if (ip) level = ip->GetSubObjectLevel();
 
-	BitArray& vertSel = d->GetVertSel();
 	BitArray& faceSel = d->GetFaceSel();
-	BitArray& edgeSel = d->GetEdgeSel();
-	vertSel.SetSize(tobj->GetMesh().getNumVerts(), TRUE);
 	faceSel.SetSize(tobj->GetMesh().getNumFaces(), TRUE);
-	edgeSel.SetSize(tobj->GetMesh().getNumFaces() * 3, TRUE);
-	tobj->GetMesh().vertSel = vertSel;
 	tobj->GetMesh().faceSel = faceSel;
-	tobj->GetMesh().edgeSel = edgeSel;
 	tobj->GetMesh().selLevel = level == 0 ? SEL_OBJECT : GetSelectionLevel();
 
 	Interval outValid;
@@ -722,7 +658,7 @@ void BSDSModifier::ModifyObject(TimeValue t, ModContext &mc, ObjectState *os, IN
 	tobj->GetMesh().dispFlags = 0;
 	if (level != 0)
 	{
-		if ((d->GetSelectionLevel() != SEL_VERTEX) || !ip || !ip->GetShowEndResult())
+		if (!ip || !ip->GetShowEndResult())
 			tobj->GetMesh().SetDispFlag(levelDispFlags[GetSelectionLevel()]);
 	}
 	tobj->SetChannelValidity(SELECT_CHAN_NUM, outValid);
@@ -763,7 +699,7 @@ void BSDSModifier::UpdateSelLevelDisplay() {
 	theBSDSModifierMainDlgProc.UpdateSelLevelDisplay(hWnd);
 }
 
-static int butIDs[] = { 0, IDC_SELVERTEX, IDC_SELEDGE, IDC_SELFACE, IDC_SELPOLY, IDC_SELELEMENT };
+static int butIDs[] = { 0, 0, 0, IDC_SELFACE, IDC_SELPOLY, IDC_SELELEMENT };
 void BSDSModifierMainDlgProc::UpdateSelLevelDisplay(HWND hWnd) {
 	if (!mod) return;
 	ICustToolbar *iToolbar = GetICustToolbar(GetDlgItem(hWnd, IDC_MS_SELTYPE));
@@ -828,11 +764,11 @@ void BSDSModifier::EndEditParams(IObjParam *ip, ULONG flags, Animatable *next) {
 	if (selectMode) delete selectMode;
 	selectMode = NULL;
 
+	this->ip = NULL;
 	// Reset show end result
 	SetFlag(MS_DISP_END_RESULT, ip->GetShowEndResult() ? TRUE : FALSE);
 	ip->SetShowEndResult(oldShowEnd);
 
-	this->ip = NULL;
 	editMod = NULL;
 
 	TimeValue t = ip->GetTime();
@@ -842,6 +778,14 @@ void BSDSModifier::EndEditParams(IObjParam *ip, ULONG flags, Animatable *next) {
 }
 
 int BSDSModifier::HitTest(TimeValue t, INode* inode, int type, int crossing, int flags, IPoint2 *p, ViewExp *vpt, ModContext* mc) {
+
+	if (!vpt || !vpt->IsAlive())
+	{
+		// why are we here
+		DbgAssert(!_T("Invalid viewport!"));
+		return FALSE;
+	}
+
 	Interval valid;
 	int savedLimits, res = 0;
 	GraphicsWindow *gw = vpt->getGW();
@@ -870,7 +814,7 @@ int BSDSModifier::HitTest(TimeValue t, INode* inode, int type, int crossing, int
 	DWORD hitFlags;
 	if (selByVert) {
 		hitFlags = SUBHIT_VERTS;
-		if (selLevel > SEL_VERTEX) hitFlags |= SUBHIT_USEFACESEL;
+		if (selLevel > SEL_FACE) hitFlags |= SUBHIT_USEFACESEL;
 	}
 	else {
 		hitFlags = hitLevel[selLevel];
@@ -924,6 +868,12 @@ int BSDSModifier::HitTest(TimeValue t, INode* inode, int type, int crossing, int
 }
 
 int BSDSModifier::Display(TimeValue t, INode* inode, ViewExp *vpt, int flags, ModContext *mc) {
+	if (!vpt || !vpt->IsAlive())
+	{
+		// why are we here
+		DbgAssert(!_T("Invalid viewport!"));
+		return FALSE;
+	}
 	if (!ip->GetShowEndResult()) return 0;
 	if (!mc->localData) return 0;
 
@@ -973,17 +923,16 @@ int BSDSModifier::Display(TimeValue t, INode* inode, ViewExp *vpt, int flags, Mo
 		nonIsoVerts.SetSize(mesh->numVerts);
 
 		mesh->checkNormals(false);	// Allocates rVerts.
-		RVertex *rv = mesh->getRVertPtr(0);
 		BOOL gwFlipped = gw->getFlipped();
 
 		for (i = 0; i < mesh->numVerts; i++) {
-			rv[i].rFlags = (rv[i].rFlags & ~(GW_PLANE_MASK | RND_MASK | RECT_MASK)) |
-				gw->hTransPoint(&(mesh->verts[i]), (IPoint3 *)rv[i].pos);
+			mesh->getRVert(i).rFlags = (mesh->getRVert(i).rFlags & ~(GW_PLANE_MASK | RND_MASK | RECT_MASK)) |
+				gw->hTransPoint(&(mesh->verts[i]), (IPoint3 *)mesh->getRVert(i).pos);
 		}
 		for (i = 0; i < mesh->numFaces; i++)
 		{
 			Face & f = mesh->faces[i];
-			fBackfacing.Set(i, hIsFacingBack(rv[f.v[0]].pos, rv[f.v[1]].pos, rv[f.v[2]].pos, gwFlipped));
+			fBackfacing.Set(i, hIsFacingBack(mesh->getRVert(f.v[0]).pos, mesh->getRVert(f.v[1]).pos, mesh->getRVert(f.v[2]).pos, gwFlipped));
 			for (int j = 0; j < 3; j++) nonIsoVerts.Set(f.v[j]);
 			if (fBackfacing[i]) continue;
 			for (int j = 0; j < 3; j++) vBackfacing.Clear(f.v[j]);
@@ -1001,7 +950,6 @@ int BSDSModifier::Display(TimeValue t, INode* inode, ViewExp *vpt, int flags, Mo
 			es[0] = GW_EDGE_VIS;
 		}
 		else {
-			if (selLevel < SEL_EDGE) continue;
 			if (selLevel > SEL_FACE) continue;
 			es[0] = GW_EDGE_INVIS;
 		}
@@ -1011,10 +959,6 @@ int BSDSModifier::Display(TimeValue t, INode* inode, ViewExp *vpt, int flags, Mo
 			continue;
 #endif
 
-		if (selLevel == SEL_EDGE) {
-			if (ae->edges[i].Selected(mesh->faces, modData->GetEdgeSel())) gw->setColor(LINE_COLOR, colGizSel);
-			else gw->setColor(LINE_COLOR, colGiz);
-		}
 		if (selLevel >= SEL_FACE) {
 			if (ae->edges[i].AFaceSelected(modData->GetFaceSel())) gw->setColor(LINE_COLOR, colGizSel);
 			else gw->setColor(LINE_COLOR, colGiz);
@@ -1028,25 +972,6 @@ int BSDSModifier::Display(TimeValue t, INode* inode, ViewExp *vpt, int flags, Mo
 
 	}
 	gw->endSegments();
-
-	if (selLevel == SEL_VERTEX) {
-		BitArray& vertSel = modData->GetVertSel();
-		gw->startMarkers();
-		for (i = 0; i < mesh->numVerts; i++) {
-			if (mesh->vertHide[i]) continue;
-#ifdef MESH_CAGE_BACKFACE_CULLING
-			if (backCull && vBackfacing[i]) continue;
-#endif
-
-			if (vertSel[i]) gw->setColor(LINE_COLOR, colSel);
-			else gw->setColor(LINE_COLOR, colTicks);
-#if VERSION_3DSMAX >= ((5000<<16)+(15<<8)+0)
-			if (getUseVertexDots()) gw->marker(&(mesh->verts[i]), VERTEX_DOT_MARKER(getVertexDotType()));
-			else gw->marker(&(mesh->verts[i]), PLUS_SIGN_MRKR);
-#endif
-		}
-		gw->endMarkers();
-	}
 	gw->setRndLimits(savedLimits);
 	return 0;
 }
@@ -1160,6 +1085,8 @@ void BSDSModifier::LocalDataChanged() {
 
 void BSDSModifier::SelectSubComponent(HitRecord *hitRec, BOOL selected, BOOL all, BOOL invert) {
 	BSDSData *d = NULL, *od = NULL;
+	if (!ip) return;
+	ip->ClearCurNamedSelSet();
 
 	int selByVert, ignoreVisEdge;
 	float planarThresh;
@@ -1168,6 +1095,9 @@ void BSDSModifier::SelectSubComponent(HitRecord *hitRec, BOOL selected, BOOL all
 	pblock->GetValue(ms_ignore_visible, t, ignoreVisEdge, FOREVER);
 	pblock->GetValue(ms_planar_threshold, t, planarThresh, FOREVER);
 
+	ModContextList context_list;
+	INodeTab nodes;
+	ip->GetModContexts(context_list, nodes);
 	int nd;
 	BitArray nsel;
 	AdjEdgeList *ae = NULL;
@@ -1194,63 +1124,6 @@ void BSDSModifier::SelectSubComponent(HitRecord *hitRec, BOOL selected, BOOL all
 
 		DWORD selLevel = d->GetSelectionLevel();
 		switch (selLevel) {
-		case SEL_VERTEX:
-			nsel = d->GetVertSel();
-			for (; hr != NULL; hr = hr->Next()) {
-				if (d != hr->modContext->localData) continue;
-				nsel.Set(hr->hitInfo, invert ? !nsel[hr->hitInfo] : selected);
-				if (!all) break;
-			}
-			d->SetVertSel(nsel, this, t);
-			break;
-
-		case SEL_EDGE:
-			if (msci && selByVert) {
-				// Use new improved selection conversion:
-				BitArray vhit;
-				vhit.SetSize(mesh->numVerts);
-				for (hr = hitRec; hr != NULL; hr = hr->Next()) {
-					if (d != hr->modContext->localData) continue;
-					vhit.Set(hr->hitInfo);
-					if (!all) break;
-				}
-#if VERSION_3DSMAX >= ((5000<<16)+(15<<8)+0)
-				MeshSelectionConverter *pConv = static_cast<MeshSelectionConverter*>(msci);
-				pConv->VertexToEdge(*mesh, vhit, nsel);
-				if (invert) nsel ^= d->GetEdgeSel();
-				else {
-					if (selected) nsel |= d->GetEdgeSel();
-					else nsel = d->GetEdgeSel() & ~nsel;
-				}
-#endif
-			}
-			else {
-				BitArray& edgeSel = d->GetEdgeSel();
-				nsel = d->GetEdgeSel();
-				for (; hr != NULL; hr = hr->Next()) {
-					if (d != hr->modContext->localData) continue;
-					if (selByVert) {
-						DWORDTab & list = ae->list[hr->hitInfo];
-						for (int i = 0; i < list.Count(); i++) {
-							MEdge & me = ae->edges[list[i]];
-							for (int j = 0; j < 2; j++) {
-								if (me.f[j] == UNDEFINED) continue;
-								DWORD ei = mesh->faces[me.f[j]].GetEdgeIndex(me.v[0], me.v[1]);
-								if (ei > 2) continue;
-								ei += me.f[j] * 3;
-								nsel.Set(ei, invert ? !edgeSel[ei] : selected);
-							}
-						}
-					}
-					else {
-						nsel.Set(hr->hitInfo, invert ? !edgeSel[hr->hitInfo] : selected);
-					}
-					if (!all) break;
-				}
-			}
-			d->SetEdgeSel(nsel, this, t);
-			break;
-
 		case SEL_FACE:
 			if (msci && selByVert) {
 				// Use new improved selection conversion:
@@ -1364,6 +1237,7 @@ void BSDSModifier::SelectSubComponent(HitRecord *hitRec, BOOL selected, BOOL all
 		}
 	}
 
+	nodes.DisposeTemporary();
 	LocalDataChanged();
 }
 
@@ -1376,32 +1250,20 @@ void BSDSModifier::ClearSelection(int selLevel) {
 
 		// Check if we have anything selected first:
 		switch (d->GetSelectionLevel()) {
-		case SEL_VERTEX:
-			if (!d->GetVertSel().NumberSet()) continue;
-			else break;
 		case SEL_FACE:
 		case SEL_POLY:
 		case SEL_ELEMENT:
 			if (!d->GetFaceSel().NumberSet()) continue;
-			else break;
-		case SEL_EDGE:
-			if (!d->GetEdgeSel().NumberSet()) continue;
 			else break;
 		}
 
 		if (theHold.Holding() && !d->held) theHold.Put(new SelectRestore(this, d));
 		d->SynchBitArrays();
 		switch (d->GetSelectionLevel()) {
-		case SEL_VERTEX:
-			d->GetVertSel().ClearAll();
-			break;
 		case SEL_FACE:
 		case SEL_POLY:
 		case SEL_ELEMENT:
 			d->GetFaceSel().ClearAll();
-			break;
-		case SEL_EDGE:
-			d->GetEdgeSel().ClearAll();
 			break;
 		}
 	}
@@ -1409,6 +1271,10 @@ void BSDSModifier::ClearSelection(int selLevel) {
 }
 
 void BSDSModifier::SelectAll(int selLevel) {
+	ModContextList context_list;
+	INodeTab nodes;
+	if (!ip) return;
+	ip->GetModContexts(context_list, nodes);
 	BSDSData *d;
 	Tab<IBSDismemberSkinModifierData*> list = GetModifierData();
 	for (int i = 0; i < list.Count(); i++) {
@@ -1417,23 +1283,22 @@ void BSDSModifier::SelectAll(int selLevel) {
 		if (theHold.Holding() && !d->held) theHold.Put(new SelectRestore(this, d));
 		d->SynchBitArrays();
 		switch (selLevel) {
-		case SEL_VERTEX:
-			d->GetVertSel().SetAll();
-			break;
 		case SEL_FACE:
 		case SEL_POLY:
 		case SEL_ELEMENT:
 			d->GetFaceSel().SetAll();
 			break;
-		case SEL_EDGE:
-			d->GetEdgeSel().SetAll();
-			break;
 		}
 	}
+	nodes.DisposeTemporary();
 	LocalDataChanged();
 }
 
 void BSDSModifier::InvertSelection(int selLevel) {
+	ModContextList context_list;
+	INodeTab nodes;
+	if (!ip) return;
+	ip->GetModContexts(context_list, nodes);
 	BSDSData *d;
 	Tab<IBSDismemberSkinModifierData*> list = GetModifierData();
 	for (int i = 0; i < list.Count(); i++) {
@@ -1442,26 +1307,25 @@ void BSDSModifier::InvertSelection(int selLevel) {
 		if (theHold.Holding() && !d->held) theHold.Put(new SelectRestore(this, d));
 		d->SynchBitArrays();
 		switch (selLevel) {
-		case SEL_VERTEX:
-			d->GetVertSel().Reverse();
-			break;
 		case SEL_FACE:
 		case SEL_POLY:
 		case SEL_ELEMENT:
 			d->GetFaceSel().Reverse();
 			break;
-		case SEL_EDGE:
-			d->GetEdgeSel().Reverse();
-			break;
 		}
 	}
+	nodes.DisposeTemporary();
 	LocalDataChanged();
 }
 
 void BSDSModifier::SelectByMatID(int id) {
+	if (!ip) return;
 	BOOL add = GetKeyState(VK_CONTROL) < 0 ? TRUE : FALSE;
 	BOOL sub = GetKeyState(VK_MENU) < 0 ? TRUE : FALSE;
 	theHold.Begin();
+	ModContextList context_list;
+	INodeTab nodes;
+	ip->GetModContexts(context_list, nodes);
 	BSDSData *d;
 	Tab<IBSDismemberSkinModifierData*> list = GetModifierData();
 	for (int i = 0; i < list.Count(); i++) {
@@ -1479,47 +1343,19 @@ void BSDSModifier::SelectByMatID(int id) {
 			}
 		}
 	}
+	nodes.DisposeTemporary();
 	theHold.Accept(GetString(IDS_RB_SELECTBYMATID));
 
 	LocalDataChanged();
 	ip->RedrawViews(ip->GetTime());
 }
 
-void BSDSModifier::SelectOpenEdges() {
-	theHold.Begin();
-	BSDSData *d;
-	Tab<IBSDismemberSkinModifierData*> list = GetModifierData();
-	for (int i = 0; i < list.Count(); i++) {
-		d = (BSDSData *)list[i];
-		if (!d) continue;
-		if (!d->mesh) continue;
-
-		if (!d->held) theHold.Put(new SelectRestore(this, d));
-		d->SynchBitArrays();
-
-		d->GetEdgeSel().ClearAll();
-		AdjEdgeList *ae = d->GetAdjEdgeList();
-		if (!ae) continue;
-		for (int j = 0; j < ae->edges.Count(); j++) {
-			MEdge *me = &(ae->edges[j]);
-			if (me->f[0] == UNDEFINED) {
-				int wh = d->mesh->faces[me->f[1]].GetEdgeIndex(me->v[0], me->v[1]);
-				d->GetEdgeSel().Set(me->f[1] * 3 + wh);
-			}
-			if (me->f[1] == UNDEFINED) {
-				int wh = d->mesh->faces[me->f[0]].GetEdgeIndex(me->v[0], me->v[1]);
-				d->GetEdgeSel().Set(me->f[0] * 3 + wh);
-			}
-		}
-	}
-	theHold.Accept(GetString(IDS_EM_SELECT_OPEN));
-	LocalDataChanged();
-	ip->RedrawViews(ip->GetTime());
-}
-
 void BSDSModifier::SelectFrom(int from) {
+	if (!ip) return;
+	ModContextList context_list;
+	INodeTab nodes;
+	ip->GetModContexts(context_list, nodes);
 	BSDSData *d;
-
 	int ignoreVisEdge;
 	float planarThresh;
 	pblock->GetValue(ms_ignore_visible, TimeValue(0), ignoreVisEdge, FOREVER);
@@ -1533,31 +1369,9 @@ void BSDSModifier::SelectFrom(int from) {
 
 		if (!d->held) theHold.Put(new SelectRestore(this, d));
 		d->SynchBitArrays();
-
-		switch (GetSelectionLevel()) {
-		case SEL_VERTEX:
-			if (from == SEL_FACE) d->SelVertByFace();
-			else d->SelVertByEdge();
-			break;
-		case SEL_FACE:
-			if (from == SEL_VERTEX) d->SelFaceByVert();
-			else d->SelFaceByEdge();
-			break;
-		case SEL_POLY:
-			if (from == SEL_VERTEX) d->SelPolygonByVert(planarThresh, ignoreVisEdge);
-			else d->SelPolygonByEdge(planarThresh, ignoreVisEdge);
-			break;
-		case SEL_ELEMENT:
-			if (from == SEL_VERTEX) d->SelElementByVert();
-			else d->SelElementByEdge();
-			break;
-		case SEL_EDGE:
-			if (from == SEL_VERTEX) d->SelEdgeByVert();
-			else d->SelEdgeByFace();
-			break;
-		}
 	}
 	theHold.Accept(GetString(IDS_DS_SELECT));
+	nodes.DisposeTemporary();
 	LocalDataChanged();
 	ip->RedrawViews(ip->GetTime());
 }
@@ -1629,16 +1443,6 @@ IOResult BSDSModifier::Load(ILoad *iload) {
 IOResult BSDSModifier::SaveLocalData(ISave *isave, LocalModData *ld) {
 	BSDSData *d = (BSDSData*)ld;
 
-	if (d->vselSet.Count()) {
-		isave->BeginChunk(VSELSET_CHUNK);
-		d->vselSet.Save(isave);
-		isave->EndChunk();
-	}
-	if (d->eselSet.Count()) {
-		isave->BeginChunk(ESELSET_CHUNK);
-		d->eselSet.Save(isave);
-		isave->EndChunk();
-	}
 	if (d->fselSet.Count()) {
 		isave->BeginChunk(FSELSET_CHUNK);
 		d->fselSet.Save(isave);
@@ -1672,23 +1476,11 @@ IOResult BSDSModifier::LoadLocalData(ILoad *iload, LocalModData **pld) {
 	IOResult res;
 	while (IO_OK == (res = iload->OpenChunk())) {
 		switch (iload->CurChunkID()) {
-		case VSELSET_CHUNK:
-			while (d->vselSet.Count() > 0)
-				d->vselSet.DeleteSet(0);
-			d->vselSet.SetSize(0);
-			res = d->vselSet.Load(iload);
-			break;
 		case FSELSET_CHUNK:
 			while (d->fselSet.Count() > 0)
 				d->fselSet.DeleteSet(0);
 			d->fselSet.SetSize(0);
 			res = d->fselSet.Load(iload);
-			break;
-		case ESELSET_CHUNK:
-			while (d->eselSet.Count() > 0)
-				d->eselSet.DeleteSet(0);
-			d->eselSet.SetSize(0);
-			res = d->eselSet.Load(iload);
 			break;
 		case CURSEL_CHUNK:
 			iload->Read(&d->activePartition, sizeof(d->activePartition), &nb);
@@ -1735,13 +1527,10 @@ void BSDSModifierMainDlgProc::SetEnables(HWND hParams) {
 	int nSub = mod->ip->GetSubObjectLevel();
 	bool subSel = (nSub != 0);
 
-	bool obj = (selLevel == SEL_OBJECT) ? TRUE : FALSE;
-	bool vert = (selLevel == SEL_VERTEX) ? TRUE : FALSE;
-	bool edge = (selLevel == SEL_EDGE) ? TRUE : FALSE;
 	bool poly = (selLevel == SEL_POLY) ? true : false;
 	bool face = (selLevel == SEL_FACE) || (selLevel == SEL_ELEMENT) || poly ? TRUE : FALSE;
 
-	EnableWindow(GetDlgItem(hParams, IDC_MS_SEL_BYVERT), subSel && (edge || face));
+	EnableWindow(GetDlgItem(hParams, IDC_MS_SEL_BYVERT), subSel && face);
 	//EnableWindow (GetDlgItem (hParams, IDC_MS_IGNORE_BACKFACES), subSel&&(edge||face));
 	EnableWindow(GetDlgItem(hParams, IDC_MS_IGNORE_VISEDGE), subSel&&poly);
 	EnableWindow(GetDlgItem(hParams, IDC_MS_PLANAR_TEXT), subSel&&poly);
@@ -2013,8 +1802,6 @@ LocalModData *BSDSData::Clone() {
 	BSDSData *d = new BSDSData;
 	d->activePartition = activePartition;
 	d->flags = flags;
-	d->vselSet = vselSet;
-	d->eselSet = eselSet;
 	d->fselSet = fselSet;
 	return d;
 }
@@ -2022,9 +1809,7 @@ LocalModData *BSDSData::Clone() {
 BSDSData::BSDSData(Mesh &mesh) {
 	held = 0; this->mesh = NULL; temp = NULL;
 	SetActivePartition(0);
-	GetVertSel() = mesh.vertSel;
 	GetFaceSel() = mesh.faceSel;
-	GetEdgeSel() = mesh.edgeSel;
 }
 
 BSDSData::BSDSData()
@@ -2035,9 +1820,8 @@ BSDSData::BSDSData()
 
 void BSDSData::SynchBitArrays() {
 	if (!mesh) return;
-	if (GetVertSel().GetSize() != mesh->getNumVerts()) GetVertSel().SetSize(mesh->getNumVerts(), TRUE);
-	if (GetFaceSel().GetSize() != mesh->getNumFaces()) GetFaceSel().SetSize(mesh->getNumFaces(), TRUE);
-	if (GetEdgeSel().GetSize() != mesh->getNumFaces() * 3) GetEdgeSel().SetSize(mesh->getNumFaces() * 3, TRUE);
+	if (GetFaceSel().GetSize() != mesh->getNumFaces())
+		GetFaceSel().SetSize(mesh->getNumFaces(), TRUE);
 }
 
 AdjEdgeList *BSDSData::GetAdjEdgeList() {
@@ -2068,157 +1852,11 @@ void BSDSData::FreeCache() {
 	temp = NULL;
 }
 
-void BSDSData::SetVertSel(int index, BitArray &set, IBSDismemberSkinModifier *imod, TimeValue t) {
-	BSDSModifier *mod = (BSDSModifier *)imod;
-	if (theHold.Holding()) theHold.Put(new SelectRestore(mod, this, SEL_VERTEX));
-	GetVertSel(index) = set;
-	if (mesh) mesh->vertSel = set;
-}
-
 void BSDSData::SetFaceSel(int index, BitArray &set, IBSDismemberSkinModifier *imod, TimeValue t) {
 	BSDSModifier *mod = (BSDSModifier *)imod;
 	if (theHold.Holding()) theHold.Put(new SelectRestore(mod, this, SEL_FACE));
 	GetFaceSel(index) = set;
 	if (mesh) mesh->faceSel = set;
-}
-
-void BSDSData::SetEdgeSel(int index, BitArray &set, IBSDismemberSkinModifier *imod, TimeValue t) {
-	BSDSModifier *mod = (BSDSModifier *)imod;
-	if (theHold.Holding()) theHold.Put(new SelectRestore(mod, this, SEL_EDGE));
-	GetEdgeSel(index) = set;
-	if (mesh) mesh->edgeSel = set;
-}
-
-void BSDSData::SelVertByFace() {
-	DbgAssert(mesh);
-	if (!mesh) return;
-	BitArray& vertSel = GetVertSel();
-	BitArray& faceSel = GetFaceSel();
-	for (int i = 0; i < mesh->getNumFaces(); i++) {
-		if (!faceSel[i]) continue;
-		for (int j = 0; j < 3; j++) vertSel.Set(mesh->faces[i].v[j]);
-	}
-}
-
-void BSDSData::SelVertByEdge() {
-	DbgAssert(mesh);
-	if (!mesh) return;
-	BitArray& vertSel = GetVertSel();
-	for (int i = 0; i < mesh->getNumFaces(); i++) {
-		for (int j = 0; j < 3; j++) {
-			if (!GetEdgeSel()[i * 3 + j]) continue;
-			vertSel.Set(mesh->faces[i].v[j], TRUE);
-			vertSel.Set(mesh->faces[i].v[(j + 1) % 3], TRUE);
-		}
-	}
-}
-
-void BSDSData::SelFaceByVert() {
-	DbgAssert(mesh);
-	if (!mesh) return;
-	BitArray& vertSel = GetVertSel();
-	BitArray& faceSel = GetFaceSel();
-	for (int i = 0; i < mesh->getNumFaces(); i++) {
-		for (int j = 0; j < 3; j++) if (vertSel[mesh->faces[i].v[j]]) { faceSel.Set(i); break; }
-	}
-}
-
-void BSDSData::SelFaceByEdge() {
-	DbgAssert(mesh);
-	if (!mesh) return;
-	BitArray& edgeSel = GetEdgeSel();
-	BitArray& faceSel = GetFaceSel();
-	for (int i = 0; i < mesh->getNumFaces(); i++) {
-		for (int j = 0; j < 3; j++) if (edgeSel[i * 3 + j]) { faceSel.Set(i); break; }
-	}
-}
-
-void BSDSData::SelPolygonByVert(float thresh, int igVis) {
-	DbgAssert(mesh);
-	if (!mesh) return;
-	BitArray& vertSel = GetVertSel();
-	BitArray& faceSel = GetFaceSel();
-	BitArray nfsel;
-	nfsel.SetSize(mesh->getNumFaces());
-	for (int i = 0; i < mesh->getNumFaces(); i++) {
-		for (int j = 0; j < 3; j++) if (vertSel[mesh->faces[i].v[j]])
-		{
-			mesh->PolyFromFace(i, nfsel, thresh, igVis, GetAdjFaceList()); break;
-		}
-	}
-	faceSel |= nfsel;
-}
-
-void BSDSData::SelPolygonByEdge(float thresh, int igVis) {
-	DbgAssert(mesh);
-	if (!mesh) return;
-	BitArray& edgeSel = GetEdgeSel();
-	BitArray& faceSel = GetFaceSel();
-	BitArray nfsel;
-	nfsel.SetSize(mesh->getNumFaces());
-	for (int i = 0; i < mesh->getNumFaces(); i++) {
-		for (int j = 0; j < 3; j++) if (edgeSel[i * 3 + j])
-		{
-			mesh->PolyFromFace(i, nfsel, thresh, igVis, GetAdjFaceList()); break;
-		}
-	}
-	faceSel |= nfsel;
-}
-
-void BSDSData::SelElementByVert() {
-	DbgAssert(mesh);
-	if (!mesh) return;
-	BitArray& vertSel = GetVertSel();
-	BitArray& faceSel = GetFaceSel();
-	BitArray nfsel;
-	nfsel.SetSize(mesh->getNumFaces());
-	for (int i = 0; i < mesh->getNumFaces(); i++) {
-		for (int j = 0; j < 3; j++) if (vertSel[mesh->faces[i].v[j]])
-		{
-			mesh->ElementFromFace(i, nfsel, GetAdjFaceList()); break;
-		}
-	}
-	faceSel |= nfsel;
-}
-
-void BSDSData::SelElementByEdge() {
-	DbgAssert(mesh);
-	if (!mesh) return;
-	BitArray& edgeSel = GetEdgeSel();
-	BitArray& faceSel = GetFaceSel();
-	BitArray nfsel;
-	nfsel.SetSize(mesh->getNumFaces());
-	for (int i = 0; i < mesh->getNumFaces(); i++) {
-		for (int j = 0; j < 3; j++) if (edgeSel[i * 3 + j])
-		{
-			mesh->ElementFromFace(i, nfsel, GetAdjFaceList()); break;
-		}
-	}
-	faceSel |= nfsel;
-}
-
-void BSDSData::SelEdgeByVert() {
-	DbgAssert(mesh);
-	if (!mesh) return;
-	BitArray& vertSel = GetVertSel();
-	BitArray& edgeSel = GetEdgeSel();
-	for (int i = 0; i < mesh->getNumFaces(); i++) {
-		for (int j = 0; j < 3; j++) {
-			if (vertSel[mesh->faces[i].v[j]]) edgeSel.Set(i * 3 + j);
-			if (vertSel[mesh->faces[i].v[(j + 1) % 3]]) edgeSel.Set(i * 3 + j);
-		}
-	}
-}
-
-void BSDSData::SelEdgeByFace() {
-	DbgAssert(mesh);
-	if (!mesh) return;
-	BitArray& edgeSel = GetEdgeSel();
-	BitArray& faceSel = GetFaceSel();
-	for (int i = 0; i < mesh->getNumFaces(); i++) {
-		if (!faceSel[i]) continue;
-		for (int j = 0; j < 3; j++) edgeSel.Set(i * 3 + j);
-	}
 }
 
 void BSDSData::SetActivePartition(DWORD partition)
@@ -2232,16 +1870,9 @@ void BSDSData::SetActivePartition(DWORD partition)
 		flags.Append(1, &flag);
 	}
 	BitArray empty;
-	while (vselSet.Count() <= partition) {
-		vselSet.AppendSet(empty);
-	}
 	while (fselSet.Count() <= partition) {
 		fselSet.AppendSet(empty);
 	}
-	while (eselSet.Count() <= partition) {
-		eselSet.AppendSet(empty);
-	}
-
 }
 
 void BSDSData::RemovePartition(DWORD partition)
@@ -2249,8 +1880,6 @@ void BSDSData::RemovePartition(DWORD partition)
 	if (partition < flags.Count() && flags.Count() > 1)
 	{
 		flags.Delete(partition, 1);
-		vselSet.DeleteSet(partition);
-		eselSet.DeleteSet(partition);
 		fselSet.DeleteSet(partition);
 		if (partition >= flags.Count())
 			SetActivePartition(0);
@@ -2312,16 +1941,7 @@ SelectRestore::SelectRestore(BSDSModifier *m, BSDSData *data) {
 	level = data->GetSelectionLevel();
 	d = data;
 	d->held = TRUE;
-	switch (level) {
-	case SEL_OBJECT: DbgAssert(0); break;
-	case SEL_VERTEX: usel = d->GetVertSel(); break;
-	case SEL_EDGE:
-		usel = d->GetEdgeSel();
-		break;
-	default:
-		usel = d->GetFaceSel();
-		break;
-	}
+	usel = d->GetFaceSel();
 }
 
 SelectRestore::SelectRestore(BSDSModifier *m, BSDSData *data, int sLevel) {
@@ -2329,52 +1949,33 @@ SelectRestore::SelectRestore(BSDSModifier *m, BSDSData *data, int sLevel) {
 	level = sLevel;
 	d = data;
 	d->held = TRUE;
-	switch (level) {
-	case SEL_OBJECT: DbgAssert(0); break;
-	case SEL_VERTEX: usel = d->GetVertSel(); break;
-	case SEL_EDGE:
-		usel = d->GetEdgeSel(); break;
-	default:
-		usel = d->GetFaceSel(); break;
-	}
+	usel = d->GetFaceSel();
 }
 
 void SelectRestore::Restore(int isUndo) {
 	if (isUndo) {
 		switch (level) {
-		case SEL_VERTEX:
-			rsel = d->GetVertSel(); break;
 		case SEL_FACE:
 		case SEL_POLY:
 		case SEL_ELEMENT:
 			rsel = d->GetFaceSel(); break;
-		case SEL_EDGE:
-			rsel = d->GetEdgeSel(); break;
 		}
 	}
 	switch (level) {
-	case SEL_VERTEX:
-		d->GetVertSel() = usel; break;
 	case SEL_FACE:
 	case SEL_POLY:
 	case SEL_ELEMENT:
 		d->GetFaceSel() = usel; break;
-	case SEL_EDGE:
-		d->GetEdgeSel() = usel; break;
 	}
 	mod->LocalDataChanged();
 }
 
 void SelectRestore::Redo() {
 	switch (level) {
-	case SEL_VERTEX:
-		d->GetVertSel() = rsel; break;
 	case SEL_FACE:
 	case SEL_POLY:
 	case SEL_ELEMENT:
 		d->GetFaceSel() = rsel; break;
-	case SEL_EDGE:
-		d->GetEdgeSel() = rsel; break;
 	}
 	mod->LocalDataChanged();
 }
@@ -2387,6 +1988,9 @@ void BSDSModifier::ActivateSubSelSet(int index) {
 	if (index < 0 || !ip) return;
 
 	theHold.Begin();
+	ModContextList mcList;
+	INodeTab nodes;
+	ip->GetModContexts(mcList, nodes);
 
 	Tab<IBSDismemberSkinModifierData*> list = GetModifierData();
 	for (int i = 0; i < list.Count(); i++) {
@@ -2396,6 +2000,7 @@ void BSDSModifier::ActivateSubSelSet(int index) {
 		meshData->SetActivePartition(index);
 	}
 
+	nodes.DisposeTemporary();
 	LocalDataChanged();
 	theHold.Accept(GetString(IDS_DS_SELECT));
 	ip->RedrawViews(ip->GetTime());
@@ -2413,7 +2018,11 @@ void BSDSModifier::SetNumSelLabel() {
 	HWND hParams = pmap->GetHWnd();
 	if (!hParams) return;
 
-	DWORD selLevel = SEL_OBJECT;
+	ModContextList context_list;
+	INodeTab nodes;
+	ip->GetModContexts(context_list, nodes);
+
+	DWORD selLevel = SEL_FACE;
 	Tab<IBSDismemberSkinModifierData*> list = GetModifierData();
 	for (int i = 0; i < list.Count(); i++) {
 		BSDSData *meshData = (BSDSData *)list[i];
@@ -2421,12 +2030,6 @@ void BSDSModifier::SetNumSelLabel() {
 
 		selLevel = meshData->GetSelectionLevel();
 		switch (selLevel) {
-		case SEL_VERTEX:
-			num += meshData->GetVertSel().NumberSet();
-			if (meshData->GetVertSel().NumberSet() == 1) {
-				for (which = 0; which < meshData->GetVertSel().GetSize(); which++) if (meshData->GetVertSel()[which]) break;
-			}
-			break;
 		case SEL_FACE:
 		case SEL_POLY:
 		case SEL_ELEMENT:
@@ -2435,39 +2038,21 @@ void BSDSModifier::SetNumSelLabel() {
 				for (which = 0; which < meshData->GetFaceSel().GetSize(); which++) if (meshData->GetFaceSel()[which]) break;
 			}
 			break;
-		case SEL_EDGE:
-			num += meshData->GetEdgeSel().NumberSet();
-			if (meshData->GetEdgeSel().NumberSet() == 1) {
-				for (which = 0; which < meshData->GetEdgeSel().GetSize(); which++) if (meshData->GetEdgeSel()[which]) break;
-			}
-			break;
 		}
 	}
 
 	switch (selLevel) {
-	case SEL_VERTEX:
-		if (num == 1) buf.printf(GetString(IDS_EM_WHICHVERTSEL), which + 1);
-		else buf.printf(GetString(IDS_RB_NUMVERTSELP), num);
-		break;
-
 	case SEL_FACE:
 	case SEL_POLY:
 	case SEL_ELEMENT:
 		if (num == 1) buf.printf(GetString(IDS_EM_WHICHFACESEL), which + 1);
 		else buf.printf(GetString(IDS_RB_NUMFACESELP), num);
 		break;
-
-	case SEL_EDGE:
-		if (num == 1) buf.printf(GetString(IDS_EM_WHICHEDGESEL), which + 1);
-		else buf.printf(GetString(IDS_RB_NUMEDGESELP), num);
-		break;
-
-	case SEL_OBJECT:
-		buf = GetString(IDS_EM_OBJECT_SEL);
-		break;
 	}
 
 	SetDlgItemText(hParams, IDC_MS_NUMBER_SEL, buf);
+
+	nodes.DisposeTemporary();
 }
 
 #if VERSION_3DSMAX < (17000<<16) // Version 17 (2015)
@@ -2479,7 +2064,7 @@ RefResult BSDSModifier::NotifyRefChanged(const Interval& changeInt, RefTargetHan
 	if ((message == REFMSG_CHANGE) && (hTarget == pblock)) {
 		// if this was caused by a NotifyDependents from pblock, LastNotifyParamID()
 		// will contain ID to update, else it will be -1 => inval whole rollout
-		int pid = pblock->LastNotifyParamID();
+		ParamID pid = pblock->LastNotifyParamID();
 		InvalidateDialogElement(pid);
 	}
 	return(REF_SUCCEED);
@@ -2538,7 +2123,6 @@ void BSDSModifier::SelectUnused()
 		if (!d) continue;
 		if (!d->held) theHold.Put(new SelectRestore(this, d));
 		d->SelectUnused();
-
 	}
 	theHold.Accept(GetString(IDS_RB_SELUNUSED));
 

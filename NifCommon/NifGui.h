@@ -17,8 +17,6 @@ public:
 	void			select(int i);
 	int 			selection() const;
 
-private:
-
 	HWND			mWnd;
 };
 

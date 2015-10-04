@@ -28,6 +28,7 @@ HISTORY:
 #ifndef _countof
 #define _countof(x) (sizeof(x)/sizeof((x)[0]))
 #endif
+#include "bhkHelperFuncs.h"
 
 Class_ID BHKLISTOBJECT_CLASS_ID = Class_ID(0x236508a2, BHKRIGIDBODYCLASS_DESC.PartB());
 class ListPickObjectMode;
@@ -161,7 +162,7 @@ static ParamBlockDesc2 param_blk (
     list_params, IDD_LISTPARAM, IDS_PARAMS, 0, 0, NULL, 
 
     // params
-    PB_MATERIAL, _T("material"), TYPE_INT, P_ANIMATABLE,	IDS_DS_MATERIAL,
+    PB_MATERIAL, _T("material"), TYPE_INT, 0,	IDS_DS_MATERIAL,
       p_default,	NP_DEFAULT_HVK_MATERIAL,
       p_end,
 
@@ -299,9 +300,8 @@ INT_PTR ListParamDlgProc::DlgProc(TimeValue t,IParamMap2 *map,HWND hWnd,UINT msg
    case WM_INITDIALOG: 
       {
 		  mCbMaterial.init(GetDlgItem(hWnd, IDC_CB_MATERIAL));
-		  mCbMaterial.add(TEXT("<Default>"));
-		  for (const TCHAR **str = NpHvkMaterialNames; *str; ++str)
-			  mCbMaterial.add(*str);
+		  InitMaterialTypeCombo(hWnd, IDC_CB_MATERIAL);
+
 		  Interval valid;
 		  int sel = NP_INVALID_HVK_MATERIAL;
 		  so->pblock2->GetValue( PB_MATERIAL, 0, sel, valid);

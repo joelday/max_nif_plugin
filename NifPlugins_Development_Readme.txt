@@ -36,6 +36,7 @@
     4. Edit User_Settings.props to match 3ds max SDK installation directories
     
     5. Run makeconfig.bat from command line with git and sed available
+       Important as it creates the NifCommon\config.h file with version info
     
     6. To build 3ds Max 2016, select "Release - Max 2016"  and "x64" and build
     

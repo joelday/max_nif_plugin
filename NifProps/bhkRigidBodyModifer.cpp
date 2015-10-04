@@ -85,6 +85,7 @@ public:
 	void BuildColPackedStrips(Mesh& mesh);
 	void BuildColConvex(Mesh& mesh);
 	void BuildColOBB(Mesh& mesh);
+	void BuildColCMSD(Mesh& mesh);
 	void BuildOptimize(Mesh& mesh);
 
 	void			SelectionSetChanged(Interface *ip,IUtil *iu);
@@ -182,11 +183,11 @@ class bhkRigidBodyModifierClassDesc : public ClassDesc2
 
 // Parameter and ParamBlock IDs
 enum { havok_params, opt_params, clone_params, subshape_params };  // pblock ID
-enum { PB_BOUND_TYPE, PB_MATERIAL, PB_OPT_ENABLE, PB_MAXEDGE, PB_FACETHRESH, PB_EDGETHRESH, PB_BIAS, PB_LAYER, PB_FILTER, };
+enum { PB_BOUND_TYPE, PB_MATERIAL, PB_SKYRIM_MATERIAL, PB_OPT_ENABLE, PB_MAXEDGE, PB_FACETHRESH, PB_EDGETHRESH, PB_BIAS, PB_LAYER, PB_FILTER, };
 
 enum { havok_params_panel, };
 
-enum { bv_type_none, bv_type_box, bv_type_sphere, bv_type_capsule, bv_type_shapes, bv_type_convex, bv_type_packed, bv_type_obb, };  // pblock ID
+enum { bv_type_none, bv_type_box, bv_type_sphere, bv_type_capsule, bv_type_shapes, bv_type_convex, bv_type_packed, bv_type_obb, bv_type_cmsd };  // pblock ID
 
 static ParamBlockDesc2 havok_param_blk ( 
    havok_params, _T("BoundingVolumes"),  0, NULL, P_AUTO_CONSTRUCT + P_AUTO_UI + P_MULTIMAP, PBLOCK_REF,
@@ -233,11 +234,11 @@ static ParamBlockDesc2 havok_param_blk (
 	  p_uix,		opt_params,
 	  p_end,
 
-	PB_LAYER, _T("layer"), TYPE_INT, P_ANIMATABLE,	IDS_DS_LAYER,
+	PB_LAYER, _T("layer"), TYPE_INT, 0,	IDS_DS_LAYER,
 	  p_default,	NP_DEFAULT_HVK_LAYER,
 	  p_end,
 
-	PB_FILTER, _T("filter"), TYPE_INT, P_ANIMATABLE,	IDS_DS_FILTER,
+	PB_FILTER, _T("filter"), TYPE_INT, 0,	IDS_DS_FILTER,
 	  p_default,	NP_DEFAULT_HVK_FILTER,
 	  p_range, 		0, 255, 
 	  p_ui,			subshape_params, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_ED_FILTER, IDC_SP_FILTER, 0.01f,
@@ -272,9 +273,8 @@ INT_PTR bhkRigidBodyModifierDlgProc::DlgProc (TimeValue t,IParamMap2 *map,HWND h
    case WM_INITDIALOG:
 	   {
 		   mCbMaterial.init(GetDlgItem(hWnd, IDC_CB_MATERIAL));
-		   mCbMaterial.add(TEXT("<Default>"));
-		   for (const TCHAR **str = NpHvkMaterialNames; *str; ++str)
-			   mCbMaterial.add(*str);
+		   InitMaterialTypeCombo(hWnd, IDC_CB_MATERIAL);
+
 		   Interval valid;
 		   int sel = NP_INVALID_HVK_MATERIAL;
 		   mod->pblock->GetValue( PB_MATERIAL, 0, sel, valid);
@@ -354,15 +354,12 @@ namespace
 		case WM_INITDIALOG:
 			{
 				mCbLayer.init(GetDlgItem(hWnd, IDC_CB_LAYER));
-				for (const TCHAR **str = NpHvkLayerNames; *str; ++str)
-					mCbLayer.add(*str);
+				InitLayerTypeCombo(hWnd, IDC_CB_LAYER);
 
 				int sel = NP_DEFAULT_HVK_LAYER;
 				Interval valid;
 				mod->pblock->GetValue( PB_LAYER, 0, sel, valid);
 				mCbLayer.select( sel );
-
-
 
 				Update(t);
 				break;
@@ -526,6 +523,10 @@ void bhkRigidBodyModifier::ModifyObject (TimeValue t, ModContext &mc, ObjectStat
 		//BuildSphere();
 		break;
 
+	case bv_type_cmsd: // Packed
+		BuildColCMSD(proxyMesh);
+		//BuildSphere();
+		break;
 	}
 	
 	//
@@ -776,6 +777,21 @@ void bhkRigidBodyModifier::BuildColOBB(Mesh& mesh)
 	MNMesh mn(mesh);
 	mn.Transform(rtm);
 	mn.OutToTri(mesh);
+}
+
+void bhkRigidBodyModifier::BuildColCMSD(Mesh& mesh)
+{
+	//Matrix3 rtm(true);
+	//Point3 center;
+	//float udim, vdim, ndim;
+	//// First build a convex mesh to put the box around;
+	//// the method acts oddly if extra vertices are present.
+	//BuildColConvex(mesh);
+	//CalcOrientedBox(mesh, udim, vdim, ndim, center, rtm);
+	//BuildBox(mesh, vdim, udim, ndim);
+	//MNMesh mn(mesh);
+	//mn.Transform(rtm);
+	//mn.OutToTri(mesh);
 }
 
 void bhkRigidBodyModifier::BuildOptimize(Mesh& mesh)

@@ -1607,13 +1607,7 @@ Modifier *GetbhkCollisionModifier(INode* node)
 	return nullptr;
 }
 
-Modifier *CreatebhkCollisionModifier(
-	INode* node
-	, int type
-	, HavokMaterial material /*= HAV_MAT_STONE*/
-	, OblivionLayer layer /*= OL_UNIDENTIFIED */
-	, unsigned char filter /*= 0*/
-	)
+Modifier *CreatebhkCollisionModifier(INode* node, int type, int materialIndex, int layerIndex, unsigned char filter /*= 0*/)
 {
 	enum { havok_params };
 	enum { PB_BOUND_TYPE, PB_MATERIAL, PB_OPT_ENABLE, PB_MAXEDGE, PB_FACETHRESH, PB_EDGETHRESH, PB_BIAS, PB_LAYER, PB_FILTER, };
@@ -1633,8 +1627,8 @@ Modifier *CreatebhkCollisionModifier(
 	if (IParamBlock2* pblock2 = rbMod->GetParamBlockByID(havok_params))
 	{
 		pblock2->SetValue(PB_BOUND_TYPE, 0, type, 0);
-		pblock2->SetValue(PB_MATERIAL, 0, material, 0);
-		pblock2->SetValue(PB_LAYER, 0, layer, 0);
+		pblock2->SetValue(PB_MATERIAL, 0, materialIndex, 0);
+		pblock2->SetValue(PB_LAYER, 0, layerIndex, 0);
 		pblock2->SetValue(PB_FILTER, 0, filter, 0);
 	}
 	return rbMod;

@@ -25,9 +25,12 @@ HISTORY:
 #include "obj\hkPackedNiTriStripsData.h"
 #include "obj\bhkListShape.h"
 #include "obj\bhkTransformShape.h"
+#include "obj/bhkCompressedMeshShape.h"
+#include "obj/bhkCompressedMeshShapeData.h"
 #include "..\NifProps\bhkRigidBodyInterface.h"
 #include "NifPlugins.h"
 #include "nifqhull.h"
+#include "../NifProps/bhkHelperFuncs.h"
 
 using namespace Niflib;
 
@@ -44,6 +47,10 @@ enum
 	CAPSULE_HEIGHT = 1,
 	CAPSULE_CENTERS = 2,
 };
+
+extern int GetHavokIndexFromMaterials(/*HavokMaterial*/ int havk_material, /*SkyrimHavokMaterial*/ int skyrim_havok_material);
+extern int GetHavokIndexFromMaterial(int havok_material);
+extern int GetHavokIndexFromSkyrimMaterial(int skyrim_havok_material);
 
 struct CollisionImport
 {
@@ -65,18 +72,22 @@ struct CollisionImport
 	bool ImportTriStripsShape(INode *rbody, bhkRigidBodyRef body, bhkNiTriStripsShapeRef shape, INode *parent, Matrix3& tm);
 	bool ImportMoppBvTreeShape(INode *rbody, bhkRigidBodyRef body, bhkMoppBvTreeShapeRef shape, INode *parent, Matrix3& tm);
 	bool ImportPackedNiTriStripsShape(INode *rbody, bhkRigidBodyRef body, bhkPackedNiTriStripsShapeRef shape, INode *parent, Matrix3& tm);
+	bool ImportCompressedMeshShape(INode *rbody, bhkRigidBodyRef body, bhkCompressedMeshShapeRef shape, INode *parent, Matrix3& tm);
 	bool ImportListShape(INode *rbody, bhkRigidBodyRef body, bhkListShapeRef shape, INode *parent, Matrix3& tm);
 	bool ImportTransform(INode *rbody, bhkRigidBodyRef body, bhkTransformShapeRef shape, INode *parent, Matrix3& tm);
+
+	INode* ImportCollisionMesh(const vector<Vector3>& verts, const vector<Triangle>& tris, Matrix3& tm, INode *parent, float scale = 0.0f);
 
 	INode* ImportCollisionMesh(
 		const vector<Vector3>& verts,
 		const vector<Triangle>& tris,
 		const vector<Vector3>& norms,
 		Matrix3& tm,
-		INode *parent
+		INode *parent,
+		float scale = 0.0f
 		);
 
-	enum { bv_type_none, bv_type_box, bv_type_sphere, bv_type_capsule, bv_type_shapes, bv_type_convex, bv_type_packed, bv_type_obb, };  // pblock ID
+	enum { bv_type_none, bv_type_box, bv_type_sphere, bv_type_capsule, bv_type_shapes, bv_type_convex, bv_type_packed, bv_type_obb, bv_type_cmsd};  // pblock ID
 };
 
 bool NifImporter::ImportCollision(NiNodeRef node)
@@ -304,6 +315,10 @@ bool CollisionImport::ImportShape(INode *rbody, bhkRigidBodyRef body, bhkShapeRe
 	{
 		ok |= ImportPackedNiTriStripsShape(rbody, body, bhkPackedNiTriStripsShapeRef(shape), parent, tm);
 	}
+	else if (shape->IsDerivedType(bhkCompressedMeshShape::TYPE))
+	{
+		ok |= ImportCompressedMeshShape(rbody, body, bhkCompressedMeshShapeRef(shape), parent, tm);
+	}
 	else if (shape->IsDerivedType(bhkListShape::TYPE))
 	{
 		ok |= ImportListShape(rbody, body, bhkListShapeRef(shape), parent, tm);
@@ -315,14 +330,18 @@ bool CollisionImport::ImportShape(INode *rbody, bhkRigidBodyRef body, bhkShapeRe
 	return ok;
 }
 
-INode *CollisionImport::ImportCollisionMesh(
+
+INode* CollisionImport::ImportCollisionMesh(
 	const vector<Vector3>& verts,
 	const vector<Triangle>& tris,
-	const vector<Vector3>& norms,
 	Matrix3& tm,
-	INode *parent
+	INode *parent,
+	float scale /*= 0.0f*/
 	)
 {
+	if (scale <= 0.0f)
+		scale = ni.bhkScaleFactor;
+
 	INode *returnNode = NULL;
 	if (ImpNode *node = ni.i->CreateNode())
 	{
@@ -337,7 +356,7 @@ INode *CollisionImport::ImportCollisionMesh(
 			int nVertices = verts.size();
 			mesh.setNumVerts(nVertices);
 			for (int i = 0; i < nVertices; ++i) {
-				Vector3 v = verts[i] * ni.bhkScaleFactor;
+				Vector3 v = verts[i] * scale;
 				mesh.verts[i].Set(v.x, v.y, v.z);
 			}
 		}
@@ -362,6 +381,19 @@ INode *CollisionImport::ImportCollisionMesh(
 	return returnNode;
 }
 
+
+INode *CollisionImport::ImportCollisionMesh(
+	const vector<Vector3>& verts,
+	const vector<Triangle>& tris,
+	const vector<Vector3>& norms,
+	Matrix3& tm,
+	INode *parent,
+	float scale /*= 0.0f*/
+	)
+{
+	return ImportCollisionMesh(verts, tris, tm, parent, scale);
+}
+
 bool CollisionImport::ImportSphere(INode *rbody, bhkRigidBodyRef body, bhkSphereShapeRef shape, INode *parent, Matrix3& tm)
 {
 	USES_CONVERSION;
@@ -375,7 +407,7 @@ bool CollisionImport::ImportSphere(INode *rbody, bhkRigidBodyRef body, bhkSphere
 		if (IParamBlock2* pblock2 = obj->GetParamBlockByID(sphere_params))
 		{
 			float radius = shape->GetRadius();
-			int mtl = shape->GetMaterial();
+			int mtl = GetHavokIndexFromMaterials(shape->GetMaterial(), shape->GetSkyrimMaterial());
 
 			pblock2->SetValue(PB_RADIUS, 0, radius, 0);
 			pblock2->SetValue(PB_MATERIAL, 0, mtl, 0);
@@ -401,7 +433,10 @@ bool CollisionImport::ImportSphere(INode *rbody, bhkRigidBodyRef body, bhkSphere
 			// Need to "Affect Pivot Only" and "Center to Object" first
 			n->CenterPivot(0, FALSE);
 #endif
-			CreatebhkCollisionModifier(n, bv_type_sphere, shape->GetMaterial(), OL_UNIDENTIFIED, 0);
+			int mtlIdx = GetHavokIndexFromSkyrimMaterial(shape->GetMaterial());
+			int lyrIdx = GetHavokIndexFromSkyrimLayer(OL_UNIDENTIFIED);
+
+			CreatebhkCollisionModifier(n, bv_type_sphere, mtlIdx, lyrIdx, 0);
 
 			ImportBase(body, shape, parent, n, tm);
 			AddShape(rbody, n);
@@ -424,7 +459,7 @@ bool CollisionImport::ImportBox(INode *rbody, bhkRigidBodyRef body, bhkBoxShapeR
 		if (IParamBlock2* pblock2 = obj->GetParamBlockByID(box_params))
 		{
 			float radius = shape->GetRadius();
-			int mtl = shape->GetMaterial();
+			int mtl = GetHavokIndexFromMaterials(shape->GetMaterial(), shape->GetSkyrimMaterial());
 			Vector3 dim = shape->GetDimensions();
 
 			pblock2->SetValue(PB_MATERIAL, 0, mtl, 0);
@@ -455,7 +490,7 @@ bool CollisionImport::ImportCapsule(INode *rbody, bhkRigidBodyRef body, bhkCapsu
 		if (IParamBlock2* pblock2 = obj->GetParamBlockByID(cap_params))
 		{
 			float radius = shape->GetRadius();
-			int mtl = shape->GetMaterial();
+			int mtl = GetHavokIndexFromMaterials(shape->GetMaterial(), shape->GetSkyrimMaterial());
 			float radius1 = shape->GetRadius1();
 			float radius2 = shape->GetRadius2();
 			Vector3 pt1 = shape->GetFirstPoint();
@@ -506,7 +541,9 @@ bool CollisionImport::ImportCapsule(INode *rbody, bhkRigidBodyRef body, bhkCapsu
 
 			// Need to reposition the Capsule so that caps are rotated correctly for pts given
 
-			CreatebhkCollisionModifier(n, bv_type_capsule, shape->GetMaterial(), OL_UNIDENTIFIED, 0);
+			int mtlIdx = GetHavokIndexFromMaterial(shape->GetMaterial());
+			int lyrIdx = GetHavokIndexFromLayer(OL_UNIDENTIFIED);
+			CreatebhkCollisionModifier(n, bv_type_capsule, mtlIdx, lyrIdx, 0);
 			ImportBase(body, shape, parent, n, tm);
 			AddShape(rbody, n);
 			return true;
@@ -523,9 +560,11 @@ bool CollisionImport::ImportConvexVertices(INode *rbody, bhkRigidBodyRef body, b
 	vector<Vector3> verts = shape->GetVertices();
 	vector<Vector3> norms = shape->GetNormals();
 	vector<Triangle> tris = NifQHull::compute_convex_hull(verts);
-	returnNode = ImportCollisionMesh(verts, tris, norms, ltm, parent);
+	returnNode = ImportCollisionMesh(verts, tris, norms, ltm, parent, ni.bhkScaleFactor);
 
-	CreatebhkCollisionModifier(returnNode, bv_type_convex, shape->GetMaterial(), OL_UNIDENTIFIED, 0);
+	int mtlIdx = GetHavokIndexFromMaterials(shape->GetMaterial(), shape->GetSkyrimMaterial());
+	int lyrIdx = GetHavokIndexFromLayer(OL_UNIDENTIFIED);
+	CreatebhkCollisionModifier(returnNode, bv_type_convex, mtlIdx, lyrIdx, 0);
 	ImportBase(body, shape, parent, returnNode, tm);
 	AddShape(rbody, returnNode);
 	return true;
@@ -553,7 +592,9 @@ bool CollisionImport::ImportTriStripsShape(INode *rbody, bhkRigidBodyRef body, b
 		NiTriStripsRef triShape = new NiTriStrips();
 		vector<Triangle> tris = triShapeData->GetTriangles();
 		ni.ImportMesh(node, triObject, triShape, triShapeData, tris);
-		CreatebhkCollisionModifier(inode, bv_type_shapes, shape->GetMaterial(), OL_UNIDENTIFIED, 0);
+		int mtlIdx = GetHavokIndexFromMaterials(shape->GetMaterial(), shape->GetSkyrimMaterial());
+		int lyrIdx = GetHavokIndexFromLayer(OL_UNIDENTIFIED);
+		CreatebhkCollisionModifier(inode, bv_type_shapes, mtlIdx, lyrIdx, 0);
 		ImportBase(body, shape, parent, inode, tm);
 		AddShape(rbody, inode);
 		return true;
@@ -580,8 +621,10 @@ bool CollisionImport::ImportPackedNiTriStripsShape(INode *rbody, bhkRigidBodyRef
 		if (subshapes.size() == 0)
 		{
 			// Is this possible?
-			INode *inode = ImportCollisionMesh(verts, tris, norms, tm, parent);
-			CreatebhkCollisionModifier(inode, bv_type_packed, HavokMaterial(NP_DEFAULT_HVK_MATERIAL), OL_UNIDENTIFIED, 0);
+			INode *inode = ImportCollisionMesh(verts, tris, norms, tm, parent, ni.bhkScaleFactor);
+			int mtlIdx = GetHavokIndexFromMaterial(HavokMaterial(NP_DEFAULT_HVK_MATERIAL));
+			int lyrIdx = GetHavokIndexFromLayer(OL_UNIDENTIFIED);
+			CreatebhkCollisionModifier(inode, bv_type_packed, mtlIdx ,lyrIdx, 0);
 			ImportBase(body, shape, parent, inode, ltm);
 			AddShape(rbody, inode);
 		}
@@ -621,9 +664,11 @@ bool CollisionImport::ImportPackedNiTriStripsShape(INode *rbody, bhkRigidBodyRef
 				}
 				voff += s.numVertices;
 
-				INode *inode = ImportCollisionMesh(subverts, subtris, subnorms, tm, parent);
+				INode *inode = ImportCollisionMesh(subverts, subtris, subnorms, tm, parent, ni.bhkScaleFactor);
 
-				CreatebhkCollisionModifier(inode, bv_type_packed, HavokMaterial(s.material), s.layer, s.colFilter);
+				int mtlIdx = GetHavokIndexFromSkyrimMaterial(s.material);
+				int lyrIdx = GetHavokIndexFromSkyrimLayer(s.layer);
+				CreatebhkCollisionModifier(inode, bv_type_cmsd, mtlIdx, lyrIdx, s.colFilter);
 				ImportBase(body, shape, parent, inode, ltm);
 
 				if (n > 1)
@@ -642,6 +687,90 @@ bool CollisionImport::ImportPackedNiTriStripsShape(INode *rbody, bhkRigidBodyRef
 			{
 				AddShape(rbody, nodes[0]);
 			}
+		}
+		return true;
+	}
+
+	return false;
+}
+bool CollisionImport::ImportCompressedMeshShape(INode *rbody, bhkRigidBodyRef body, bhkCompressedMeshShapeRef shape, INode *parent, Matrix3& tm)
+{
+	if (bhkCompressedMeshShapeDataRef data = shape->GetData())
+	{
+		INodeTab nodes;
+
+		Matrix3 ltm(true);
+		int i = 0;
+		auto materials = data->GetChunkMaterials();
+		auto transforms = data->GetChunkTransforms();
+		auto chunks = data->GetChunks();
+		auto n = chunks.size();
+		for(auto chunk : chunks)
+		{
+			auto chunkOrigin = TOVECTOR3(chunk.translation);
+			auto numOffsets = chunk.numVertices;
+			auto numIndices = chunk.numIndices;
+			auto numStrips = chunk.numStrips;
+			auto offsets = chunk.vertices;
+			auto indices = chunk.indices;
+			auto strips = chunk.strips;
+
+			vector<Vector3> verts(numOffsets/3);
+			int numStripVerts = 0;
+			int offset = 0;
+
+			for (auto v = 0; v < numStrips; v++)
+				numStripVerts += strips[v];
+
+			auto transform = transforms[chunk.transformIndex];
+			auto material = materials[chunk.materialIndex];
+			int mtlIdx = GetHavokIndexFromSkyrimMaterial(material.skyrimMaterial);
+			int lyrIdx = GetHavokIndexFromSkyrimLayer(material.skyrimLayer);
+
+			for (auto n = 0; n < (numOffsets / 3); n++) {
+				verts[n] = chunkOrigin + Vector3(offsets[3 * n], offsets[3 * n + 1], offsets[3 * n + 2]) / 1000.0f;
+				//verts[n] *= ni.bhkScaleFactor;
+			}
+
+			// Stripped tris
+			vector<Triangle> tris;
+			for (auto s = 0; s < numStrips; s++) {
+				for (auto idx = 0; idx < strips[s] - 2; idx++) {
+					tris.push_back(Triangle(
+						indices[offset + idx + 0],
+						indices[offset + idx + 1],
+						indices[offset + idx + 2]));
+				}
+				offset += strips[s];
+			}
+
+			// Non-stripped tris
+			for (auto f = 0; f < (numIndices - offset); f += 3) {
+				tris.push_back(Triangle(
+					indices[offset + f + 0],
+					indices[offset + f + 1],
+					indices[offset + f + 2]));
+			}
+
+			
+			INode *inode = ImportCollisionMesh(verts, tris, tm, parent, ni.bhkScaleFactor);
+			CreatebhkCollisionModifier(inode, bv_type_packed, mtlIdx, lyrIdx, 0);
+			ImportBase(body, shape, parent, inode, ltm);
+			if (n > 1) inode->SetName(FormatText(TEXT("%s:%d"), TEXT("CMSD"), i++).data());
+			//AddShape(rbody, inode);
+			nodes.AppendNode(inode);
+		}
+
+		// TODO: Group nodes on import
+		if (nodes.Count() > 1)
+		{
+			TSTR shapeName = TEXT("bhkCompressedMeshShape");
+			INode *group = ni.gi->GroupNodes(&nodes, &shapeName, 0);
+			AddShape(rbody, group);
+		}
+		else if (nodes.Count() == 1)
+		{
+			AddShape(rbody, nodes[0]);
 		}
 		return true;
 	}

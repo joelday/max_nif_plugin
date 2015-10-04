@@ -43,6 +43,7 @@
 #define IDC_RDO_CAPSULE                 1120
 #define IDC_RDO_PROXY_MESH              1121
 #define IDC_RDO_OBB                     1122
+#define IDC_RDO_CMSD                    1123
 #define IDC_CUSTOM_SHADER               1125
 #define IDC_OPT_FACETHRESH              1141
 #define IDC_OPT_FACETHRESHSPIN          1142
@@ -195,7 +196,6 @@
 #define IDS_DS_RESTITUTION              11014
 #define IDD_RB_MOD_PANEL5               11014
 #define IDS_DS_LINEAR_DAMPING           11015
-#define IDD_NIFSHADER_ADV               11015
 #define IDS_DS_ANGULAR_DAMPING          11016
 #define IDS_DS_MAX_LINEAR_VELOCITY      11017
 #define IDS_DS_MAX_ANGULAR_VELOCITY     11018
@@ -398,7 +398,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        120
+#define _APS_NEXT_RESOURCE_VALUE        122
 #define _APS_NEXT_COMMAND_VALUE         40005
 #define _APS_NEXT_CONTROL_VALUE         1725
 #define _APS_NEXT_SYMED_VALUE           101

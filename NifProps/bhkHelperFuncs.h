@@ -16,4 +16,17 @@ extern void BuildCapsule(Mesh &mesh, Point3 pt1, Point3 pt2, float r1, float r2)
 extern void BuildScubaMesh(Mesh &mesh, int segs, int smooth, int llsegs, 
 						   float radius1, float radius2, float cylh);
 
+extern void InitMaterialTypeCombo(HWND hWnd, int comboid);
+extern int GetHavokIndexFromMaterials(/*HavokMaterial*/ int havk_material, /*SkyrimHavokMaterial*/ int skyrim_havok_material);
+extern int GetHavokIndexFromMaterial(int havok_material);
+extern int GetHavokIndexFromSkyrimMaterial(int skyrim_havok_material);
+extern bool GetHavokMaterialsFromIndex(int idx, /*HavokMaterial*/int* havk_material, /*SkyrimHavokMaterial*/int* skyrim_havok_material);
+extern int GetEquivalentSkyrimMaterial(int havok_material);
+
+extern void InitLayerTypeCombo(HWND hWnd, int comboid);
+extern int GetHavokIndexFromLayers(int havk_layer, int skyrim_havok_layer);
+extern int GetHavokIndexFromLayer(int havok_layer);
+extern int GetHavokIndexFromSkyrimLayer(int skyrim_havok_layer);
+extern bool GetHavokLayersFromIndex(int idx, int* havk_layer, int* skyrim_havok_layer);
+extern int GetEquivalentSkyrimLayer(int havok_layer);
 #endif

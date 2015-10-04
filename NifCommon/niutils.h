@@ -686,13 +686,7 @@ void CollapseGeomTransforms(std::vector<Niflib::NiTriBasedGeomRef>& shapes);
 void FixNormals(std::vector<Niflib::Triangle>& tris, std::vector<Niflib::Vector3>& verts, std::vector<Niflib::Vector3>& norms);
 
 Modifier *GetbhkCollisionModifier(INode* node);
-Modifier *CreatebhkCollisionModifier(
-	INode* node
-	, int type
-	, Niflib::HavokMaterial material
-	, Niflib::OblivionLayer layer
-	, byte filter
-	);
+Modifier *CreatebhkCollisionModifier(INode* node, int type, int materialIndex, int layerIndex, byte filter);
 
 void GetIniFileName(char *iniName);
 void GetIniFileName(wchar_t *iniName);

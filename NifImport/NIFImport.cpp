@@ -208,6 +208,7 @@ void NifImporter::LoadIniSettings()
    weldVertexThresh = GetIniValue(NifImportSection, TEXT("WeldVertexThresh"), 0.01f);
    dummyBonesAsLines = GetIniValue(NifImportSection, TEXT("DummyBonesAsLines"), false);
    importBonesAsDummy = GetIniValue(NifImportSection, TEXT("ImportBonesAsDummy"), false);   
+   disableBSDismemberSkinModifier = GetIniValue(NifImportSection, TEXT("DisableBSDismemberSkinModifier"), false);
 
    // Biped
    importBones = GetIniValue(BipedImportSection, TEXT("ImportBones"), true);
@@ -294,6 +295,7 @@ void NifImporter::SaveIniSettings()
    SetIniValue(NifImportSection, TEXT("WeldVertexThresh"), weldVertexThresh);
    SetIniValue(NifImportSection, TEXT("DummyBonesAsLines"), dummyBonesAsLines);
    SetIniValue(NifImportSection, TEXT("ImportBonesAsDummy"), importBonesAsDummy);
+   SetIniValue(NifImportSection, TEXT("DisableBSDismemberSkinModifier"), disableBSDismemberSkinModifier);
 
    SetIniValue<tstring>(NifImportSection, TEXT("CurrentApp"), autoDetect ? TEXT("AUTO") : appSettings->Name );
 }

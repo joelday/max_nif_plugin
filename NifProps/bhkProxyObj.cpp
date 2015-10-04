@@ -159,7 +159,7 @@ enum
    PB_LAYER, PB_FILTER, 
 };
 
-enum { bv_type_none, bv_type_box, bv_type_shapes, bv_type_packed, bv_type_convex, bv_type_capsule, bv_type_obb };  // pblock ID
+enum { bv_type_none, bv_type_box, bv_type_shapes, bv_type_packed, bv_type_convex, bv_type_capsule, bv_type_obb, bv_type_cmsd };  // pblock ID
 
 static ParamBlockDesc2 param_blk ( 
     list_params, _T("parameters"),  0, NULL, P_AUTO_CONSTRUCT + P_AUTO_UI + P_MULTIMAP, 0,
@@ -171,7 +171,7 @@ static ParamBlockDesc2 param_blk (
 	subshape_params,	IDD_RB_MOD_PANEL5,   IDS_LIST_SUBSHAPEPROPS, 0, 0, NULL,
 
     // params
-    PB_MATERIAL, _T("material"), TYPE_INT, P_ANIMATABLE,	IDS_DS_MATERIAL,
+    PB_MATERIAL, _T("material"), TYPE_INT, 0,	IDS_DS_MATERIAL,
       p_default,	NP_INVALID_HVK_MATERIAL,
       p_end,
 
@@ -222,11 +222,11 @@ static ParamBlockDesc2 param_blk (
 	  p_uix,		opt_params,
 	  p_end,
 
-	PB_LAYER, _T("layer"), TYPE_INT, P_ANIMATABLE,	IDS_DS_LAYER,
+	PB_LAYER, _T("layer"), TYPE_INT, 0,	IDS_DS_LAYER,
 	  p_default,	NP_DEFAULT_HVK_LAYER,
 	  p_end,
 
-    PB_FILTER, _T("filter"), TYPE_INT, P_ANIMATABLE,	IDS_DS_FILTER,
+    PB_FILTER, _T("filter"), TYPE_INT, 0,	IDS_DS_FILTER,
 	  p_default,	NP_DEFAULT_HVK_FILTER,
 	  p_range, 		0, 255, 
 	  p_ui,			subshape_params, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_ED_FILTER, IDC_SP_FILTER, 0.01f,
@@ -363,9 +363,7 @@ INT_PTR ProxyParamDlgProc::DlgProc(TimeValue t,IParamMap2 *map,HWND hWnd,UINT ms
    case WM_INITDIALOG: 
       {
 		  mCbMaterial.init(GetDlgItem(hWnd, IDC_CB_MATERIAL));
-		  mCbMaterial.add(TEXT("<Default>"));
-		  for (const TCHAR **str = NpHvkMaterialNames; *str; ++str)
-			  mCbMaterial.add(*str);
+		  InitMaterialTypeCombo(hWnd, IDC_CB_MATERIAL);
 		  Interval valid;
 		  int sel = NP_INVALID_HVK_MATERIAL;
 		  so->pblock2->GetValue( PB_MATERIAL, 0, sel, valid);
@@ -448,8 +446,7 @@ namespace
 		case WM_INITDIALOG:
 			{
 				mCbLayer.init(GetDlgItem(hWnd, IDC_CB_LAYER));
-				for (const TCHAR **str = NpHvkLayerNames; *str; ++str)
-					mCbLayer.add(*str);
+				InitLayerTypeCombo(hWnd, IDC_CB_LAYER);
 
 				int sel = NP_DEFAULT_HVK_LAYER;
 				Interval valid;

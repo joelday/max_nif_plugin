@@ -914,3 +914,300 @@ extern void BuildCapsule(Mesh &mesh, Point3 pt1, Point3 pt2, float r1, float r2)
 	mn.Transform(newTM);
 	mn.OutToTri(mesh);
 }
+
+using namespace Niflib;
+
+typedef struct HavokEnumLookupType { // : EnumLookupType
+	int value;
+	const TCHAR *name;
+	int havok;
+	int skyrimHavok;
+} HavokEnumLookupType;
+
+extern const HavokEnumLookupType MaterialTypes[] = {
+	{ 0, TEXT("Stone (O,F3,S)"), HAV_MAT_STONE, SKY_HAV_MAT_STONE },
+	{ 1, TEXT("Cloth (O,F3,S)"), HAV_MAT_CLOTH, SKY_HAV_MAT_CLOTH },
+	{ 2, TEXT("Dirt (O,F3,S)"), HAV_MAT_DIRT, SKY_HAV_MAT_DIRT },
+	{ 3, TEXT("Glass (O,F3,S)"), HAV_MAT_GLASS, SKY_HAV_MAT_GLASS },
+	{ 4, TEXT("Grass (O,F3,S)"), HAV_MAT_GRASS, SKY_HAV_MAT_GRASS },
+	{ 5, TEXT("Metal (O,F3,S)"), HAV_MAT_METAL, SKY_HAV_MAT_SOLID_METAL },
+	{ 6, TEXT("Organic (O,F3,S)"), HAV_MAT_ORGANIC, SKY_HAV_MAT_ORGANIC },
+	{ 7, TEXT("Skin (O,F3,S)"), HAV_MAT_SKIN, SKY_HAV_MAT_SKIN },
+	{ 8, TEXT("Water (O,F3,S)"), HAV_MAT_WATER, SKY_HAV_MAT_WATER },
+	{ 9, TEXT("Wood (O,F3,S)"), HAV_MAT_WOOD, SKY_HAV_MAT_WOOD },
+	{ 10, TEXT("Heavy Stone (O,F3,S)"), HAV_MAT_HEAVY_STONE, SKY_HAV_MAT_HEAVY_STONE },
+	{ 11, TEXT("Heavy Metal (O,F3,S)"), HAV_MAT_HEAVY_METAL, SKY_HAV_MAT_HEAVY_METAL },
+	{ 12, TEXT("Heavy Wood (O,F3,S)"), HAV_MAT_HEAVY_WOOD, SKY_HAV_MAT_HEAVY_WOOD },
+	{ 13, TEXT("Chain (O,F3,S)"), HAV_MAT_CHAIN, SKY_HAV_MAT_MATERIAL_CHAIN },
+	{ 14, TEXT("Snow (O,F3,S)"), HAV_MAT_SNOW, SKY_HAV_MAT_SNOW },
+	{ 15, TEXT("Stone Stairs (O,F3,S)"), HAV_MAT_STONE_STAIRS, SKY_HAV_MAT_STAIRS_BROKEN_STONE },
+	{ 16, TEXT("Cloth Stairs (O,F3)"), HAV_MAT_CLOTH_STAIRS, -1 },
+	{ 17, TEXT("Dirt Stairs (O,F3)"), HAV_MAT_DIRT_STAIRS, -1 },
+	{ 18, TEXT("Glass Stairs (O,F3)"), HAV_MAT_GLASS_STAIRS, -1 },
+	{ 19, TEXT("Grass Stairs (O,F3)"), HAV_MAT_GRASS_STAIRS, -1 },
+	{ 20, TEXT("Metal Stairs (O,F3)"), HAV_MAT_METAL_STAIRS, -1 },
+	{ 21, TEXT("Organic Stairs (O,F3)"), HAV_MAT_ORGANIC_STAIRS, -1 },
+	{ 22, TEXT("Skin Stairs (O,F3)"), HAV_MAT_SKIN_STAIRS, -1 },
+	{ 23, TEXT("Water Stairs (O,F3)"), HAV_MAT_WATER_STAIRS, -1 },
+	{ 24, TEXT("Wood Stairs (O,F3,S)"), HAV_MAT_WOOD_STAIRS, SKY_HAV_MAT_STAIRS_WOOD },
+	{ 25, TEXT("Heavy Stone Stairs (O,F3,S)"), HAV_MAT_HEAVY_STONE_STAIRS, SKY_HAV_MAT_MATERIAL_STONE_AS_STAIRS },
+	{ 26, TEXT("Heavy Metal Stairs (O,F3)"), HAV_MAT_HEAVY_METAL_STAIRS, -1 },
+	{ 27, TEXT("Heavy Wood Stairs (O,F3,S)"), HAV_MAT_HEAVY_WOOD_STAIRS, SKY_HAV_MAT_MATERIAL_WOOD_AS_STAIRS },
+	{ 28, TEXT("Chain Stairs (O,F3)"), HAV_MAT_CHAIN_STAIRS, -1 },
+	{ 29, TEXT("Snow Stairs (O,F3,S)"), HAV_MAT_SNOW_STAIRS, SKY_HAV_MAT_STAIRS_SNOW },
+	{ 30, TEXT("Elevator (O,F3)"), HAV_MAT_ELEVATOR, -1 },
+	{ 31, TEXT("Rubber (O,F3)"), HAV_MAT_RUBBER, -1 },
+	{ 32, TEXT("Barrel (S)"), -1, SKY_HAV_MAT_BARREL },
+	{ 33, TEXT("Bottle (S)"), -1, SKY_HAV_MAT_BOTTLE },
+	{ 34, TEXT("Broken Stone (S)"), -1, SKY_HAV_MAT_BROKEN_STONE },
+	{ 35, TEXT("Dragon (S)"), -1, SKY_HAV_MAT_DRAGON },
+	{ 36, TEXT("Gravel (S)"), -1, SKY_HAV_MAT_GRAVEL },
+	{ 37, TEXT("Ice (S)"), -1, SKY_HAV_MAT_ICE },
+	{ 38, TEXT("Light Wood (S)"), -1, SKY_HAV_MAT_LIGHT_WOOD },
+	{ 39, TEXT("Armor Heavy (S)"), -1, SKY_HAV_MAT_MATERIAL_ARMOR_HEAVY },
+	{ 40, TEXT("Armor Light (S)"), -1, SKY_HAV_MAT_MATERIAL_ARMOR_LIGHT },
+	{ 41, TEXT("Arrow (S)"), -1, SKY_HAV_MAT_MATERIAL_ARROW },
+	{ 42, TEXT("Axe 1Hand (S)"), -1, SKY_HAV_MAT_MATERIAL_AXE_1HAND },
+	{ 43, TEXT("Basket (S)"), -1, SKY_HAV_MAT_MATERIAL_BASKET },
+	{ 44, TEXT("Blade 1 Hand (S)"), -1, SKY_HAV_MAT_MATERIAL_BLADE_1HAND },
+	{ 45, TEXT("Blade 1Hand Small (S)"), -1, SKY_HAV_MAT_MATERIAL_BLADE_1HAND_SMALL },
+	{ 46, TEXT("Blade 2Hand (S)"), -1, SKY_HAV_MAT_MATERIAL_BLADE_2HAND },
+	{ 47, TEXT("Blunt 2Hand (S)"), -1, SKY_HAV_MAT_MATERIAL_BLUNT_2HAND },
+	{ 48, TEXT("Bone (S)"), -1, SKY_HAV_MAT_MATERIAL_BONE },
+	{ 49, TEXT("Book (S)"), -1, SKY_HAV_MAT_MATERIAL_BOOK },
+	{ 50, TEXT("Bottle Small (S)"), -1, SKY_HAV_MAT_MATERIAL_BOTTLE_SMALL },
+	{ 51, TEXT("Boulder Large (S)"), -1, SKY_HAV_MAT_MATERIAL_BOULDER_LARGE },
+	{ 52, TEXT("Boulder Medium (S)"), -1, SKY_HAV_MAT_MATERIAL_BOULDER_MEDIUM },
+	{ 53, TEXT("Boulder Small (S)"), -1, SKY_HAV_MAT_MATERIAL_BOULDER_SMALL },
+	{ 54, TEXT("Bows Staves (S)"), -1, SKY_HAV_MAT_MATERIAL_BOWS_STAVES },
+	{ 55, TEXT("Carpet (S)"), -1, SKY_HAV_MAT_MATERIAL_CARPET },
+	{ 56, TEXT("Ceramic Medium (S)"), -1, SKY_HAV_MAT_MATERIAL_CERAMIC_MEDIUM },
+	{ 57, TEXT("Chain Metal (S)"), -1, SKY_HAV_MAT_MATERIAL_CHAIN_METAL },
+	{ 58, TEXT("Coin (S)"), -1, SKY_HAV_MAT_MATERIAL_COIN },
+	{ 59, TEXT("Shield Heavy (S)"), -1, SKY_HAV_MAT_MATERIAL_SHIELD_HEAVY },
+	{ 60, TEXT("Shield Light (S)"), -1, SKY_HAV_MAT_MATERIAL_SHIELD_LIGHT },
+	{ 61, TEXT("Skin Large (S)"), -1, SKY_HAV_MAT_MATERIAL_SKIN_LARGE },
+	{ 62, TEXT("Skin Small (S)"), -1, SKY_HAV_MAT_MATERIAL_SKIN_SMALL },
+	{ 63, TEXT("Mud (S)"), -1, SKY_HAV_MAT_MUD },
+	{ 64, TEXT("Sand (S)"), -1, SKY_HAV_MAT_SAND },
+	{ -1, NULL },
+};
+//extern const EnumLookupType *enumMaterialTypes = (EnumLookupType *)MaterialTypes;
+
+void InitMaterialTypeCombo(HWND hWnd, int comboid)
+{
+	SendDlgItemMessage(hWnd, comboid, CB_ADDSTRING, 0, LPARAM(TEXT("<Default>")));
+	for (const HavokEnumLookupType* flag = MaterialTypes; flag->name != NULL; ++flag) {
+		SendDlgItemMessage(hWnd, comboid, CB_ADDSTRING, 0, LPARAM(flag->name));
+	}	
+}
+
+bool GetHavokMaterialsFromIndex(int idx, /*HavokMaterial*/int* havk_material, /*SkyrimHavokMaterial*/int* skyrim_havok_material)
+{
+	int offset = idx - 1; // adjust to combo indexes (includes Default)
+	if (idx >= 0 && idx < _countof(MaterialTypes))
+	{
+		if (havk_material) *havk_material = MaterialTypes[idx].havok;
+		if (skyrim_havok_material) *skyrim_havok_material = MaterialTypes[idx].skyrimHavok;
+		return true;
+	}
+	if (havk_material) *havk_material = HAV_MAT_STONE;
+	if (skyrim_havok_material) *skyrim_havok_material = SkyrimHavokMaterial::SKY_HAV_MAT_STONE;
+	return false;
+}
+
+int GetHavokIndexFromMaterials(/*HavokMaterial*/ int havk_material, /*SkyrimHavokMaterial*/ int skyrim_havok_material)
+{
+	for (const HavokEnumLookupType* flag = MaterialTypes; flag->name != NULL; ++flag) {
+		if (skyrim_havok_material >= 0) {
+			if (skyrim_havok_material == flag->skyrimHavok)
+				return flag->value + 1; // adjust to combo indexes (includes Default)
+		} else if (havk_material >= 0) {
+			if (havk_material == flag->havok)
+				return flag->value + 1; // adjust to combo indexes (includes Default)
+		}
+	}
+	return 0;
+}
+
+int GetHavokIndexFromMaterial(int havok_material)
+{
+	for (auto flag = MaterialTypes; flag->name != NULL; ++flag) {
+		if (havok_material == flag->havok)
+			return flag->value + 1; // adjust to combo indexes (includes Default)
+	}
+	return 0;
+}
+
+int GetHavokIndexFromSkyrimMaterial(int skyrim_havok_material)
+{
+	for (auto flag = MaterialTypes; flag->name != NULL; ++flag) {
+		if (skyrim_havok_material == flag->skyrimHavok)
+			return flag->value + 1; // adjust to combo indexes (includes Default)
+	}
+	return 0;
+}
+
+
+extern int GetEquivalentSkyrimMaterial(int havok_material)
+{
+	for (const HavokEnumLookupType* flag = MaterialTypes; flag->name != NULL; ++flag) {
+		if (havok_material == flag->havok)
+			return flag->skyrimHavok;
+	}
+	return HAV_MAT_STONE;
+}
+
+extern const HavokEnumLookupType LayerTypes[] = {
+	{ 0, TEXT("Unidentified (O,F3,S)"), OL_UNIDENTIFIED, SKYL_UNIDENTIFIED },
+	{ 1, TEXT("Static (O,F3,S)"), OL_STATIC, SKYL_STATIC },
+	{ 2, TEXT("AnimStatic (O,F3,S)"), OL_ANIM_STATIC, SKYL_ANIMSTATIC },
+	{ 3, TEXT("Transparent (O,F3,S)"), OL_TRANSPARENT, SKYL_TRANSPARENT },
+	{ 4, TEXT("Clutter (O,F3,S)"), OL_CLUTTER, SKYL_CLUTTER },
+	{ 5, TEXT("Weapon (O,F3,S)"), OL_WEAPON, SKYL_WEAPON },
+	{ 6, TEXT("Projectile (O,F3,S)"), OL_PROJECTILE, SKYL_PROJECTILE },
+	{ 7, TEXT("Spell (O,F3,S)"), OL_SPELL, SKYL_SPELL },
+	{ 8, TEXT("Biped (O,F3,S)"), OL_BIPED, SKYL_BIPED },
+	{ 9, TEXT("Tree (O,F3,S)"), OL_TREES, SKYL_TREES },
+	{ 10, TEXT("Prop (O,F3,S)"), OL_PROPS, SKYL_PROPS },
+	{ 11, TEXT("Water (O,F3,S)"), OL_WATER, SKYL_WATER },
+	{ 12, TEXT("Trigger (O,F3,S)"), OL_TRIGGER, SKYL_TRIGGER },
+	{ 13, TEXT("Terrain (O,F3,S)"), OL_TERRAIN, SKYL_TERRAIN },
+	{ 14, TEXT("Trap (O,F3,S)"), OL_TRAP, SKYL_TRAP },
+	{ 15, TEXT("NonCollidable (O,F3,S)"), OL_NONCOLLIDABLE, SKYL_NONCOLLIDABLE },
+	{ 16, TEXT("CloudTrap (O,F3,S)"), OL_CLOUD_TRAP, SKYL_CLOUD_TRAP },
+	{ 17, TEXT("Ground (O,F3,S)"), OL_GROUND, SKYL_GROUND },
+	{ 18, TEXT("Portal (O,F3,S)"), OL_PORTAL, SKYL_PORTAL },
+	{ 19, TEXT("Stairs (O,F3)"), OL_STAIRS, -1 },
+	{ 20, TEXT("CharController (O,F3)"), OL_CHAR_CONTROLLER, -1 },
+	{ 21, TEXT("AvoidBox (O,F3)"), OL_AVOID_BOX, -1 },
+	{ 22, TEXT("? (O,F3)"), OL_UNKNOWN1, -1 },
+	{ 23, TEXT("? (O,F3)"), OL_UNKNOWN1, -1 },
+	{ 24, TEXT("CameraPick (O,F3)"), OL_CAMERA_PICK, -1 },
+	{ 25, TEXT("ItemPick (O,F3)"), OL_ITEM_PICK, -1 },
+	{ 26, TEXT("LineOfSight (O,F3)"), OL_LINE_OF_SIGHT, -1 },
+	{ 27, TEXT("PathPick (O,F3)"), OL_PATH_PICK, -1 },
+	{ 28, TEXT("CustomPick1 (O,F3)"), OL_CUSTOM_PICK_1, -1 },
+	{ 29, TEXT("CustomPick2 (O,F3)"), OL_CUSTOM_PICK_2, -1 },
+	{ 30, TEXT("SpellExplosion (O,F3)"), OL_SPELL_EXPLOSION, -1 },
+	{ 31, TEXT("DroppingPick (O,F3)"), OL_DROPPING_PICK, -1 },
+	{ 32, TEXT("Other (O,F3)"), OL_OTHER, -1 },
+	{ 33, TEXT("Head (O,F3)"), OL_HEAD, -1 },
+	{ 34, TEXT("Body (O,F3)"), OL_BODY, -1 },
+	{ 35, TEXT("Spine1 (O,F3)"), OL_SPINE1, -1 },
+	{ 36, TEXT("Spine2 (O,F3)"), OL_SPINE2, -1 },
+	{ 37, TEXT("LUpperArm (O,F3)"), OL_L_UPPER_ARM, -1 },
+	{ 38, TEXT("LForeArm (O,F3)"), OL_L_FOREARM, -1 },
+	{ 39, TEXT("LHand (O,F3)"), OL_L_HAND, -1 },
+	{ 40, TEXT("LThigh (O,F3)"), OL_L_THIGH, -1 },
+	{ 41, TEXT("LCalf (O,F3)"), OL_L_CALF, -1 },
+	{ 42, TEXT("LFoot (O,F3)"), OL_L_FOOT, -1 },
+	{ 43, TEXT("RUpperArm (O,F3)"), OL_R_UPPER_ARM, -1 },
+	{ 44, TEXT("RForeArm (O,F3)"), OL_R_FOREARM, -1 },
+	{ 45, TEXT("RHand (O,F3)"), OL_R_HAND, -1 },
+	{ 46, TEXT("RThigh (O,F3)"), OL_R_THIGH, -1 },
+	{ 47, TEXT("RCalf (O,F3)"), OL_R_CALF, -1 },
+	{ 48, TEXT("RFoot (O,F3)"), OL_R_FOOT, -1 },
+	{ 49, TEXT("Tail (O,F3)"), OL_TAIL, -1 },
+	{ 50, TEXT("SideWeapon (O,F3)"), OL_SIDE_WEAPON, -1 },
+	{ 51, TEXT("Shield (O,F3)"), OL_SHIELD, -1 },
+	{ 52, TEXT("Quiver (O,F3)"), OL_QUIVER, -1 },
+	{ 53, TEXT("BackWeapon (O,F3)"), OL_BACK_WEAPON, -1 },
+	{ 54, TEXT("BackWeapon (O,F3)"), OL_BACK_WEAPON, -1 },
+	{ 55, TEXT("PonyTail (O,F3)"), OL_PONYTAIL, -1 },
+	{ 56, TEXT("Wing (O,F3)"), OL_WING, -1 },
+	{ 57, TEXT("Null (O,F3,S)"), OL_NULL, SKYL_NULL },
+	{ 58, TEXT("Debris Small (S)"), -1, SKYL_DEBRIS_SMALL },
+	{ 59, TEXT("Debris Large (S)"), -1, SKYL_DEBRIS_LARGE },
+	{ 60, TEXT("Acoustic Space (S)"), -1, SKYL_ACOUSTIC_SPACE },
+	{ 61, TEXT("Actor Zone (S)"), -1, SKYL_ACTORZONE },
+	{ 62, TEXT("Projectile Zone (S)"), -1, SKYL_PROJECTILEZONE },
+	{ 63, TEXT("Gas Trap (S)"), -1, SKYL_GASTRAP },
+	{ 64, TEXT("Shell Casing (S)"), -1, SKYL_SHELLCASING },
+	{ 65, TEXT("Transparent Small (S)"), -1, SKYL_TRANSPARENT_SMALL },
+	{ 66, TEXT("Invisible Wall (S)"), -1, SKYL_INVISIBLE_WALL },
+	{ 67, TEXT("Transparent Small Anim (S)"), -1, SKYL_TRANSPARENT_SMALL_ANIM },
+	{ 68, TEXT("Ward (S)"), -1, SKYL_WARD },
+	{ 69, TEXT("Char Controller (S)"), -1, SKYL_CHARCONTROLLER },
+	{ 70, TEXT("Stair Helper (S)"), -1, SKYL_STAIRHELPER },
+	{ 71, TEXT("Dead Bip (S)"), -1, SKYL_DEADBIP },
+	{ 72, TEXT("Biped No CC (S)"), -1, SKYL_BIPED_NO_CC },
+	{ 73, TEXT("Avoid Box (S)"), -1, SKYL_AVOIDBOX },
+	{ 74, TEXT("Collision Box (S)"), -1, SKYL_COLLISIONBOX },
+	{ 75, TEXT("Camera Sphere (S)"), -1, SKYL_CAMERASHPERE },
+	{ 76, TEXT("Door Detection (S)"), -1, SKYL_DOORDETECTION },
+	{ 77, TEXT("Cone Projectile (S)"), -1, SKYL_CONEPROJECTILE },
+	{ 78, TEXT("Camera Pick (S)"), -1, SKYL_CAMERAPICK },
+	{ 79, TEXT("Item Pick (S)"), -1, SKYL_ITEMPICK },
+	{ 80, TEXT("Line of Sight (S)"), -1, SKYL_LINEOFSIGHT },
+	{ 81, TEXT("Path Pick (S)"), -1, SKYL_PATHPICK },
+	{ 82, TEXT("Custom Pick 1 (S)"), -1, SKYL_CUSTOMPICK1 },
+	{ 83, TEXT("Custom Pick 2 (S)"), -1, SKYL_CUSTOMPICK2 },
+	{ 84, TEXT("Spell Explosion (S)"), -1, SKYL_SPELLEXPLOSION },
+	{ 85, TEXT("Dropping Pick (S)"), -1, SKYL_DROPPINGPICK },
+};
+
+void InitLayerTypeCombo(HWND hWnd, int comboid)
+{
+	//SendDlgItemMessage(hWnd, comboid, CB_ADDSTRING, 0, LPARAM(TEXT("<Default>")));
+	for (const HavokEnumLookupType* flag = LayerTypes; flag->name != NULL; ++flag) {
+		SendDlgItemMessage(hWnd, comboid, CB_ADDSTRING, 0, LPARAM(flag->name));
+	}
+}
+
+bool GetHavokLayersFromIndex(int idx, /*HavokLayer*/int* havok_Layer, /*SkyrimHavokLayer*/int* skyrim_havok_layer)
+{
+	int offset = idx; // adjust to combo indexes (includes Default)
+	if (idx >= 0 && idx < _countof(LayerTypes))
+	{
+		if (havok_Layer) *havok_Layer = LayerTypes[idx].havok;
+		if (skyrim_havok_layer) *skyrim_havok_layer = LayerTypes[idx].skyrimHavok;
+		return true;
+	}
+	if (havok_Layer) *havok_Layer = 0;
+	if (skyrim_havok_layer) *skyrim_havok_layer = 0;
+	return false;
+}
+
+int GetHavokIndexFromLayers(/*HavokLayer*/ int havok_layer, /*SkyrimHavokLayer*/ int skyrim_havok_layer)
+{
+	for (const HavokEnumLookupType* flag = LayerTypes; flag->name != NULL; ++flag) {
+		if (skyrim_havok_layer >= 0) {
+			if (skyrim_havok_layer == flag->skyrimHavok)
+				return flag->value; 
+		}
+		else if (havok_layer >= 0) {
+			if (havok_layer == flag->havok)
+				return flag->value; 
+		}
+	}
+	return 0;
+}
+
+int GetHavokIndexFromLayer(int havok_Layer)
+{
+	for (auto flag = LayerTypes; flag->name != NULL; ++flag) {
+		if (havok_Layer == flag->havok)
+			return flag->value; // adjust to combo indexes
+	}
+	return 0;
+}
+
+int GetHavokIndexFromSkyrimLayer(int skyrim_havok_layer)
+{
+	for (auto flag = LayerTypes; flag->name != NULL; ++flag) {
+		if (skyrim_havok_layer == flag->skyrimHavok)
+			return flag->value; // adjust to combo indexes
+	}
+	return 0;
+}
+
+
+extern int GetEquivalentSkyrimLayer(int havok_Layer)
+{
+	for (const HavokEnumLookupType* flag = LayerTypes; flag->name != NULL; ++flag) {
+		if (havok_Layer == flag->havok)
+			return flag->skyrimHavok;
+	}
+	return 0;
+}

@@ -146,29 +146,29 @@ static ParamBlockDesc2 param_blk (
     IDD_SPHEREPARAM2, IDS_PARAMS, 0, 0, NULL, 
 
     // params
-    PB_MATERIAL, _T("material"), TYPE_INT, P_ANIMATABLE,	IDS_DS_MATERIAL,
+    PB_MATERIAL, _T("material"), TYPE_INT, 0,	IDS_DS_MATERIAL,
        p_default,	NP_INVALID_HVK_MATERIAL,
        p_end,
 
-    PB_RADIUS, _T("radius"), TYPE_FLOAT, P_ANIMATABLE,	IDS_RB_RADIUS,
+    PB_RADIUS, _T("radius"), TYPE_FLOAT, 0,	IDS_RB_RADIUS,
        p_default,	   0.0,
        p_range,		float(0), float(1.0E30),
        p_ui, TYPE_SPINNER, EDITTYPE_UNIVERSE, IDC_RADIUS, IDC_RADSPINNER, SPIN_AUTOSCALE,
        p_end,
 
-    PB_SEGS, _T("segments"), TYPE_INT, P_ANIMATABLE,	IDS_RB_SEGS,
+    PB_SEGS, _T("segments"), TYPE_INT, 0,	IDS_RB_SEGS,
        p_default,	   16,
        p_range,		MIN_SEGMENTS, MAX_SEGMENTS,
        p_ui, TYPE_SPINNER, EDITTYPE_POS_INT, IDC_SEGMENTS, IDC_SEGSPINNER, 1.0f,
        p_end,
 
-    PB_SMOOTH, _T("smooth"), TYPE_INT, P_ANIMATABLE,	IDS_RB_SMOOTH,
+    PB_SMOOTH, _T("smooth"), TYPE_INT, 0,	IDS_RB_SMOOTH,
        p_default,	   TRUE,
        p_ui, TYPE_SINGLECHEKBOX, IDC_OBSMOOTH,
        p_end,
 
 
-    PB_SCALE, _T("scale"), TYPE_FLOAT, P_ANIMATABLE,	IDS_DS_SCALE,
+    PB_SCALE, _T("scale"), TYPE_FLOAT, 0,	IDS_DS_SCALE,
        p_default,	   6.9969f,
        p_range,		float(1.0f), float(1000.0f),
        p_ui, TYPE_SPINNER, EDITTYPE_UNIVERSE, IDC_SCALEEDIT, IDC_SCALESPINNER, SPIN_AUTOSCALE,
@@ -220,9 +220,8 @@ INT_PTR SphereParamDlgProc::DlgProc(TimeValue t,IParamMap2 *map,HWND hWnd,UINT m
    case WM_INITDIALOG: 
       {
 		  mCbMaterial.init(GetDlgItem(hWnd, IDC_CB_MATERIAL));
-		  mCbMaterial.add(TEXT("<Default>"));
-		  for (const TCHAR **str = NpHvkMaterialNames; *str; ++str)
-			  mCbMaterial.add(*str);
+		  InitMaterialTypeCombo(hWnd, IDC_CB_MATERIAL);
+
 		  Interval valid;
 		  int sel = NP_INVALID_HVK_MATERIAL;
 		  so->pblock2->GetValue( PB_MATERIAL, 0, sel, valid);

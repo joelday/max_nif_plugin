@@ -72,6 +72,8 @@ public:
    tstringlist rotate90Degrees;
    bool supportPrnStrings;
    bool importBonesAsDummy;
+   bool disableBSDismemberSkinModifier;
+
 
    // Animation related Settings
    bool replaceTCBRotationWithBezier;

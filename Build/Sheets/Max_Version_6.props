@@ -5,6 +5,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros">
     <MaxInstallDir>$(MAXINSTALLPATH60)\</MaxInstallDir>
+    <MaxShortName>max6</MaxShortName>
   </PropertyGroup>
   <PropertyGroup>
     <_ProjectFileVersion>14.0.23107.0</_ProjectFileVersion>
@@ -27,6 +28,10 @@
   <ItemGroup>
     <BuildMacro Include="MaxInstallDir">
       <Value>$(MaxInstallDir)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="MaxShortName">
+      <Value>$(MaxShortName)</Value>
       <EnvironmentVariable>true</EnvironmentVariable>
     </BuildMacro>
   </ItemGroup>

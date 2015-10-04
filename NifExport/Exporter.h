@@ -270,41 +270,44 @@ public:
    void                  InitializeRigidBody(bhkRigidBodyRef body, INode *node);
 	bhkRigidBodyRef      makeCollisionBody(INode *node);
 	/* creates a collision shape from a node */
-	bhkShapeRef          makeCollisionShape(INode *node, Matrix3& tm, bhkRigidBodyRef body, HavokMaterial mtlDefault);
+	bhkShapeRef          makeCollisionShape(INode *node, Matrix3& tm, bhkRigidBodyRef body, int mtlDefault);
 
-	bhkShapeRef          makeTriStripsShape(INode *node, Matrix3& tm, HavokMaterial mtlDefault);
-	bhkShapeRef          makeBoxShape(INode *node, Object *obj, Matrix3& tm, HavokMaterial mtlDefault);
-	bhkShapeRef          makeSphereShape(INode *node, Object *obj, Matrix3& tm, HavokMaterial mtlDefault);
-	bhkShapeRef          makeCapsuleShape(INode *node, Object *obj, Matrix3& tm, HavokMaterial mtlDefault);
-	bhkShapeRef          makeListShape(INode *node, Matrix3& tm, bhkRigidBodyRef body, HavokMaterial mtlDefault);
-	bhkShapeRef          makebhkBoxShape(INode *node, Object *obj, Matrix3& tm, HavokMaterial mtlDefault);
-	bhkShapeRef          makebhkSphereShape(INode *node, Object *obj, Matrix3& tm, HavokMaterial mtlDefault);
-	bhkShapeRef          makebhkCapsuleShape(INode *node, Object *obj, Matrix3& tm, HavokMaterial mtlDefault);
-	bhkShapeRef          makeConvexShape(INode *node, Object* obj, Matrix3& tm, HavokMaterial mtlDefault);
+	bhkShapeRef          makeTriStripsShape(INode *node, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeBoxShape(INode *node, Object *obj, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeSphereShape(INode *node, Object *obj, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeCapsuleShape(INode *node, Object *obj, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeListShape(INode *node, Matrix3& tm, bhkRigidBodyRef body, int mtlDefault);
+	bhkShapeRef          makebhkBoxShape(INode *node, Object *obj, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makebhkSphereShape(INode *node, Object *obj, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makebhkCapsuleShape(INode *node, Object *obj, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeConvexShape(INode *node, Object* obj, Matrix3& tm, int mtlDefault);
 
-	Ref<bhkConvexVerticesShape> makeConvexShape(Mesh& mesh, Matrix3& tm, HavokMaterial mtlDefault);
-	Ref<bhkNiTriStripsShape>    makeTriStripsShape(Mesh& mesh, Matrix3& sm, HavokMaterial mtlDefault);
-	Ref<bhkPackedNiTriStripsShape>    makePackedTriStripsShape(Mesh& mesh, Matrix3& sm, HavokMaterial mtlDefault, OblivionLayer layer, int colFilter);
+	Ref<bhkConvexVerticesShape> makeConvexShape(Mesh& mesh, Matrix3& tm, int mtlDefault);
+	Ref<bhkNiTriStripsShape>    makeTriStripsShape(Mesh& mesh, Matrix3& sm, int mtlDefault);
+	Ref<bhkPackedNiTriStripsShape>    makePackedTriStripsShape(Mesh& mesh, Matrix3& sm, int mtlDefault, OblivionLayer layer, int colFilter);
 
-	bhkShapeRef          makeProxyShape(INode *node, Object *obj, Matrix3& tm, HavokMaterial mtlDefault);
-	bhkShapeRef          makeProxyBoxShape(INode *node, Object *obj, Mesh& mesh, Matrix3& tm, HavokMaterial mtlDefault);
-	bhkShapeRef          makeProxySphereShape(INode *node, Object *obj, Mesh& mesh, Matrix3& tm, HavokMaterial mtlDefault);
-	bhkShapeRef          makeProxyConvexShape(INode *node, Object *obj, Mesh& mesh, Matrix3& tm, HavokMaterial mtlDefault);
-	bhkShapeRef          makeProxyTriStripShape(INode *node, Object *obj, Mesh& mesh, Matrix3& tm, HavokMaterial mtlDefault);
-	bhkShapeRef          makeProxyPackedTriStripShape(INode *node, Object *obj, Mesh& mesh, Matrix3& tm, HavokMaterial mtlDefault);
-	bhkShapeRef          makeProxyCapsuleShape(INode *node, Object *obj, Mesh& mesh, Matrix3& tm, HavokMaterial mtlDefault);
-	bhkShapeRef          makeProxyOBBShape(INode *node, Object *obj, Mesh& mesh, Matrix3& tm, HavokMaterial mtlDefault);
+	bhkShapeRef          makeProxyShape(INode *node, Object *obj, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeProxyBoxShape(INode *node, Object *obj, Mesh& mesh, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeProxySphereShape(INode *node, Object *obj, Mesh& mesh, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeProxyConvexShape(INode *node, Object *obj, Mesh& mesh, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeProxyTriStripShape(INode *node, Object *obj, Mesh& mesh, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeProxyPackedTriStripShape(INode *node, Object *obj, Mesh& mesh, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeProxyCapsuleShape(INode *node, Object *obj, Mesh& mesh, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeProxyOBBShape(INode *node, Object *obj, Mesh& mesh, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeProxyCMSD(INode *node, Object *obj, Mesh& mesh, Matrix3& tm, int mtlDefault);
 
-	bhkShapeRef          makeModifierShape(INode *node, Object* obj, Modifier* mod, Matrix3& tm, HavokMaterial mtlDefault);
-	bhkShapeRef          makeModBoxShape(INode *node, Modifier* mod, Mesh& mesh, Matrix3& tm, HavokMaterial mtlDefault);
-	bhkShapeRef          makeModSphereShape(INode *node, Modifier* mod, Mesh& mesh, Matrix3& tm, HavokMaterial mtlDefault);
-	bhkShapeRef          makeModCapsuleShape(INode *node, Modifier* mod, Mesh& mesh, Matrix3& tm, HavokMaterial mtlDefault);
-	bhkShapeRef          makeModConvexShape(INode *node, Modifier* mod, Mesh& mesh, Matrix3& tm, HavokMaterial mtlDefault);
-	bhkShapeRef          makeModOBBShape(INode *node, Modifier* mod, Mesh& mesh, Matrix3& tm, HavokMaterial mtlDefault);
-	bhkShapeRef          makeModTriStripShape(INode *node, Modifier* mod, Mesh& mesh, Matrix3& tm, HavokMaterial mtlDefault);
-	bhkShapeRef          makeModPackedTriStripShape(INode *node, Modifier* mod, Mesh& mesh, Matrix3& tm, HavokMaterial mtlDefault);
-	bhkShapeRef          makeModPackedTriStripShape(INode *tnode, Matrix3& tm, HavokMaterial mtlDefault);
-	bhkShapeRef          makeModPackedTriStripShape(INodeTab &map, Matrix3& tm, HavokMaterial mtlDefault);
+	bhkShapeRef          makeModifierShape(INode *node, Object* obj, Modifier* mod, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeModBoxShape(INode *node, Modifier* mod, Mesh& mesh, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeModSphereShape(INode *node, Modifier* mod, Mesh& mesh, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeModCapsuleShape(INode *node, Modifier* mod, Mesh& mesh, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeModConvexShape(INode *node, Modifier* mod, Mesh& mesh, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeModOBBShape(INode *node, Modifier* mod, Mesh& mesh, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeModTriStripShape(INode *node, Modifier* mod, Mesh& mesh, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeModPackedTriStripShape(INode *node, Modifier* mod, Mesh& mesh, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeModPackedTriStripShape(INode *tnode, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeModPackedTriStripShape(INodeTab &map, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeModCMSD(INode *tnode, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeModCMSD(INodeTab &map, Matrix3& tm, int mtlDefault);
 
 	/* skin export */
 	bool                 makeSkin(NiTriBasedGeomRef shape, INode *node, FaceGroup &grp, TimeValue t);
