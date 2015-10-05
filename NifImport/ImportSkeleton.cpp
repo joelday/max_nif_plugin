@@ -173,7 +173,7 @@ void NifImporter::ImportBipeds(vector<NiNodeRef>& nodes)
 
 			if (master)
 			{
-				master->SetRootName(bipname.c_str());
+				master->SetRootName(const_cast<LPTSTR>(bipname.c_str()));
 
 				//if (INode *rootNode = gi->GetINodeByName(bipname.c_str())) {
 				//   if (Control *c = rootNode->GetTMController()) {

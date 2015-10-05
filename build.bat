@@ -1,8 +1,7 @@
 @echo on
-
-IF EXIST "setbuildenv.bat" call setbuildenv.bat
-
 pushd "%~dp0"
+setlocal
+IF EXIST "setbuildenv.bat" call setbuildenv.bat
 
 REM using delayed expansion ! instead of % as it just works better with ProgramFiles(x86) env variable
 IF EXIST "%ProgramFiles(x86)%" set Program_32=%ProgramFiles(x86)%
@@ -30,7 +29,10 @@ if "%MAXINSTALLPATH2015%" == "" set MAXINSTALLPATH2015=%Program_32%\AutoDesk\3ds
 if "%MAXINSTALLPATH2016%" == "" set MAXINSTALLPATH2016=%Program_32%\AutoDesk\3ds Max 2016 SDK
 
 REM svn update
+set SUPPRESS_BUILD_CONFIG=0
 call makeconfig.bat
+set SUPPRESS_BUILD_CONFIG=1
+
 IF EXIST "%GMAXINSTALLPATH12%"  msbuild NifPlugins.sln "/p:Configuration=Release - gmax" /p:Platform=Win32
 IF EXIST "%MAXINSTALLPATH42%" msbuild NifPlugins.sln "/p:Configuration=Release - Max 4.2" /p:Platform=Win32
 IF EXIST "%MAXINSTALLPATH50%" msbuild NifPlugins.sln "/p:Configuration=Release - Max 5" /p:Platform=Win32
