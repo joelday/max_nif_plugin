@@ -141,7 +141,7 @@ string W2AString(const wstring& str);
 #if VERSION_3DSMAX < (15000<<16) // Version 15 (2013)
 inline LPTSTR DataForWrite(TSTR& str) { return str.data(); }
 #else
-inline LPTSTR DataForWrite(TSTR& str) { return DataForWrite(str); }
+inline LPTSTR DataForWrite(TSTR& str) { return str.dataForWrite(); }
 #endif
 
 // Trim whitespace before and after a string
