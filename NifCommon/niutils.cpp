@@ -1233,7 +1233,13 @@ Modifier *GetOrCreateSkin(INode *node)
 	if (skinMod)
 		return skinMod;
 
-	IDerivedObject *dobj = CreateDerivedObject(node->GetObjectRef());
+	Object *pObj = node->GetObjectRef();
+	IDerivedObject *dobj = nullptr;
+	if (pObj->SuperClassID() == GEN_DERIVOB_CLASS_ID)
+		dobj = static_cast<IDerivedObject*>(pObj);
+	else {
+		dobj = CreateDerivedObject(pObj);
+	}
 	//create a skin modifier and add it
 	skinMod = (Modifier*)CreateInstance(OSM_CLASS_ID, SKIN_CLASSID);
 	dobj->SetAFlag(A_LOCK_TARGET);
@@ -1616,7 +1622,13 @@ Modifier *CreatebhkCollisionModifier(INode* node, int type, int materialIndex, i
 	Modifier *rbMod = GetbhkCollisionModifier(node);
 	if (rbMod == nullptr)
 	{
-		IDerivedObject *dobj = CreateDerivedObject(node->GetObjectRef());
+		Object *pObj = node->GetObjectRef();
+		IDerivedObject *dobj = nullptr;
+		if (pObj->SuperClassID() == GEN_DERIVOB_CLASS_ID)
+			dobj = static_cast<IDerivedObject*>(pObj);
+		else {
+			dobj = CreateDerivedObject(pObj);
+		}
 		rbMod = (Modifier*)CreateInstance(OSM_CLASS_ID, BHKRIGIDBODYMODIFIER_CLASS_ID);
 		dobj->SetAFlag(A_LOCK_TARGET);
 		dobj->AddModifier(rbMod);

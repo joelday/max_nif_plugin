@@ -553,7 +553,13 @@ bool NifImporter::ImportVertexColor(INode *tnode, TriObject *o, vector<Triangle>
 			// Add the Vertex Paint Color modifier now
 			if (hasColor)
 			{
-				IDerivedObject *dobj = CreateDerivedObject(tnode->GetObjectRef());
+				Object *pObj = tnode->GetObjectRef();
+				IDerivedObject *dobj = nullptr;
+				if (pObj->SuperClassID() == GEN_DERIVOB_CLASS_ID)
+					dobj = static_cast<IDerivedObject*>(pObj);
+				else {
+					dobj = CreateDerivedObject(pObj);
+				}
 				Modifier * mod = (Modifier*)CreateInstance(OSM_CLASS_ID, PAINTLAYERMOD_CLASS_ID);
 				dobj->AddModifier(mod);
 				tnode->SetObjectRef(dobj);
@@ -571,7 +577,13 @@ bool NifImporter::ImportVertexColor(INode *tnode, TriObject *o, vector<Triangle>
 			// Add the Vertex Paint Alpha modifier now
 			if (hasAlpha)
 			{
-				IDerivedObject *dobj = CreateDerivedObject(tnode->GetObjectRef());
+				Object *pObj = tnode->GetObjectRef();
+				IDerivedObject *dobj = nullptr;
+				if (pObj->SuperClassID() == GEN_DERIVOB_CLASS_ID)
+					dobj = static_cast<IDerivedObject*>(pObj);
+				else {
+					dobj = CreateDerivedObject(pObj);
+				}
 				Modifier * mod = (Modifier*)CreateInstance(OSM_CLASS_ID, PAINTLAYERMOD_CLASS_ID);
 				dobj->AddModifier(mod);
 				tnode->SetObjectRef(dobj);

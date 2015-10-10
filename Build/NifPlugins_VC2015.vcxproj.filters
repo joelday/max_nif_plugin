@@ -344,6 +344,9 @@
     <ClCompile Include="..\NifImport\NIFImport.cpp">
       <Filter>NifImport\Importer</Filter>
     </ClCompile>
+    <ClCompile Include="..\NifImport\ImportParticles.cpp">
+      <Filter>NifImport\Importer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\NifProps\Modifier\AddDel16.bmp">

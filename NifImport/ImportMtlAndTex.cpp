@@ -33,6 +33,7 @@ HISTORY:
 #include "obj/Lighting30ShaderProperty.h"
 #include "obj/NiImage.h"
 #include "objectParams.h"
+#include <obj/BSEffectShaderProperty.h>
 using namespace Niflib;
 
 enum {
@@ -43,6 +44,8 @@ enum {
 
 #undef GNORMAL_CLASS_ID
 static const Class_ID GNORMAL_CLASS_ID(0x243e22c6, 0x63f6a014);
+static const Class_ID NIFSHADER_CLASS_ID(0x566e8ccb, 0xb091bd48);
+static const Class_ID civ4Shader(0x670a77d0, 0x23ab5c7f);
 
 Texmap* NifImporter::CreateNormalBump(LPCTSTR name, Texmap* nmap)
 {
@@ -138,7 +141,7 @@ Texmap* NifImporter::CreateTexture(TexDesc& desc)
 	return nullptr;
 }
 
-Texmap* NifImporter::CreateTexture(NiTexturePropertyRef texSrc)
+Texmap* NifImporter::CreateTexture(const NiTexturePropertyRef& texSrc)
 {
 	BitmapManager *bmpMgr = TheManager;
 	if (NiImageRef imgRef = texSrc->GetImage()) {
@@ -175,7 +178,7 @@ Texmap* NifImporter::CreateTexture(NiTexturePropertyRef texSrc)
 	return nullptr;
 }
 
-Texmap* NifImporter::CreateTexture(const tstring& filename)
+Texmap* NifImporter::CreateTexture(const tstring& filename, TexClampMode mode, TexCoord offset, TexCoord tiling)
 {
 	if (filename.empty())
 		return nullptr;
@@ -204,7 +207,19 @@ Texmap* NifImporter::CreateTexture(const tstring& filename)
 		}
 
 		if (UVGen *uvGen = bmpTex->GetTheUVGen()) {
-			uvGen->SetTextureTiling(0);
+			switch (mode)
+			{
+			case WRAP_S_WRAP_T: uvGen->SetTextureTiling(3); break;
+			case WRAP_S_CLAMP_T: uvGen->SetTextureTiling(1); break;
+			case CLAMP_S_WRAP_T: uvGen->SetTextureTiling(2); break;
+			case CLAMP_S_CLAMP_T:uvGen->SetTextureTiling(0); break;
+			}
+			if (RefTargetHandle ref = uvGen->GetReference(0)) {
+				setMAXScriptValue(ref, TEXT("U_Offset"), 0, offset.u);
+				setMAXScriptValue(ref, TEXT("V_Offset"), 0, offset.v);
+				setMAXScriptValue(ref, TEXT("U_Tiling"), 0, tiling.u);
+				setMAXScriptValue(ref, TEXT("V_Tiling"), 0, tiling.v);
+			}
 		}
 
 		return bmpTex;
@@ -219,10 +234,14 @@ StdMat2 *NifImporter::ImportMaterialAndTextures(ImpNode *node, NiAVObjectRef avO
 	vector<NiPropertyRef> props = avObject->GetProperties();
 	NiMaterialPropertyRef matRef = SelectFirstObjectOfType<NiMaterialProperty>(props);
 	BSShaderPropertyRef shaderRef = SelectFirstObjectOfType<BSShaderProperty>(props);
-	BSLightingShaderPropertyRef lightingShaderRef = SelectFirstObjectOfType<BSLightingShaderProperty>(props);
-	if (matRef != nullptr || shaderRef != nullptr || lightingShaderRef != nullptr) {
+	NiGeometryRef geoprop = DynamicCast<NiGeometry>(avObject);
+	BSEffectShaderPropertyRef effectShaderRef = geoprop->GetBSPropertyOfType<Niflib::BSEffectShaderProperty>();
+	BSLightingShaderPropertyRef lightingShaderRef = geoprop->GetBSPropertyOfType<Niflib::BSLightingShaderProperty>();
+
+	if (matRef != nullptr || shaderRef != nullptr || effectShaderRef != nullptr || lightingShaderRef != nullptr) {
 
 		StdMat2 *m = NewDefaultStdMat();
+		RefTargetHandle ref = m->GetReference(2/*shader*/);
 
 		if (matRef != nullptr) {
 			m->SetName(A2T(matRef->GetName().c_str()));
@@ -239,6 +258,11 @@ StdMat2 *NifImporter::ImportMaterialAndTextures(ImpNode *node, NiAVObjectRef avO
 			return m;
 		}
 
+		TexClampMode mode = WRAP_S_WRAP_T;
+		TexCoord offset = TexCoord(0.0f, 0.0f);
+		TexCoord tiling = TexCoord(1.0f, 1.0f);
+
+		list<NiTimeControllerRef> controllers;
 		NiTexturingPropertyRef texRef = avObject->GetPropertyByType(NiTexturingProperty::TYPE);
 		NiWireframePropertyRef wireRef = avObject->GetPropertyByType(NiWireframeProperty::TYPE);
 		NiAlphaPropertyRef alphaRef = avObject->GetPropertyByType(NiAlphaProperty::TYPE);
@@ -262,7 +286,7 @@ StdMat2 *NifImporter::ImportMaterialAndTextures(ImpNode *node, NiAVObjectRef avO
 				m->SetSelfIllumColor(c, 0);
 			}
 			m->SetShinStr(0.0, 0);
-			m->SetShininess(matRef->GetGlossiness() / 100.0, 0);
+			//m->SetShininess(matRef->GetGlossiness() / 100.0, 0);
 			m->SetOpacity(matRef->GetTransparency(), 0);
 		}
 
@@ -357,22 +381,11 @@ StdMat2 *NifImporter::ImportMaterialAndTextures(ImpNode *node, NiAVObjectRef avO
 				m->SetSubTexmap(ID_DI, tex);
 			}
 		}
+		BSShaderTextureSetRef textureSet = nullptr;
+
+		bool VertexColorsEnable = false;
 		if (BSShaderPPLightingPropertyRef ppLightShadeRef = SelectFirstObjectOfType<BSShaderPPLightingProperty>(props)) {
-			if (BSShaderTextureSetRef textures = ppLightShadeRef->GetTextureSet()) {
-				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(0))))
-					m->SetSubTexmap(ID_DI, tex);
-				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(1))))
-					m->SetSubTexmap(ID_BU, CreateNormalBump(nullptr, tex));
-				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(3))))
-					m->SetSubTexmap(ID_SI, tex);
-				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(4))))
-					m->SetSubTexmap(ID_RL, tex);
-				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(5)))) {
-					if (Texmap* mask = CreateTexture(A2TString(textures->GetTexture(2))))
-						tex = CreateMask(nullptr, tex, mask);
-					m->SetSubTexmap(ID_SP, tex);
-				}
-			}
+			textureSet = ppLightShadeRef->GetTextureSet();
 		}
 		if (SkyShaderPropertyRef skyShadeRef = SelectFirstObjectOfType<SkyShaderProperty>(props)) {
 			if (Texmap* tex = CreateTexture(A2TString(skyShadeRef->GetFileName()))) {
@@ -390,38 +403,77 @@ StdMat2 *NifImporter::ImportMaterialAndTextures(ImpNode *node, NiAVObjectRef avO
 			}
 		}
 		if (Lighting30ShaderPropertyRef lighting30ShadeRef = SelectFirstObjectOfType<Lighting30ShaderProperty>(props)) {
-			if (BSShaderTextureSetRef textures = lighting30ShadeRef->GetTextureSet()) {
-				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(0))))
-					m->SetSubTexmap(ID_DI, tex);
-				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(1))))
-					m->SetSubTexmap(ID_BU, CreateNormalBump(nullptr, tex));
-				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(3))))
-					m->SetSubTexmap(ID_SI, tex);
-				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(4))))
-					m->SetSubTexmap(ID_RL, tex);
-				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(5)))) {
-					if (Texmap* mask = CreateTexture(A2TString(textures->GetTexture(2))))
-						tex = CreateMask(nullptr, tex, mask);
-					m->SetSubTexmap(ID_SP, tex);
+			textureSet = lighting30ShadeRef->GetTextureSet();
+		}
+		if (lightingShaderRef != nullptr) {
+			textureSet = lightingShaderRef->GetTextureSet();
+			if (enableAnimations)
+				controllers = lightingShaderRef->GetControllers();
+			VertexColorsEnable = (lightingShaderRef->GetShaderFlags2() & SLSF2_VERTEX_COLORS) != 0;
+
+			mode = lightingShaderRef->GetTextureClampMode();
+			offset = lightingShaderRef->GetUvOffset();
+			tiling = lightingShaderRef->GetUvScale();
+		}
+		if (effectShaderRef != nullptr) {
+			VertexColorsEnable = (effectShaderRef->GetShaderFlags2() & SLSF2_VERTEX_COLORS) != 0;
+
+			mode = (TexClampMode)effectShaderRef->GetTextureClampMode();
+			offset = effectShaderRef->GetUvOffset();
+			tiling = effectShaderRef->GetUvScale();
+
+			if (enableAnimations)
+				controllers = effectShaderRef->GetControllers();
+		}
+		if (textureSet != nullptr)
+		{
+			if (Texmap* tex = CreateTexture(A2TString(textureSet->GetTexture(0)), mode, offset, tiling))
+				m->SetSubTexmap(ID_DI, tex);
+			if (Texmap* tex = CreateTexture(A2TString(textureSet->GetTexture(1)), mode, offset, tiling))
+				m->SetSubTexmap(ID_BU, CreateNormalBump(nullptr, tex));
+			if (Texmap* tex = CreateTexture(A2TString(textureSet->GetTexture(3)), mode, offset, tiling))
+				m->SetSubTexmap(ID_SI, tex);
+			if (Texmap* tex = CreateTexture(A2TString(textureSet->GetTexture(4)), mode, offset, tiling))
+				m->SetSubTexmap(ID_RL, tex);
+			if (Texmap* tex = CreateTexture(A2TString(textureSet->GetTexture(5)), mode, offset, tiling)) {
+				if (Texmap* mask = CreateTexture(A2TString(textureSet->GetTexture(2)), mode, offset, tiling))
+					tex = CreateMask(nullptr, tex, mask);
+				m->SetSubTexmap(ID_SP, tex);
+			}
+		}
+		if (effectShaderRef != nullptr)
+		{					
+			if (ref != nullptr)
+			{
+				Color emittance = TOCOLOR(effectShaderRef->GetEmissiveColor());
+				setMAXScriptValue(ref, TEXT("emittance"), 0, emittance);
+				bool specularEnable = (effectShaderRef->GetShaderFlags2() & SLSF1_SPECULAR) != 0;
+				setMAXScriptValue(ref, TEXT("SpecularEnable"), 0, specularEnable);
+			}
+			// Create the source texture
+			if (Texmap* tex = CreateTexture(A2TString(effectShaderRef->GetSourceTexture()), mode, offset, tiling))
+				m->SetSubTexmap(ID_DI, tex);
+			if (Texmap* tex = CreateTexture(A2TString(effectShaderRef->GetGreyscaleTexture()), mode, offset, tiling))
+				m->SetSubTexmap(ID_SI, tex);
+		}
+		if (enableAnimations && !controllers.empty())
+		{
+			// Import any texture animations
+			if (ImportMtlAndTexAnimation(controllers, m))
+			{
+				Interval range;
+				if (GetControllerTimeRange(controllers, range))
+				{
+					if (range.IsInfinite() || range.Empty() || range.Start() != range.End()) {
+						gi->SetAnimRange(range);
+					}
 				}
 			}
 		}
-		if (lightingShaderRef != nullptr) {
-			if (BSShaderTextureSetRef textures = lightingShaderRef->GetTextureSet()) {
-				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(0))))
-					m->SetSubTexmap(ID_DI, tex);
-				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(1))))
-					m->SetSubTexmap(ID_BU, CreateNormalBump(nullptr, tex));
-				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(3))))
-					m->SetSubTexmap(ID_SI, tex);
-				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(4))))
-					m->SetSubTexmap(ID_RL, tex);
-				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(5)))) {
-					if (Texmap* mask = CreateTexture(A2TString(textures->GetTexture(2))))
-						tex = CreateMask(nullptr, tex, mask);
-					m->SetSubTexmap(ID_SP, tex);
-				}
-			}
+		if (ref != nullptr)
+		{
+			setMAXScriptValue(ref, TEXT("Vertex_Color_Enable"), 0, VertexColorsEnable);
+			setMAXScriptValue(ref, TEXT("VertexColorsEnable"), 0, VertexColorsEnable);
 		}
 
 		return m;
@@ -458,8 +510,6 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 	if (!useNiftoolsShader || !mtl || !mtl->SupportsShaders())
 		return false;
 
-	const Class_ID civ4Shader(0x670a77d0, 0x23ab5c7f);
-	const Class_ID NIFSHADER_CLASS_ID(0x566e8ccb, 0xb091bd48);
 
 	if ((useNiftoolsShader & 1) == 0 || !mtl->SwitchShader(NIFSHADER_CLASS_ID)) {
 		if ((useNiftoolsShader & 2) == 0 || !mtl->SwitchShader(civ4Shader))
@@ -474,10 +524,15 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 	bool isGamebryoShader = (shaderID == civ4Shader);
 	bool isCiv4Shader = isGamebryoShader && strmatch(shaderByName, TEXT("CivilizationIV Shader"));
 
+	TexClampMode mode = WRAP_S_WRAP_T;
+	TexCoord offset = TexCoord(0.0f, 0.0f);
+	TexCoord tiling = TexCoord(1.0f, 1.0f);
+
 	RefTargetHandle ref = mtl->GetReference(2/*shader*/);
 	if (!ref)
 		return false;
 
+	NiGeometryRef geom = DynamicCast<NiGeometry>(avObject);
 	vector<NiPropertyRef> props = avObject->GetProperties();
 
 	if (NiMaterialPropertyRef matRef = SelectFirstObjectOfType<NiMaterialProperty>(props)) {
@@ -494,7 +549,7 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 		}
 
 		mtl->SetShinStr(0.0, 0);
-		mtl->SetShininess(shininess / 100.0, 0);
+		mtl->SetShininess((float)(shininess / 100.0), 0);
 		mtl->SetOpacity(alpha*100.0f, 0);
 
 		setMAXScriptValue(ref, TEXT("ambient"), 0, ambient);
@@ -543,7 +598,9 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 		setMAXScriptValue(ref, TEXT("Vertex_Color_Enable"), 0, VertexColorsEnable);
 		setMAXScriptValue(ref, TEXT("VertexColorsEnable"), 0, VertexColorsEnable);
 	}
-	if (NiAlphaPropertyRef alphaRef = SelectFirstObjectOfType<NiAlphaProperty>(props)) {
+	NiAlphaPropertyRef alphaRef = SelectFirstObjectOfType<NiAlphaProperty>(props);
+	if (!alphaRef && geom) alphaRef = geom->GetBSPropertyOfType<NiAlphaProperty>();
+	if (alphaRef) {
 		int TestRef = alphaRef->GetTestThreshold();
 		int srcBlend = alphaRef->GetSourceBlendFunc();
 		int destBlend = alphaRef->GetDestBlendFunc();
@@ -725,6 +782,10 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 
 	if (BSLightingShaderPropertyRef lightingShaderRef = SelectFirstObjectOfType<BSLightingShaderProperty>(props))
 	{
+		mode = lightingShaderRef->GetTextureClampMode();
+		offset = lightingShaderRef->GetUvOffset();
+		tiling = lightingShaderRef->GetUvScale();
+
 		// Material like properties
 		{
 			//Color ambient = TOCOLOR(lightingShaderRef->GetAmbientColor());
@@ -763,7 +824,7 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 			setMAXScriptValue(ref, TEXT("SpecularEnable"), 0, specularEnable);
 
 			mtl->SetShinStr(0.0, 0);
-			mtl->SetShininess(shininess / 100.0, 0);
+			mtl->SetShininess((float)(shininess / 100.0), 0);
 			mtl->SetOpacity(alpha*100.0f, 0);
 
 			setMAXScriptValue(ref, TEXT("ambient"), 0, ambient);
@@ -794,27 +855,41 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 		// Texture Set
 		{
 			if (BSShaderTextureSetRef textures = lightingShaderRef->GetTextureSet()) {
-				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(0))))
+				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(0)), mode, offset, tiling))
 					mtl->SetSubTexmap(C_BASE, tex);
-				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(1))))
+				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(1)), mode, offset, tiling))
 					mtl->SetSubTexmap(C_NORMAL, CreateNormalBump(nullptr, tex));
-				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(2)))) // Glow/Skin/Hair
+				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(2)), mode, offset, tiling)) // Glow/Skin/Hair
 					mtl->SetSubTexmap(C_GLOW, tex);
-				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(3)))) // Height/Parallax
+				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(3)), mode, offset, tiling)) // Height/Parallax
 					mtl->SetSubTexmap(C_HEIGHT, tex);
-				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(4)))) // Environment
+				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(4)), mode, offset, tiling)) // Environment
 					mtl->SetSubTexmap(C_ENV, tex);
-				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(5)))) // Environment Mask
+				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(5)), mode, offset, tiling)) // Environment Mask
 					mtl->SetSubTexmap(C_ENVMASK, tex);
-				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(7)))) //specular
+				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(7)), mode, offset, tiling)) //specular
 					mtl->SetSubTexmap(C_SPECULAR, tex);
-				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(8)))) //Parallax
+				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(8)), mode, offset, tiling)) //Parallax
 					mtl->SetSubTexmap(C_PARALLAX, tex);
+			}
+		}
+		if (enableAnimations)
+		{
+			// Import any texture animations
+			if (ImportMtlAndTexAnimation(lightingShaderRef->GetControllers(), mtl))
+			{
+				Interval range;
+				if (GetControllerTimeRange(lightingShaderRef->GetControllers(), range))
+				{
+					if (range.IsInfinite() || range.Empty() || range.Start() != range.End()) {
+						gi->SetAnimRange(range);
+					}
+				}
 			}
 		}
 
 		if (NiStencilPropertyRef stencilRef = SelectFirstObjectOfType<NiStencilProperty>(props)) {
-
+			// TODO: handle stencil 
 		}
 		int flags2 = lightingShaderRef->GetShaderFlags2();
 		mtl->SetTwoSided((flags2 & SLSF2_DOUBLE_SIDED) ? TRUE : FALSE);
@@ -824,7 +899,57 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 		setMAXScriptValue(ref, TEXT("CustomShader"), 0, shaderType);
 	}
 
+	BSEffectShaderPropertyRef effectShaderRef = SelectFirstObjectOfType<BSEffectShaderProperty>(props);
+	if (!effectShaderRef && geom) effectShaderRef = geom->GetBSPropertyOfType<Niflib::BSEffectShaderProperty>();
+	if (effectShaderRef)
+	{
+		mode = (TexClampMode)effectShaderRef->GetTextureClampMode();
+		offset = effectShaderRef->GetUvOffset();
+		tiling = effectShaderRef->GetUvScale();
+		{
+			Color emittance = TOCOLOR(effectShaderRef->GetEmissiveColor());
+			setMAXScriptValue(ref, TEXT("emittance"), 0, emittance);
 
+			bool VertexColorsEnable = (effectShaderRef->GetShaderFlags2() & SLSF2_VERTEX_COLORS) != 0;
+			setMAXScriptValue(ref, TEXT("Vertex_Color_Enable"), 0, VertexColorsEnable);
+			setMAXScriptValue(ref, TEXT("VertexColorsEnable"), 0, VertexColorsEnable);
+
+			bool specularEnable = (effectShaderRef->GetShaderFlags2() & SLSF1_SPECULAR) != 0;
+			setMAXScriptValue(ref, TEXT("SpecularEnable"), 0, specularEnable);
+		}
+		// Create the source texture
+		if (Texmap* tex = CreateTexture(A2TString(effectShaderRef->GetSourceTexture()), mode, offset, tiling))
+			mtl->SetSubTexmap(C_BASE, tex);
+		if (Texmap* tex = CreateTexture(A2TString(effectShaderRef->GetGreyscaleTexture()), mode, offset, tiling))
+			mtl->SetSubTexmap(C_GLOW, tex);
+
+		int flags2 = effectShaderRef->GetShaderFlags2();
+		mtl->SetTwoSided((flags2 & SLSF2_DOUBLE_SIDED) ? TRUE : FALSE);
+
+		if (enableAnimations)
+		{
+			// Import any texture animations
+			if (ImportMtlAndTexAnimation(effectShaderRef->GetControllers(), mtl))
+			{
+				Interval range;
+				if (GetControllerTimeRange(effectShaderRef->GetControllers(), range))
+				{
+					if (range.IsInfinite() || range.Empty() || range.Start() != range.End()) {
+						gi->SetAnimRange(range);
+					}
+					// get start/stop times
+					//mtl->SetOpacFalloff(effectShaderRef->GetFalloffStartOpacity(), range.Start());
+					//mtl->SetOpacFalloff(effectShaderRef->GetFalloffStopOpacity(), range.End());
+
+					//m->SetOpacFalloff(effectShaderRef->GetFalloffStartAngle(), range.Start());
+					//m->SetOpacFalloff(effectShaderRef->GetFalloffStopAngle(), range.End());
+				}
+			}
+		}
+
+		TSTR tname = A2TString(effectShaderRef->GetType().GetTypeName()).c_str();
+		setMAXScriptValue(ref, TEXT("CustomShader"), 0, tname);
+	}
 	return true;
 }
 
@@ -854,4 +979,29 @@ tstring NifImporter::FindImage(const tstring& name)
 	return name;
 }
 
-
+Texmap* NifImporter::GetMaterialTextureSubMap(Mtl* mat, int id)
+{
+	if (mat && mat->ClassID() == Class_ID(DMTL_CLASS_ID, 0))
+	{
+		StdMat2 *mtl = (StdMat2*)mat;
+		Shader *s = mtl->GetShader();
+		if (s != nullptr && s->ClassID() == NIFSHADER_CLASS_ID) {
+			switch (id)
+			{
+			case ID_DI:  return mat->GetSubTexmap(C_BASE);
+			case ID_BU:  return mat->GetSubTexmap(C_NORMAL);
+			case ID_RL:  return mat->GetSubTexmap(C_REFLECTION);
+			case ID_OP:  return mat->GetSubTexmap(C_OPACITY);
+			case ID_SP:  return mat->GetSubTexmap(C_SPECULAR);
+			case ID_SH:  return mat->GetSubTexmap(C_GLOSS);
+			case ID_SI:  return mat->GetSubTexmap(C_GLOW);
+			case ID_DP:  return mat->GetSubTexmap(C_PARALLAX);
+			}
+		}
+	}
+	if (mat != nullptr)
+	{
+		return mat->GetSubTexmap(id);
+	}
+	return nullptr;
+}

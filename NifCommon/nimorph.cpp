@@ -70,7 +70,13 @@ Modifier *CreateMorpherModifier(INode* node)
 	Modifier *mod = GetMorpherModifier(node);
 	if (mod == NULL)
 	{
-		IDerivedObject *dobj = CreateDerivedObject(node->GetObjectRef());
+		Object *pObj = node->GetObjectRef();
+		IDerivedObject *dobj = nullptr;
+		if (pObj->SuperClassID() == GEN_DERIVOB_CLASS_ID)
+			dobj = static_cast<IDerivedObject*>(pObj);
+		else {
+			dobj = CreateDerivedObject(pObj);
+		}
 		mod = (Modifier*) CreateInstance(OSM_CLASS_ID, MORPHERMODIFIER_CLASS_ID);
 		dobj->SetAFlag(A_LOCK_TARGET);
 		dobj->AddModifier(mod);

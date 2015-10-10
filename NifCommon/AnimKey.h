@@ -11,6 +11,7 @@ HISTORY:
 *>	Copyright (c) 2006, All Rights Reserved.
 **********************************************************************/
 // Max Headers
+#pragma once
 #include <Max.h>
 #include <tab.h>
 

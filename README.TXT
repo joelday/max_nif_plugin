@@ -37,7 +37,18 @@
         texture paths for various games that we know there settings for.
     
     Copy NifPlugins.dlu, to your 3dsmax\plugins directory.
-    Copy MaxNifTools.ini to your 3dsmax\plugcfg directory.
+
+	Copy MaxNifTools.ini to the correct plugcfg directory:
+	Windows Vista and Greater:
+	  %USERPROFILE%\AppData\Local\Autodesk\3dsMax\<version>\enu\plugcfg
+	Windows XP:
+	  %APPDATA%\Autodesk\3dsMax\<version>\enu\plugcfg
+
+	You can copy MaxNifTools.ini to your 3dsmax\plugcfg directory but the
+	  folder may be readonly so is discouraged but might still work.
+    The plugin will search the AppData folder first though as that is the 
+	  recommended location from Autodesk and Microsoft.
+
     
     gmax notes:
        NifPlugins.dlu goes in gmax\plugin folder

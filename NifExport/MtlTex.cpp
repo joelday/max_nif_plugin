@@ -977,6 +977,10 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 				if (properties.size() > 0)
 					parent->AddProperty(properties[0]);
 
+				// New code to fix parenting of BSLighting branches to the geometry, specific to skyrim only
+				// TODO: Add in checks for an existing shader or figure out what the other Bethesda specific node goes into this slot.
+				NiGeometryRef temp = DynamicCast<NiGeometry>(parent);
+				temp->SetBSProperty(0, prop);
 			}
 			useDefaultShader = false;
 		}

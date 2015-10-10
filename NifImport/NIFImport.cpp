@@ -121,7 +121,6 @@ void NifImporter::Initialize()
       isBiped = IsBiped();
       skeleton = GetSkeleton(appSettings);
       importSkeleton = (appSettings != nullptr) ? appSettings->useSkeleton : false;
-      importSkeleton &= hasSkeleton;
 	  importSkeleton &= !isBiped;
 
       // Guess that the skeleton is the same one in the current directory
@@ -131,9 +130,14 @@ void NifImporter::Initialize()
          PathRemoveFileSpec(buffer);
          PathAddBackslash(buffer);
          PathAppend(buffer, defaultSkeletonName.c_str());
-         if (-1 != _taccess(buffer, 0))
+		 bool defaultSkeletonExists = (-1 != _taccess(buffer, 0));
+		 importSkeleton &= (hasSkeleton || defaultSkeletonExists);
+		 if (defaultSkeletonExists)
             skeleton = buffer;
+      } else {
+		  hasSkeleton = false;	      
       }
+
    }
 }
 

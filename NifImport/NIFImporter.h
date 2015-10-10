@@ -2,7 +2,7 @@
 *<
 FILE: NifImporter.h
 
-DESCRIPTION:	NIF Importer 
+DESCRIPTION:	NIF Importer
 
 CREATED BY: tazpn (Theo)
 
@@ -16,181 +16,204 @@ HISTORY:
 
 #include "BaseImporter.h"
 #include "IniSection.h"
+#include <obj/NiParticleSystem.h>
+#include <obj/NiPSysGravityModifier.h>
+#include <obj/NiTimeController.h>
+#include <AnimKey.h>
 
 namespace Niflib
 {
-   class NiTextKeyExtraData;
+	class NiTextKeyExtraData;
 }
 
 // NIF Importer
 class NifImporter : public BaseImporter//, public IniFileSection
 {
 public:
-   // Ini settings
-   bool showTextures; // show textures in viewport
-   bool removeIllegalFaces;
-   bool removeDegenerateFaces;
-   bool enableAutoSmooth;
-   float autoSmoothAngle;
-   bool flipUVTextures;
-   bool enableSkinSupport;
-   bool goToSkeletonBindPosition;
-   bool enableCollision;
-   int vertexColorMode;
-   int useNiftoolsShader;
-   bool mergeNonAccum;
-   bool enableLights;
-   bool enableCameras;
-   bool importUPB;
-   bool doNotReuseExistingBones;
+	// Ini settings
+	bool showTextures; // show textures in viewport
+	bool removeIllegalFaces;
+	bool removeDegenerateFaces;
+	bool enableAutoSmooth;
+	float autoSmoothAngle;
+	bool flipUVTextures;
+	bool enableSkinSupport;
+	bool goToSkeletonBindPosition;
+	bool enableCollision;
+	int vertexColorMode;
+	int useNiftoolsShader;
+	bool mergeNonAccum;
+	bool enableLights;
+	bool enableCameras;
+	bool importUPB;
+	bool doNotReuseExistingBones;
 
-   // Biped/Bones related settings
-   bool importBones;
-   tstring skeleton;
-   float bipedHeight;
-   tstring skeletonCheck;
-   float bipedAngle;
-   float bipedAnkleAttach;
-   bool bipedTrianglePelvis;
-   bool importSkeleton;
-   bool useBiped;
-   bool hasSkeleton;
-   bool isBiped;
-   bool removeUnusedImportedBones;
-   bool forceRotation;
-   bool browseForSkeleton;
-   tstring defaultSkeletonName;
-   float minBoneWidth;
-   float maxBoneWidth;
-   float boneWidthToLengthRatio;
-   bool createNubsForBones;
-   tstringlist dummyNodeMatches;
-   bool convertBillboardsToDummyNodes;
-   bool uncontrolledDummies;
-   bool ignoreRootNode;
-   bool autoDetect;
-   tstringlist rotate90Degrees;
-   bool supportPrnStrings;
-   bool importBonesAsDummy;
-   bool disableBSDismemberSkinModifier;
-
-
-   // Animation related Settings
-   bool replaceTCBRotationWithBezier;
-   bool enableAnimations;
-   bool requireMultipleKeys;
-   bool applyOverallTransformToSkinAndBones;
-   bool clearAnimation;
-   bool addNoteTracks;
-   bool addTimeTags;
-
-   // Collision settings
-   float bhkScaleFactor;
-
-   bool weldVertices;
-   float weldVertexThresh;
-
-   bool dummyBonesAsLines;
-   int unnamedCounter;
-
-   vector<Niflib::NiObjectRef> blocks;
-   vector<Niflib::NiNodeRef> nodes;
-   map<tstring,int> ctrlCount; // counter for number of controllers referencing a node
-
-   typedef map<Niflib::NiObjectNETRef, INode*> NodeToNodeMap;
-   typedef map<tstring, INode*, ltstr> NameToNodeMap;
-   NodeToNodeMap nodeMap;
-   NameToNodeMap nodeNameMap;
+	// Biped/Bones related settings
+	bool importBones;
+	tstring skeleton;
+	float bipedHeight;
+	tstring skeletonCheck;
+	float bipedAngle;
+	float bipedAnkleAttach;
+	bool bipedTrianglePelvis;
+	bool importSkeleton;
+	bool useBiped;
+	bool hasSkeleton;
+	bool isBiped;
+	bool removeUnusedImportedBones;
+	bool forceRotation;
+	bool browseForSkeleton;
+	tstring defaultSkeletonName;
+	float minBoneWidth;
+	float maxBoneWidth;
+	float boneWidthToLengthRatio;
+	bool createNubsForBones;
+	tstringlist dummyNodeMatches;
+	bool convertBillboardsToDummyNodes;
+	bool uncontrolledDummies;
+	bool ignoreRootNode;
+	bool autoDetect;
+	tstringlist rotate90Degrees;
+	bool supportPrnStrings;
+	bool importBonesAsDummy;
+	bool disableBSDismemberSkinModifier;
 
 
-   NifImporter(const TCHAR *Name,ImpInterface *I,Interface *GI, BOOL SuppressPrompts);
-   virtual void Initialize();
-   virtual void ReadBlocks();
-   void BuildNodes();
-   void BuildNodes(Niflib::NiNodeRef object, vector<Niflib::NiNodeRef>& nodes);
+	// Animation related Settings
+	bool replaceTCBRotationWithBezier;
+	bool enableAnimations;
+	bool requireMultipleKeys;
+	bool applyOverallTransformToSkinAndBones;
+	bool clearAnimation;
+	bool addNoteTracks;
+	bool addTimeTags;
 
-   // Ini File related routines
-   virtual void LoadIniSettings();
-   virtual void SaveIniSettings();
+	// Particle System settings
+	bool	enableParticleSystems;
 
-   void ApplyAppSettings(bool initialize = false);
+	// Collision settings
+	float bhkScaleFactor;
 
-   bool HasSkeleton();
-   bool IsBiped();
-   void ImportBones(vector<Niflib::NiNodeRef>& bones);
-   void ImportBones(Niflib::NiNodeRef blocks, bool recurse = true);
-   void ImportBipeds(vector<Niflib::NiNodeRef>& blocks);
-   void AlignBiped(IBipMaster* master, Niflib::NiNodeRef block);
-   bool ImportMeshes(Niflib::NiNodeRef block);
-   tstring FindImage(const tstring& name);
+	bool weldVertices;
+	float weldVertexThresh;
 
-   bool ImportUPB(INode *node, Niflib::NiNodeRef block);
+	bool dummyBonesAsLines;
+	int unnamedCounter;
 
-   void SetTriangles(Mesh& mesh, const vector<Niflib::Triangle>& v);
-   void SetNormals(Mesh& mesh, const vector<Niflib::Triangle>& t, const vector<Niflib::Vector3>& v);
+	vector<Niflib::NiObjectRef> blocks;
+	vector<Niflib::NiNodeRef> nodes;
+	map<tstring, int> ctrlCount; // counter for number of controllers referencing a node
 
-   bool ImportMesh(Niflib::NiTriShapeRef triShape);
-   bool ImportMesh(Niflib::NiTriStripsRef triStrips);
-   bool ImportMultipleGeometry(Niflib::NiNodeRef parent, vector<Niflib::NiTriBasedGeomRef>& glist);
-   StdMat2 *ImportMaterialAndTextures(ImpNode *node, Niflib::NiAVObjectRef avObject);
-   bool ImportMaterialAndTextures(ImpNode *node, vector<Niflib::NiTriBasedGeomRef>& glist);
-   bool ImportNiftoolsShader(ImpNode *node, Niflib::NiAVObjectRef avObject, StdMat2 *m);
-   bool ImportTransform(ImpNode *node, Niflib::NiAVObjectRef avObject);
-   bool ImportMesh(ImpNode *node, TriObject *o, Niflib::NiTriBasedGeomRef triGeom, Niflib::NiTriBasedGeomDataRef triGeomData, vector<Niflib::Triangle>& tris);
-   bool ImportVertexColor(INode *tnode, TriObject *o, vector<Niflib::Triangle>& tris, vector<Niflib::Color4> cv, int cv_offset=0);
-   bool ImportSkin(ImpNode *node, Niflib::NiTriBasedGeomRef triGeom, int v_start=0);
-   Texmap* CreateTexture(Niflib::TexDesc& desc);
-   Texmap* CreateTexture(Niflib::NiTexturePropertyRef desc);
-	Texmap* CreateTexture(const tstring& name);
-   Texmap* CreateNormalBump(LPCTSTR name, Texmap* nmap);
-   Texmap* CreateMask(LPCTSTR name, Texmap* nmap, Texmap* mask);
-   
-   INode *CreateBone(const tstring& name, Point3 startPos, Point3 endPos, Point3 zAxis);
-   INode *CreateHelper(const tstring& name, Point3 startPos);
-   INode *CreateCamera(const tstring& name);
+	typedef map<Niflib::NiObjectNETRef, INode*> NodeToNodeMap;
+	typedef map<tstring, INode*, ltstr> NameToNodeMap;
+	NodeToNodeMap nodeMap;
+	NameToNodeMap nodeNameMap;
 
-   INode *CreateImportNode(const TCHAR *name, Object *obj, INode* parent);
 
-   bool ImportLights(Niflib::NiNodeRef node);
-   bool ImportLights(vector<Niflib::NiLightRef> lights);
+	NifImporter(const TCHAR *Name, ImpInterface *I, Interface *GI, BOOL SuppressPrompts);
+	virtual void Initialize();
+	virtual void ReadBlocks();
+	void BuildNodes();
+	void BuildNodes(Niflib::NiNodeRef object, vector<Niflib::NiNodeRef>& nodes);
 
-   // Primary Collision entry point.  Tests for bhk objects
-   bool ImportCollision(Niflib::NiNodeRef node);
+	// Ini File related routines
+	virtual void LoadIniSettings();
+	virtual void SaveIniSettings();
 
-   void RegisterNode(Niflib::NiObjectNETRef node, INode* inode);
-   INode *FindNode(Niflib::NiObjectNETRef node);
+	void ApplyAppSettings(bool initialize = false);
 
-   INode *GetNode(Niflib::NiNodeRef node);
-   INode *GetNode(Niflib::NiObjectNETRef obj);
+	bool HasSkeleton();
+	bool IsBiped();
+	void ImportBones(vector<Niflib::NiNodeRef>& bones);
+	void ImportBones(Niflib::NiNodeRef blocks, bool recurse = true);
+	void ImportBipeds(vector<Niflib::NiNodeRef>& blocks);
+	void AlignBiped(IBipMaster* master, Niflib::NiNodeRef block);
+	bool ImportMeshes(Niflib::NiNodeRef block);
+	tstring FindImage(const tstring& name);
 
-   void RegisterNode(const string& name, INode* inode);
-   void RegisterNode(const wstring& name, INode* inode);
-   INode *GetNode(const string& name);
-   INode *GetNode(const wstring& name);
-   INode *GetNode(const TSTR& name);
+	bool ImportUPB(INode *node, Niflib::NiNodeRef block);
 
-   void SetNodeName(INode* inode, const LPCTSTR name);
+	void SetTriangles(Mesh& mesh, const vector<Niflib::Triangle>& v);
+	void SetNormals(Mesh& mesh, const vector<Niflib::Triangle>& t, const vector<Niflib::Vector3>& v);
 
-   tstring GetSkeleton(AppSettings *appSettings);
+	bool ImportMesh(Niflib::NiTriShapeRef triShape);
+	bool ImportMesh(Niflib::NiTriStripsRef triStrips);
+	bool ImportMultipleGeometry(Niflib::NiNodeRef parent, vector<Niflib::NiTriBasedGeomRef>& glist);
+	StdMat2 *ImportMaterialAndTextures(ImpNode *node, Niflib::NiAVObjectRef avObject);
+	bool ImportMaterialAndTextures(ImpNode *node, vector<Niflib::NiTriBasedGeomRef>& glist);
+	bool ImportNiftoolsShader(ImpNode *node, Niflib::NiAVObjectRef avObject, StdMat2 *m);
+	bool ImportTransform(ImpNode *node, Niflib::NiAVObjectRef avObject);
+	bool ImportMesh(ImpNode *node, TriObject *o, Niflib::NiTriBasedGeomRef triGeom, Niflib::NiTriBasedGeomDataRef triGeomData, vector<Niflib::Triangle>& tris);
+	bool ImportVertexColor(INode *tnode, TriObject *o, vector<Niflib::Triangle>& tris, vector<Niflib::Color4> cv, int cv_offset = 0);
+	bool ImportSkin(ImpNode *node, Niflib::NiTriBasedGeomRef triGeom, int v_start = 0);
 
-   bool ShowDialog();
-   virtual bool DoImport();
+	bool ImportSpecialNodes();
+	bool ImportParticleSystems(Niflib::NiNodeRef root);
+	bool ImportParticleSystem(Niflib::NiParticleSystemRef particleSystem);
+	SimpleObject* ImportPCloud(Niflib::NiParticleSystemRef particleSystem);
+	INode* CreateGravityWarp(Niflib::NiPSysGravityModifierRef gravModifier, INode* parentNode);
 
-   // Animation Helpers
-   bool ImportAnimation();
-   void ClearAnimation();
-   void ClearAnimation(INode *node);
-   bool AddNoteTracks(float time, string name, string target, Niflib::Ref<Niflib::NiTextKeyExtraData> textKeyData, bool loop);
+	Texmap* CreateTexture(Niflib::TexDesc& desc);
+	Texmap* CreateTexture(const Niflib::NiTexturePropertyRef& desc);
+	Texmap* CreateTexture(const tstring& name, TexClampMode mode=WRAP_S_WRAP_T, TexCoord offset = TexCoord(0.0f, 0.0f), TexCoord tiling = TexCoord(1.0f, 1.0f));
+	Texmap* CreateNormalBump(LPCTSTR name, Texmap* nmap);
+	Texmap* CreateMask(LPCTSTR name, Texmap* nmap, Texmap* mask);
 
-   void WeldVertices(Mesh& mesh);
+	INode *CreateBone(const tstring& name, Point3 startPos, Point3 endPos, Point3 zAxis);
+	INode *CreateHelper(const tstring& name, Point3 startPos);
+	INode *CreateCamera(const tstring& name);
 
-   bool IsSkyrim() const;
+	INode *CreateImportNode(const TCHAR *name, Object *obj, INode* parent);
+
+	bool ImportLights(Niflib::NiNodeRef node);
+	bool ImportLights(vector<Niflib::NiLightRef> lights);
+
+	// Primary Collision entry point.  Tests for bhk objects
+	bool ImportCollision(Niflib::NiNodeRef node);
+
+	void RegisterNode(Niflib::NiObjectNETRef node, INode* inode);
+	INode *FindNode(Niflib::NiObjectNETRef node);
+
+	INode *GetNode(Niflib::NiNodeRef node);
+	INode *GetNode(Niflib::NiObjectNETRef obj);
+
+	void RegisterNode(const string& name, INode* inode);
+	void RegisterNode(const wstring& name, INode* inode);
+	INode *GetNode(const string& name);
+	INode *GetNode(const wstring& name);
+	INode *GetNode(const TSTR& name);
+
+	void SetNodeName(INode* inode, const LPCTSTR name);
+
+	tstring GetSkeleton(AppSettings *appSettings);
+
+	bool ShowDialog();
+	virtual bool DoImport();
+
+	// Animation Helpers
+	bool ImportAnimation();
+	void ClearAnimation();
+	void ClearAnimation(INode *node);
+	bool AddNoteTracks(float time, string name, string target, Ref<NiTextKeyExtraData> textKeyData, bool loop);
+
+	bool GetControllerTimeRange(Control *c, Interval& range);
+	bool GetControllerTimeRange(const NiTimeControllerRef& controller, Interval& range);
+	bool GetControllerTimeRange(const list<NiTimeControllerRef>& controllers, Interval& range);
+
+	bool ImportMtlAndTexAnimation( const list<NiTimeControllerRef>& controllers, Mtl* mat );
+	bool ImportTextureAnimation( int subAnimID, KeyType keyType, vector<FloatKey> keys, Texmap* tex );
+	bool ImportMaterialAnimation( int paramBlockID, int subAnimID, KeyType keyType, vector<FloatKey> keys, Mtl* mtl );
+	Texmap* GetMaterialTextureSubMap(Mtl* mat, int id);
+
+	void WeldVertices(Mesh& mesh);
+
+	bool IsSkyrim() const;
 	bool IsFallout3() const;
 	bool IsOblivion() const;
 	bool IsMorrowind() const;
 
-   protected: 
-      NifImporter();
+protected:
+	NifImporter();
 };
 
 #endif

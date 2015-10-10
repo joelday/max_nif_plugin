@@ -176,6 +176,8 @@ void Exporter::readConfig(Interface *i)
 
       mStartNifskopeAfterStart = GetIniValue(NifExportSection, TEXT("StartNifskopeAfterStart"), false, iniName);
       mNifskopeDir = ExpandEnvironment(GetIndirectValue(GetIniValue<tstring>(TEXT("System"), TEXT("NifskopeDir"), TEXT(""), iniName).c_str()));
+      if (mNifskopeDir.empty())
+          mNifskopeDir = ExpandEnvironment(GetIndirectValue(GetIniValue<tstring>(TEXT("System"), TEXT("AltNifskopeDir"), TEXT(""), iniName).c_str()));
       mTriPartStrips = GetIniValue<bool>(NifExportSection, TEXT("GeneratePartitionStrips"), true, iniName);
 
 	  mRootType = GetIniValue<tstring>(NifExportSection, TEXT("RootType"), TEXT("NiNode"), iniName);

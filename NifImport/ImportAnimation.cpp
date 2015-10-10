@@ -43,6 +43,8 @@ HISTORY:
 #include <obj/NiFloatInterpolator.h>
 #include <obj/NiFloatData.h>
 #include "niutils.h"
+#include <obj/BSLightingShaderPropertyFloatController.h>
+#include <obj/BSEffectShaderPropertyFloatController.h>
 using namespace Niflib;
 
 const Class_ID IPOS_CONTROL_CLASS_ID = Class_ID(0x118f7e02, 0xffee238a);
@@ -227,8 +229,9 @@ void NifImporter::ClearAnimation()
 	}
 }
 
-static void GetTimeRange(Control *c, Interval& range)
+static bool GetTimeRange(Control *c, Interval& range)
 {
+	bool ok = false;
 	if (c->IsKeyable())
 	{
 		int iNumKeys = c->NumKeys();
@@ -243,6 +246,7 @@ static void GetTimeRange(Control *c, Interval& range)
 				if (t > range.End())
 					range.SetEnd(t);
 			}
+			ok = true;
 		}
 		if (range.Empty())
 		{
@@ -260,6 +264,7 @@ static void GetTimeRange(Control *c, Interval& range)
 						if (key->time > range.End())
 							range.SetEnd(key->time);
 					}
+					ok = true;
 				}
 			}
 		}
@@ -297,10 +302,12 @@ static void GetTimeRange(Control *c, Interval& range)
 			//}
 		}
 	}
+	return ok;
 }
 
-static void GetTimeRange(INode *node, Interval& range, bool recursive = true)
+static bool GetTimeRange(INode *node, Interval& range, bool recursive = true)
 {
+	bool ok = false;
 	int nTracks = node->NumNoteTracks();
 
 	// Populate Text keys and Sequence information from note tracks
@@ -320,6 +327,7 @@ static void GetTimeRange(INode *node, Interval& range, bool recursive = true)
 							if (key->time > range.End())
 								range.SetEnd(key->time);
 						}
+						ok = true;
 					}
 				}
 			}
@@ -327,37 +335,38 @@ static void GetTimeRange(INode *node, Interval& range, bool recursive = true)
 	}
 	if (Control* c = node->GetTMController())
 	{
-		GetTimeRange(c, range);
+		ok |= GetTimeRange(c, range);
 
 #if VERSION_3DSMAX > ((5000<<16)+(15<<8)+0) // Version 5
 		if (Control *sc = c->GetWController()) {
 			GetTimeRange(sc, range);
-			if (sc != c) GetTimeRange(sc, range);
+			if (sc != c) ok |= GetTimeRange(sc, range);
 		}
 #endif
 		if (Control *sc = c->GetXController()) {
-			if (sc != c) GetTimeRange(sc, range);
+			if (sc != c) ok |= GetTimeRange(sc, range);
 		}
 		if (Control *sc = c->GetYController()) {
-			if (sc != c) GetTimeRange(sc, range);
+			if (sc != c) ok |= GetTimeRange(sc, range);
 		}
 		if (Control *sc = c->GetZController()) {
-			if (sc != c) GetTimeRange(sc, range);
+			if (sc != c) ok |= GetTimeRange(sc, range);
 		}
 		if (Control *sc = c->GetRotationController()) {
-			if (sc != c) GetTimeRange(sc, range);
+			if (sc != c) ok |= GetTimeRange(sc, range);
 		}
 		if (Control *sc = c->GetPositionController()) {
-			if (sc != c) GetTimeRange(sc, range);
+			if (sc != c) ok |= GetTimeRange(sc, range);
 		}
 		if (Control *sc = c->GetScaleController()) {
-			if (sc != c) GetTimeRange(sc, range);
+			if (sc != c) ok |= GetTimeRange(sc, range);
 		}
 	}
 	if (recursive) {
 		for (int i = 0; i < node->NumberOfChildren(); i++)
-			GetTimeRange(node->GetChildNode(i), range, true);
+			ok |= GetTimeRange(node->GetChildNode(i), range, true);
 	}
+	return ok;
 }
 
 #if 0
@@ -1397,3 +1406,168 @@ INode *AnimationImport::CreateGeoMesh(
 	return returnNode;
 }
 
+
+bool NifImporter::ImportMtlAndTexAnimation( const std::list<NiTimeControllerRef>& controllers, Mtl* mat )
+{
+	for( list<NiTimeControllerRef>::const_iterator itr = controllers.begin( ); itr != controllers.end( ); ++itr )
+	{
+		if( NiSingleInterpControllerRef interpCtrl = DynamicCast<NiSingleInterpController>( (*itr) ) )
+		{
+			if( NiFloatInterpolatorRef flInterp = DynamicCast<NiFloatInterpolator>( interpCtrl->GetInterpolator( ) ) )
+			{
+				int subAnimID = 0;
+				std::vector<FloatKey> keys = flInterp->GetData( )->GetKeys( );
+				Texmap* diffTex = GetMaterialTextureSubMap(mat, ID_DI);
+				if (diffTex == nullptr)
+					continue;
+
+				KeyType keyType = flInterp->GetData( )->GetKeyType( );
+				if( BSLightingShaderPropertyFloatControllerRef ctrl = DynamicCast<BSLightingShaderPropertyFloatController>( interpCtrl ) )
+				{
+					switch( ctrl->GetTypeOfControlledVariable() )
+					{
+					case LSCV_U_OFFSET:
+						ImportTextureAnimation( 0, keyType, keys, diffTex );
+						break;
+
+					case LSCV_V_OFFSET:
+						ImportTextureAnimation( 1, keyType, keys, diffTex );
+						break;
+
+					case LSCV_U_SCALE:
+						ImportTextureAnimation( 2, keyType, keys, diffTex );
+						break;
+
+					case LSCV_V_SCALE:
+						ImportTextureAnimation( 3, keyType, keys, diffTex );
+						break;
+
+					default:
+						continue;
+					}
+				}
+				else if( BSEffectShaderPropertyFloatControllerRef ctrl = DynamicCast<BSEffectShaderPropertyFloatController>( interpCtrl ) )
+				{
+					switch( ctrl->GetTypeOfControlledVariable() )
+					{
+					case ESCV_U_OFFSET:
+						ImportTextureAnimation( 0, keyType, keys, diffTex );
+						break;
+
+					case ESCV_V_OFFSET:
+						ImportTextureAnimation( 1, keyType, keys, diffTex );
+						break;
+
+					case ESCV_U_SCALE:
+						ImportTextureAnimation( 2, keyType, keys, diffTex );
+						break;
+
+					case ESCV_V_SCALE:
+						ImportTextureAnimation( 3, keyType, keys, diffTex );
+						break;
+
+					case ESCV_ALPHA_TRANSPARENCY:
+						ImportMaterialAnimation( 2, 0, keyType, keys, mat );
+						break;
+
+					default:
+						continue;
+					}
+				}
+			}
+		}
+	}
+
+	return true;
+}
+
+bool NifImporter::ImportTextureAnimation( int subAnimID, Niflib::KeyType keyType, std::vector<FloatKey> keys, Texmap* tex )
+{
+	StdUVGen* stdUVGen = (StdUVGen*) tex->GetTheUVGen( );
+
+	if( keyType == Niflib::QUADRATIC_KEY )
+	{
+		if( Control* tmpCtrl = (Control*) gi->CreateInstance( CTRL_FLOAT_CLASS_ID, Class_ID( HYBRIDINTERP_FLOAT_CLASS_ID, 0 ) ) )
+		{
+			MergeKeys<IBezFloatKey, FloatKey>( tmpCtrl, keys, 0.0f );
+			stdUVGen->SubAnim( 0 )->AssignController( tmpCtrl, subAnimID );
+
+			return true;
+		}
+	}
+	else if (keyType == Niflib::LINEAR_KEY)
+	{
+		if (Control* tmpCtrl = (Control*)gi->CreateInstance(CTRL_FLOAT_CLASS_ID, Class_ID(LININTERP_FLOAT_CLASS_ID, 0)))
+		{
+			MergeKeys<ILinFloatKey, FloatKey>(tmpCtrl, keys, 0.0f);
+			stdUVGen->SubAnim(0)->AssignController(tmpCtrl, subAnimID);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool NifImporter::ImportMaterialAnimation( int paramBlockID, int subAnimID, Niflib::KeyType keyType, std::vector<FloatKey> keys, Mtl* mtl )
+{
+	if( keyType == Niflib::QUADRATIC_KEY )
+	{
+		if( Control* tmpCtrl = (Control*) gi->CreateInstance( CTRL_FLOAT_CLASS_ID, Class_ID( HYBRIDINTERP_FLOAT_CLASS_ID, 0 ) ) )
+		{
+			MergeKeys<IBezFloatKey, FloatKey>( tmpCtrl, keys, 0.0f );
+			MSTR str = mtl->SubAnim( paramBlockID )->SubAnimName( subAnimID );
+			mtl->SubAnim( paramBlockID )->AssignController( tmpCtrl, subAnimID );
+			
+			return true;
+		}
+	}
+	else if (keyType == Niflib::LINEAR_KEY)
+	{
+		if (Control* tmpCtrl = (Control*)gi->CreateInstance(CTRL_FLOAT_CLASS_ID, Class_ID(LININTERP_FLOAT_CLASS_ID, 0)))
+		{
+			MergeKeys<ILinFloatKey, FloatKey>(tmpCtrl, keys, 0.0f);
+			mtl->SubAnim(paramBlockID)->AssignController(tmpCtrl, subAnimID);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool NifImporter::GetControllerTimeRange(Control *c, Interval& range)
+{
+	return ::GetTimeRange(c, range);
+}
+
+bool NifImporter::GetControllerTimeRange(const NiTimeControllerRef& controller, Interval& range)
+{
+	if (NiSingleInterpControllerRef interpCtrl = DynamicCast<NiSingleInterpController>(controller))
+	{
+		TimeValue minTime = TimeToFrame(interpCtrl->GetStartTime());
+		TimeValue maxTime = TimeToFrame(interpCtrl->GetStopTime());
+		if (minTime != maxTime)
+		{
+			if (range.IsInfinite() || range.Empty())
+			{
+				range.Set(minTime, maxTime);
+			}
+			else
+			{
+				if (range.Start() > minTime)
+					range.SetStart(minTime);
+				if (range.End() < maxTime)
+					range.SetStart(maxTime);
+			}
+		}
+		return true;
+	}
+	return false;
+}
+
+bool NifImporter::GetControllerTimeRange(const std::list<NiTimeControllerRef>& controllers, Interval& range)
+{
+	bool ok = false;
+	for (list<NiTimeControllerRef>::const_iterator itr = controllers.begin(); itr != controllers.end(); ++itr) {
+		ok |= GetControllerTimeRange((*itr), range);
+	}
+	return ok;
+}

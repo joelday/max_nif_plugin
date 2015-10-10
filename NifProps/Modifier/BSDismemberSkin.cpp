@@ -565,32 +565,32 @@ static ParamBlockDesc2 BSDS_desc(ms_pblock,
 
 	// params
 	ms_by_vertex, _T("byVertex"), TYPE_BOOL, P_RESET_DEFAULT, IDS_BY_VERTEX,
-		p_default, false,
-		p_ui, ms_map_main, TYPE_SINGLECHEKBOX, IDC_MS_SEL_BYVERT,
-		p_end,
+	p_default, false,
+	p_ui, ms_map_main, TYPE_SINGLECHEKBOX, IDC_MS_SEL_BYVERT,
+	p_end,
 
 	ms_ignore_backfacing, _T("ignoreBackfacing"), TYPE_BOOL, P_RESET_DEFAULT, IDS_IGNORE_BACKFACING,
-		p_default, false,
-		p_ui, ms_map_main, TYPE_SINGLECHEKBOX, IDC_MS_IGNORE_BACKFACES,
-		p_end,
+	p_default, false,
+	p_ui, ms_map_main, TYPE_SINGLECHEKBOX, IDC_MS_IGNORE_BACKFACES,
+	p_end,
 
 	ms_matid, _T("materialID"), TYPE_INT, P_TRANSIENT | P_RESET_DEFAULT, IDS_RB_MATERIALID,
-		p_default, 1,
-		p_range, 1, 65535,
-		p_ui, ms_map_main, TYPE_SPINNER, EDITTYPE_INT, IDC_MS_MATID, IDC_MS_MATIDSPIN, .5f,
-		p_end,
+	p_default, 1,
+	p_range, 1, 65535,
+	p_ui, ms_map_main, TYPE_SPINNER, EDITTYPE_INT, IDC_MS_MATID, IDC_MS_MATIDSPIN, .5f,
+	p_end,
 
 	ms_ignore_visible, _T("ignoreVisibleEdges"), TYPE_BOOL, P_RESET_DEFAULT, IDS_IGNORE_VISIBLE,
-		p_default, false,
-		p_ui, ms_map_main, TYPE_SINGLECHEKBOX, IDC_MS_IGNORE_VISEDGE,
-		p_end,
+	p_default, false,
+	p_ui, ms_map_main, TYPE_SINGLECHEKBOX, IDC_MS_IGNORE_VISEDGE,
+	p_end,
 
 	ms_planar_threshold, _T("planarThreshold"), TYPE_ANGLE, P_RESET_DEFAULT, IDS_RB_THRESHOLD,
-		p_default, PI / 4.0f,	// Default value for angles has to be in radians.
-		p_range, 0.0f, 180.0f,	// but range given in degrees.
-		p_ui, ms_map_main, TYPE_SPINNER, EDITTYPE_POS_FLOAT, IDC_MS_PLANAR, IDC_MS_PLANARSPINNER, .1f,
-		p_end,
-		p_end
+	p_default, PI / 4.0f,	// Default value for angles has to be in radians.
+	p_range, 0.0f, 180.0f,	// but range given in degrees.
+	p_ui, ms_map_main, TYPE_SPINNER, EDITTYPE_POS_FLOAT, IDC_MS_PLANAR, IDC_MS_PLANARSPINNER, .1f,
+	p_end,
+	p_end
 	);
 
 static BSDSClassDesc BSDSDesc;
@@ -2141,7 +2141,13 @@ Modifier *GetOrCreateBSDismemberSkin(INode *node)
 	if (skinMod)
 		return skinMod;
 
-	IDerivedObject *dobj = CreateDerivedObject(node->GetObjectRef());
+	Object *pObj = node->GetObjectRef();
+	IDerivedObject *dobj = nullptr;
+	if (pObj->SuperClassID() == GEN_DERIVOB_CLASS_ID)
+		dobj = static_cast<IDerivedObject*>(pObj);
+	else {
+		dobj = CreateDerivedObject(pObj);
+	}
 	//create a skin modifier and add it
 	skinMod = (Modifier*)CreateInstance(OSM_CLASS_ID, BSDSMODIFIER_CLASS_ID);
 	dobj->SetAFlag(A_LOCK_TARGET);

@@ -545,6 +545,14 @@ static inline Niflib::Color3 TOCOLOR3(const Point3& c3) {
    return Niflib::Color3(c3.x, c3.y, c3.z);
 }
 
+static inline Color TOCOLOR(const Niflib::Color4& c3) {
+	return Color(c3.r, c3.g, c3.b);
+}
+
+static inline Niflib::Color4 TOCOLOR4(const Color& c3) {
+	return Niflib::Color4(c3.r, c3.g, c3.b);
+}
+
 static inline Point3 TOPOINT3(const Niflib::Color3& c3){
    return Point3(c3.r, c3.g, c3.b);
 }

@@ -1542,6 +1542,7 @@
     <ClCompile Include="..\NifImport\ImportLights.cpp" />
     <ClCompile Include="..\NifImport\ImportMeshAndSkin.cpp" />
     <ClCompile Include="..\NifImport\ImportMtlAndTex.cpp" />
+    <ClCompile Include="..\NifImport\ImportParticles.cpp" />
     <ClCompile Include="..\NifImport\ImportSkeleton.cpp" />
     <ClCompile Include="..\NifImport\KfDialog.cpp" />
     <ClCompile Include="..\NifImport\KFImporter.cpp" />

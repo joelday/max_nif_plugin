@@ -23,6 +23,7 @@ HISTORY:
 #include <obj/NiBillboardNode.h>
 #include <float.h>
 #include <dummy.h>
+#include <obj/NiSwitchNode.h>
 
 using namespace Niflib;
 
@@ -792,3 +793,73 @@ bool NifImporter::ImportUPB(INode *node, Niflib::NiNodeRef block)
 	}
 	return ok;
 }
+#if 0
+bool NifImporter::ImportSpecialNodes( )
+{
+	// Parameter and ParamBlock IDs
+	enum { switchnode_params, };  // pblock2 ID
+	enum 
+	{ 
+		PB_NUMBRANCHES,
+		PB_ACTIVEBRANCH,
+		PB_ACTIVECHILDREN,
+		PB_UPDATEACTIVE,
+		PB_VIEWALL,
+		PB_BRANCHIDX,
+		PB_CHILDIDX,
+		PB_NUMCHILDREN,
+		PB_SETCHILD,
+		PB_GETCHILD,
+	};
+
+	for( std::vector<Niflib::NiNodeRef>::iterator itr = specialNodes.begin( ); itr != specialNodes.end( ); ++itr )
+	{
+		if( (*itr)->IsDerivedType( Niflib::NiSwitchNode::TYPE ) )
+		{
+			if( Niflib::NiSwitchNodeRef node = Niflib::DynamicCast<Niflib::NiSwitchNode>( (*itr) ) )
+			{
+				INode* inode = FindNode( node );
+				if( HelperObject* switchObj = (HelperObject*) gi->CreateInstance( HELPER_CLASS_ID, Class_ID( 0x3f071130, 0x5c1973a0 ) ) )
+				{
+					inode->SetObjectRef( switchObj );
+					inode->ShowBone( 0 );
+
+					IParamBlock2* pblock2 = switchObj->GetParamBlockByID( switchnode_params );
+
+					int numChildren = inode->NumberOfChildren( );
+					pblock2->SetValue( PB_NUMBRANCHES, 0, numChildren );
+					
+					for( int i = 0; i < numChildren; i++ )
+					{
+						INode* child = inode->GetChildNode( 0 );
+						INode* subChild = NULL;
+						int numSubChildren = child->NumberOfChildren( );
+
+						for( int j = 0; j < numSubChildren; j++ )
+						{
+							subChild = child->GetChildNode( 0 );
+							subChild->Detach( 0 );
+
+							pblock2->SetValue( PB_BRANCHIDX, 0, i );
+							pblock2->SetValue( PB_CHILDIDX, 0, j );
+							pblock2->SetValue( PB_SETCHILD, 0, subChild );
+						}
+
+						child->Detach( 0 );
+						child->Delete( 0, FALSE );
+					}
+
+					int activeIndex = node->GetActiveIndex( );
+					pblock2->SetValue( PB_ACTIVEBRANCH, 0, activeIndex );
+
+					Niflib::SwitchNodeFlags flags = node->GetSwitchFlags( );
+					if( ( flags & Niflib::SN_UPDATEONLYACTIVE ) == Niflib::SN_UPDATEONLYACTIVE )
+						pblock2->SetValue( PB_UPDATEACTIVE, 0, TRUE );
+				}
+			}
+		}
+	}
+
+	return true;
+}
+#endif

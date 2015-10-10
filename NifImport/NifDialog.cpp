@@ -72,7 +72,7 @@ static INT_PTR CALLBACK MaxNifImportOptionsDlgProc(HWND hWnd,UINT message,WPARAM
             CheckDlgButton(hWnd, IDC_CHK_AUTO_DETECT, imp->autoDetect);
 
             SHAutoComplete(GetDlgItem(hWnd, IDC_ED_SKELETON), SHACF_FILESYSTEM);
-            if (imp->HasSkeleton() && imp->appSettings && imp->importSkeleton) {
+            if (imp->appSettings && imp->importSkeleton) {
                SetDlgItemText(hWnd, IDC_ED_SKELETON, imp->skeleton.c_str());
             } else {
                EnableWindow(GetDlgItem(hWnd, IDC_STC_SKELETON), FALSE);
