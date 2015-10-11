@@ -711,33 +711,34 @@ bool CollisionImport::ImportCompressedMeshShape(INode *rbody, bhkRigidBodyRef bo
 
 		Matrix3 ltm(true);
 		int i = 0;
-		auto materials = data->GetChunkMaterials();
-		auto transforms = data->GetChunkTransforms();
-		auto chunks = data->GetChunks();
-		auto n = chunks.size();
-		for(auto chunk : chunks)
+		const vector<bhkCMSDMaterial>& materials = data->GetChunkMaterials();
+		const vector<bhkCMSDTransform>& transforms = data->GetChunkTransforms();
+		const vector<bhkCMSDChunk>& chunks = data->GetChunks();
+		size_t n = chunks.size();
+		for(const bhkCMSDChunk& chunk : chunks)
 		{
-			auto chunkOrigin = TOVECTOR3(chunk.translation);
-			auto numOffsets = chunk.numVertices;
-			auto numIndices = chunk.numIndices;
-			auto numStrips = chunk.numStrips;
-			auto offsets = chunk.vertices;
-			auto indices = chunk.indices;
-			auto strips = chunk.strips;
+			Vector3 chunkOrigin = TOVECTOR3(chunk.translation);
+			int numOffsets = chunk.numVertices;
+			int numIndices = chunk.numIndices;
+			int numStrips = chunk.numStrips;
+			const vector<unsigned short>& offsets = chunk.vertices;
+			const vector<unsigned short>& indices = chunk.indices;
+			const vector<unsigned short>& strips = chunk.strips;
 
 			vector<Vector3> verts(numOffsets/3);
 			int numStripVerts = 0;
 			int offset = 0;
 
-			for (auto v = 0; v < numStrips; v++)
+			for (int v = 0; v < numStrips; v++)
 				numStripVerts += strips[v];
 
-			auto transform = transforms[chunk.transformIndex];
-			auto material = materials[chunk.materialIndex];
+			const bhkCMSDTransform& transform = transforms[chunk.transformIndex];
+			const bhkCMSDMaterial& material = materials[chunk.materialIndex];
 			int mtlIdx = GetHavokIndexFromSkyrimMaterial(material.skyrimMaterial);
 			int lyrIdx = GetHavokIndexFromSkyrimLayer(material.skyrimLayer);
 
-			for (auto n = 0; n < (numOffsets / 3); n++) {
+			int n = 0;
+			for (n = 0; n < (numOffsets / 3); n++) {
 				verts[n] = chunkOrigin + Vector3(offsets[3 * n], offsets[3 * n + 1], offsets[3 * n + 2]) / 1000.0f;
 				//verts[n] *= ni.bhkScaleFactor;
 			}

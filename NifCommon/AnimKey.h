@@ -127,7 +127,7 @@ inline void SetKeys(Control *subCtrl, vector<U>& keys, float time)
 {
    if (subCtrl && !keys.empty()){
       if (IKeyControl *ikeys = GetKeyControlInterface(subCtrl)){
-         ikeys->SetNumKeys(keys.size());
+         ikeys->SetNumKeys(static_cast<int>(keys.size()));
          for (int i=0,n=keys.size(); i<n; ++i) {
             ikeys->SetKey(i, &MapKey<T>(keys[i], time));
          }

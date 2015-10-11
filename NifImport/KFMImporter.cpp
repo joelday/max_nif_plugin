@@ -12,6 +12,16 @@ KFMImporter::KFMImporter(const TCHAR *Name,ImpInterface *I,Interface *GI, BOOL S
    BaseInit(Name, I, GI, SuppressPrompts);
 }
 
+KFMImporter::KFMImporter(const vector<Ref<NiControllerSequence > >& roots, ImpInterface *I, Interface *GI, BOOL SuppressPrompts)
+{
+	i = I;
+	gi = GI;
+	suppressPrompts = SuppressPrompts;
+	kf = roots;
+	LoadIniSettings();
+	Initialize();
+}
+
 KFMImporter::KFMImporter()
 {
 }

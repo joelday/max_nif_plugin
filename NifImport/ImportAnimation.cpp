@@ -45,6 +45,8 @@ HISTORY:
 #include "niutils.h"
 #include <obj/BSLightingShaderPropertyFloatController.h>
 #include <obj/BSEffectShaderPropertyFloatController.h>
+#include <obj/NiMultiTargetTransformController.h>
+#include <obj/NiControllerManager.h>
 using namespace Niflib;
 
 const Class_ID IPOS_CONTROL_CLASS_ID = Class_ID(0x118f7e02, 0xffee238a);
@@ -963,6 +965,18 @@ bool AnimationImport::AddValues(NiObjectNETRef nref)
 		if (NiKeyframeDataRef kfData = kf->GetData()) {
 			if (Control *c = GetTMController(nref))
 				ok |= AddValues(c, kfData, time);
+		}
+	}
+	if (NiControllerManagerRef cmgr = SelectFirstObjectOfType<NiControllerManager>(clist)) {
+		try
+		{
+			KFMImporter kfImport(cmgr->GetControllerSequences(), ni.i, ni.gi, TRUE);
+			kfImport.enableAnimations = true;
+			kfImport.ImportAnimation();
+		}
+		catch (RuntimeError &error)
+		{
+			// ignore import errors and continue
 		}
 	}
 	if (NiGeomMorpherControllerRef gmc = SelectFirstObjectOfType<NiGeomMorpherController>(clist)) {
