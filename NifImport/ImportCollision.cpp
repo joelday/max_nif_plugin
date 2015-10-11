@@ -218,9 +218,18 @@ INode* CollisionImport::CreateRigidBody(bhkRigidBodyRef body, INode *parent, Mat
 		TSTR clsName;
 		listObj->GetClassName(clsName);
 		if (INode *n = ni.CreateImportNode(clsName, listObj, parent)) {
-			Point3 pos = TOPOINT3(body->GetTranslation()* ni.bhkScaleFactor);
+			// This is world transform not local so calculate from parent
+			Point3 pos = TOPOINT3(body->GetTranslation() * ni.bhkScaleFactor);
 			Quat q = TOQUAT(body->GetRotation(), true);
-			PosRotScaleNode(n, pos, q, 1.0f, prsDefault);
+
+			Matrix3 qm(true);
+			q.MakeMatrix(qm);
+			qm.Translate(pos);
+
+			Matrix3 m3p = parent->GetNodeTM(0);
+			m3p.Invert();
+			Matrix3 lm = qm * m3p;
+			PosRotScaleNode(n, lm.GetTrans(), Quat(lm), 1.0f, PosRotScale(prsPos|prsRot));
 			rbody = n;
 			if (isTransform) {
 				Matrix3 qm(true);
