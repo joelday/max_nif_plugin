@@ -51,6 +51,7 @@ enum
 extern int GetHavokIndexFromMaterials(/*HavokMaterial*/ int havk_material, /*SkyrimHavokMaterial*/ int skyrim_havok_material);
 extern int GetHavokIndexFromMaterial(int havok_material);
 extern int GetHavokIndexFromSkyrimMaterial(int skyrim_havok_material);
+extern int GetHavokIndexFromLayers(/*HavokLayer*/ int havok_layer, /*SkyrimHavokLayer*/ int skyrim_havok_layer);
 
 struct CollisionImport
 {
@@ -137,8 +138,7 @@ bool CollisionImport::ImportRigidBody(bhkRigidBodyRef body, INode* node)
 {
 	if (body == NULL)
 		return false;
-
-	int lyr = body->GetLayer();
+	int lyr = GetHavokIndexFromLayers(ni.IsSkyrim()?-1:body->GetLayer(), ni.IsSkyrim()?body->GetSkyrimLayer():-1);
 	//body->GetLayerCopy(lyr);
 	int msys = body->GetMotionSystem();
 	int qtype = body->GetQualityType();
@@ -178,7 +178,7 @@ INode* CollisionImport::CreateRigidBody(bhkRigidBodyRef body, INode *parent, Mat
 	if (body == NULL)
 		return rbody;
 
-	OblivionLayer lyr = body->GetLayer();
+	int lyr = GetHavokIndexFromLayers(ni.IsSkyrim()?-1:body->GetLayer(), ni.IsSkyrim()?body->GetSkyrimLayer():-1);
 	//body->GetLayerCopy(lyr);
 	MotionSystem msys = body->GetMotionSystem();
 	MotionQuality qtype = body->GetQualityType();
@@ -198,6 +198,7 @@ INode* CollisionImport::CreateRigidBody(bhkRigidBodyRef body, INode *parent, Mat
 		bool isTransform = false;
 		if (bhkRigidBodyInterface *irb = (bhkRigidBodyInterface *)listObj->GetInterface(BHKRIGIDBODYINTERFACE_DESC))
 		{
+			irb->SetMaterial(NP_INVALID_HVK_MATERIAL, 0);
 			irb->SetLayer(lyr, 0);
 			//irb->SetLayerCopy(lyr, 0);
 			irb->SetMotionSystem(msys, 0);
@@ -416,7 +417,7 @@ bool CollisionImport::ImportSphere(INode *rbody, bhkRigidBodyRef body, bhkSphere
 		if (IParamBlock2* pblock2 = obj->GetParamBlockByID(sphere_params))
 		{
 			float radius = shape->GetRadius();
-			int mtl = GetHavokIndexFromMaterials(shape->GetMaterial(), shape->GetSkyrimMaterial());
+			int mtl = GetHavokIndexFromMaterials(ni.IsSkyrim()?-1:shape->GetMaterial(), ni.IsSkyrim()?shape->GetSkyrimMaterial():-1);
 
 			pblock2->SetValue(PB_RADIUS, 0, radius, 0);
 			pblock2->SetValue(PB_MATERIAL, 0, mtl, 0);
@@ -468,7 +469,7 @@ bool CollisionImport::ImportBox(INode *rbody, bhkRigidBodyRef body, bhkBoxShapeR
 		if (IParamBlock2* pblock2 = obj->GetParamBlockByID(box_params))
 		{
 			float radius = shape->GetRadius();
-			int mtl = GetHavokIndexFromMaterials(shape->GetMaterial(), shape->GetSkyrimMaterial());
+			int mtl = GetHavokIndexFromMaterials(ni.IsSkyrim()?-1:shape->GetMaterial(), ni.IsSkyrim()?shape->GetSkyrimMaterial():-1);
 			Vector3 dim = shape->GetDimensions();
 
 			pblock2->SetValue(PB_MATERIAL, 0, mtl, 0);
@@ -499,7 +500,7 @@ bool CollisionImport::ImportCapsule(INode *rbody, bhkRigidBodyRef body, bhkCapsu
 		if (IParamBlock2* pblock2 = obj->GetParamBlockByID(cap_params))
 		{
 			float radius = shape->GetRadius();
-			int mtl = GetHavokIndexFromMaterials(shape->GetMaterial(), shape->GetSkyrimMaterial());
+			int mtl = GetHavokIndexFromMaterials(ni.IsSkyrim()?-1:shape->GetMaterial(), ni.IsSkyrim()?shape->GetSkyrimMaterial():-1);
 			float radius1 = shape->GetRadius1();
 			float radius2 = shape->GetRadius2();
 			Vector3 pt1 = shape->GetFirstPoint();
@@ -571,7 +572,7 @@ bool CollisionImport::ImportConvexVertices(INode *rbody, bhkRigidBodyRef body, b
 	vector<Triangle> tris = NifQHull::compute_convex_hull(verts);
 	returnNode = ImportCollisionMesh(verts, tris, norms, ltm, parent, ni.bhkScaleFactor);
 
-	int mtlIdx = GetHavokIndexFromMaterials(shape->GetMaterial(), shape->GetSkyrimMaterial());
+	int mtlIdx = GetHavokIndexFromMaterials(ni.IsSkyrim()?-1:shape->GetMaterial(), ni.IsSkyrim()?shape->GetSkyrimMaterial():-1);
 	int lyrIdx = GetHavokIndexFromLayer(OL_UNIDENTIFIED);
 	CreatebhkCollisionModifier(returnNode, bv_type_convex, mtlIdx, lyrIdx, 0);
 	ImportBase(body, shape, parent, returnNode, tm);
@@ -601,7 +602,7 @@ bool CollisionImport::ImportTriStripsShape(INode *rbody, bhkRigidBodyRef body, b
 		NiTriStripsRef triShape = new NiTriStrips();
 		vector<Triangle> tris = triShapeData->GetTriangles();
 		ni.ImportMesh(node, triObject, triShape, triShapeData, tris);
-		int mtlIdx = GetHavokIndexFromMaterials(shape->GetMaterial(), shape->GetSkyrimMaterial());
+		int mtlIdx = GetHavokIndexFromMaterials(ni.IsSkyrim()?-1:shape->GetMaterial(), ni.IsSkyrim()?shape->GetSkyrimMaterial():-1);
 		int lyrIdx = GetHavokIndexFromLayer(OL_UNIDENTIFIED);
 		CreatebhkCollisionModifier(inode, bv_type_shapes, mtlIdx, lyrIdx, 0);
 		ImportBase(body, shape, parent, inode, tm);
@@ -790,12 +791,12 @@ bool CollisionImport::ImportCompressedMeshShape(INode *rbody, bhkRigidBodyRef bo
 bool CollisionImport::ImportListShape(INode *rbody, bhkRigidBodyRef body, bhkListShapeRef shape, INode *parent, Matrix3& tm)
 {
 	bool ok = false;
-	HavokMaterial material = shape->GetMaterial();
+	int mtlIdx = GetHavokIndexFromMaterials(ni.IsSkyrim()?-1:shape->GetMaterial(), ni.IsSkyrim()?shape->GetSkyrimMaterial():-1);
 
-	const int PB_MATERIAL = 0;
+	const int PB_RB_MATERIAL = 0;
 	if (IParamBlock2* pblock2 = rbody->GetObjectRef()->GetParamBlockByID(0))
 	{
-		pblock2->SetValue(PB_MATERIAL, 0, material, 0);
+		pblock2->SetValue(PB_RB_MATERIAL, 0, mtlIdx, 0);
 	}
 
 	vector<Ref<bhkShape > > bhkshapes = shape->GetSubShapes();

@@ -163,7 +163,7 @@ static ParamBlockDesc2 param_blk (
 
     // params
     PB_MATERIAL, _T("material"), TYPE_INT, 0,	IDS_DS_MATERIAL,
-      p_default,	NP_DEFAULT_HVK_MATERIAL,
+      p_default,	NP_INVALID_HVK_MATERIAL,
       p_end,
 
 	PB_MESHLIST,   _T("meshList"),  TYPE_INODE_TAB,		0,	P_AUTO_UI|P_VARIABLE_SIZE,	IDS_MESHLIST,

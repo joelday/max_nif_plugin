@@ -246,6 +246,7 @@ static ParamUIDesc descRigidBodyParam[] = {
 const int descRigidBodyParamLength = _countof(descRigidBodyParam);
 
 static ParamBlockDescID gRigidBlockParamDesc[] = {
+   { TYPE_INT, NULL, FALSE, PB_RB_MATERIAL },
    { TYPE_INT, NULL, FALSE, PB_RB_LAYER },
    { TYPE_FLOAT, NULL, FALSE, PB_RB_MASS },
    { TYPE_FLOAT, NULL, FALSE, PB_RB_FRICTION },
@@ -351,6 +352,7 @@ IObjParam *bhkRigidBodyIfcHelper::rbip = NULL;
 bhkRigidBodyIfcHelper::bhkRigidBodyIfcHelper()
 {
    rbpblock = CreateParameterBlock(gRigidBlockParamDesc, descRigidBodyDescIDLength, 1);
+   rbpblock->SetValue(PB_RB_MATERIAL, 0, NP_DEFAULT_HVK_MATERIAL);
    rbpblock->SetValue(PB_RB_LAYER,0,NP_DEFAULT_HVK_LAYER);
    rbpblock->SetValue(PB_RB_MASS,0,NP_DEFAULT_HVK_MASS);
    rbpblock->SetValue(PB_RB_FRICTION,0,NP_DEFAULT_HVK_FRICTION);
@@ -411,6 +413,17 @@ void bhkRigidBodyIfcHelper::EndEditRBParams( IObjParam *ip, ULONG flags,Animatab
    }
 }
 
+void bhkRigidBodyIfcHelper::SetMaterial(int value, TimeValue time)
+{
+	rbpblock->SetValue(PB_RB_MATERIAL, time, value);
+}
+
+int bhkRigidBodyIfcHelper::GetMaterial(TimeValue time, Interval& valid) const
+{
+	int value = NP_DEFAULT_HVK_MATERIAL;
+	rbpblock->GetValue(PB_RB_MATERIAL, time, value, valid);
+	return value;
+}
 
 void bhkRigidBodyIfcHelper::SetLayer(int value, TimeValue time)
 {

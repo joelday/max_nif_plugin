@@ -1019,33 +1019,33 @@ bool GetHavokMaterialsFromIndex(int idx, /*HavokMaterial*/int* havk_material, /*
 int GetHavokIndexFromMaterials(/*HavokMaterial*/ int havk_material, /*SkyrimHavokMaterial*/ int skyrim_havok_material)
 {
 	for (const HavokEnumLookupType* flag = MaterialTypes; flag->name != NULL; ++flag) {
-		if (skyrim_havok_material >= 0) {
+		if (skyrim_havok_material != NP_INVALID_HVK_MATERIAL) {
 			if (skyrim_havok_material == flag->skyrimHavok)
-				return flag->value + 1; // adjust to combo indexes (includes Default)
-		} else if (havk_material >= 0) {
+				return flag->value; 
+		} else if (havk_material != NP_INVALID_HVK_MATERIAL) {
 			if (havk_material == flag->havok)
-				return flag->value + 1; // adjust to combo indexes (includes Default)
+				return flag->value;
 		}
 	}
-	return 0;
+	return NP_INVALID_HVK_MATERIAL;
 }
 
 int GetHavokIndexFromMaterial(int havok_material)
 {
 	for (auto flag = MaterialTypes; flag->name != NULL; ++flag) {
 		if (havok_material == flag->havok)
-			return flag->value + 1; // adjust to combo indexes (includes Default)
+			return flag->value; 
 	}
-	return 0;
+	return NP_INVALID_HVK_MATERIAL;
 }
 
 int GetHavokIndexFromSkyrimMaterial(int skyrim_havok_material)
 {
 	for (auto flag = MaterialTypes; flag->name != NULL; ++flag) {
 		if (skyrim_havok_material == flag->skyrimHavok)
-			return flag->value + 1; // adjust to combo indexes (includes Default)
+			return flag->value;
 	}
-	return 0;
+	return NP_INVALID_HVK_MATERIAL;
 }
 
 
@@ -1172,11 +1172,11 @@ bool GetHavokLayersFromIndex(int idx, /*HavokLayer*/int* havok_Layer, /*SkyrimHa
 int GetHavokIndexFromLayers(/*HavokLayer*/ int havok_layer, /*SkyrimHavokLayer*/ int skyrim_havok_layer)
 {
 	for (const HavokEnumLookupType* flag = LayerTypes; flag->name != NULL; ++flag) {
-		if (skyrim_havok_layer >= 0) {
+		if (skyrim_havok_layer != -1) {
 			if (skyrim_havok_layer == flag->skyrimHavok)
 				return flag->value; 
 		}
-		else if (havok_layer >= 0) {
+		else if (havok_layer != -1) {
 			if (havok_layer == flag->havok)
 				return flag->value; 
 		}
