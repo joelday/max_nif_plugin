@@ -260,6 +260,7 @@ public:
 	// creates a NiMaterialProperty
 	void                 makeMaterial(NiAVObjectRef &parent, Mtl *mtl);
 	bool                 exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl);
+	void                 updateSkinnedMaterial(NiGeometryRef shape);
 
 	/* havok & collision */
 	int                  addVertex(vector<Vector3> &verts, vector<Vector3> &vnorms, const Point3 &pt, const Point3 &norm);

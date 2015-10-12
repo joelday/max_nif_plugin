@@ -350,6 +350,8 @@
 #define IDS_LEFT_EYE_REFL_CENTER        11167
 #define IDS_RIGHT_EYE_REFL_CENTER       11168
 #define IDS_SPECULAR_STR                11169
+#define IDS_MAXCHAN_OPACITY             11170
+#define IDS_CHAN_BACKLIGHT              11171
 #define IDC_ED_CENTER_X                 11490
 #define IDC_SP_CENTER_X                 11491
 #define IDC_ED_CENTER_Y                 11492

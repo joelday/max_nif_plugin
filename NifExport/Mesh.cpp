@@ -328,7 +328,13 @@ Exporter::Result Exporter::exportMesh(NiNodeRef &ninode, INode *node, TimeValue 
 				shape->ApplyTransforms();
 			}
 
-			makeSkin(shape, node, grp->second, t);
+			if ( makeSkin(shape, node, grp->second, t) )
+			{
+				// fix material flags know that its known this has a skin
+				if (IsSkyrim()) {
+					updateSkinnedMaterial(shape);
+				}
+			}
 
 			if (geomMorpherMod) {
 				vector<Vector3> verts = shape->GetData()->GetVertices();

@@ -114,26 +114,26 @@ struct TexChannel
 };
 
 static const TexChannel texChannelNames[STD2_NMAX_TEXMAPS] = {
-   {IDS_CHAN_BASE,      IDS_MAXCHAN_DIFFUSE,       CLR_CHANNEL    },
-   {IDS_CHAN_DARK,      IDS_MAXCHAN_SELFILLUMMAP,  CLR_CHANNEL    },
-   {IDS_CHAN_DETAIL,    IDS_MAXCHAN_DETAIL,        CLR_CHANNEL    },
-   {IDS_CHAN_GLOSS,     IDS_MAXCHAN_GLOSS,         MONO_CHANNEL   },
-   {IDS_CHAN_GLOW,      IDS_MAXCHAN_GLOW,          CLR_CHANNEL    },
-   {IDS_CHAN_BUMP,      IDS_MAXCHAN_BUMP,          BUMP_CHANNEL   },
-   {IDS_CHAN_NORMAL,    IDS_MAXCHAN_NORMAL,        BUMP_CHANNEL   },
-   {IDS_CHAN_UNK2,      IDS_CHAN_UNK2,             CLR_CHANNEL    },
-   {IDS_CHAN_DECAL1,    IDS_CHAN_DECAL1,           CLR_CHANNEL    },
-   {IDS_CHAN_DECAL2,    IDS_CHAN_DECAL2,           CLR_CHANNEL    },
-   {IDS_CHAN_DECAL3,    IDS_CHAN_DECAL3,           CLR_CHANNEL    },
-   {IDS_CHAN_ENVMASK,   IDS_CHAN_ENVMASK,          CLR_CHANNEL    },
-   {IDS_CHAN_ENV,       IDS_CHAN_ENV,              CLR_CHANNEL    },
-   {IDS_CHAN_HEIGHT,    IDS_CHAN_HEIGHT,           MONO_CHANNEL   },
-   {IDS_CHAN_REFLECTION,IDS_CHAN_REFLECTION,       REFL_CHANNEL   },
-   {IDS_CHAN_OPACITY,   IDS_MAXCHAN_EMPTY,         UNSUPPORTED_CHANNEL },
-   {IDS_CHAN_SPECULAR,  IDS_CHAN_SPECULAR,         CLR_CHANNEL   },
-   {IDS_CHAN_PARALLAX,  IDS_CHAN_PARALLAX,         MONO_CHANNEL   },
-   {IDS_CHAN_EMPTY,     IDS_MAXCHAN_EMPTY,         UNSUPPORTED_CHANNEL },
-   {IDS_CHAN_EMPTY,     IDS_MAXCHAN_EMPTY,         UNSUPPORTED_CHANNEL },
+   {IDS_CHAN_BASE,      IDS_MAXCHAN_DIFFUSE,       CLR_CHANNEL    },             //C_BASE,
+   {IDS_CHAN_DARK,      IDS_MAXCHAN_SELFILLUMMAP,  CLR_CHANNEL    },			 //C_DARK,
+   {IDS_CHAN_DETAIL,    IDS_MAXCHAN_DETAIL,        CLR_CHANNEL    },			 //C_DETAIL,
+   {IDS_CHAN_GLOSS,     IDS_MAXCHAN_GLOSS,         MONO_CHANNEL   },			 //C_GLOSS,
+   {IDS_CHAN_GLOW,      IDS_MAXCHAN_GLOW,          CLR_CHANNEL    },			 //C_GLOW,
+   {IDS_CHAN_BUMP,      IDS_MAXCHAN_BUMP,          BUMP_CHANNEL   },			 //C_BUMP,
+   {IDS_CHAN_NORMAL,    IDS_MAXCHAN_NORMAL,        CLR_CHANNEL    },			 //C_NORMAL,
+   {IDS_CHAN_UNK2,      IDS_CHAN_UNK2,             CLR_CHANNEL    },			 //C_DECAL0,
+   {IDS_CHAN_DECAL1,    IDS_CHAN_DECAL1,           CLR_CHANNEL    },			 //C_DECAL1,
+   {IDS_CHAN_DECAL2,    IDS_CHAN_DECAL2,           CLR_CHANNEL    },			 //C_DECAL2,
+   {IDS_CHAN_DECAL3,    IDS_CHAN_DECAL3,           CLR_CHANNEL    },			 //C_DECAL3,
+   {IDS_CHAN_ENVMASK,   IDS_CHAN_ENVMASK,          CLR_CHANNEL    },			 //C_ENVMASK,
+   {IDS_CHAN_ENV,       IDS_CHAN_ENV,              CLR_CHANNEL    },			 //C_ENV,
+   {IDS_CHAN_HEIGHT,    IDS_CHAN_HEIGHT,           MONO_CHANNEL   },			 //C_HEIGHT,
+   {IDS_CHAN_REFLECTION,IDS_CHAN_REFLECTION,       REFL_CHANNEL   },			 //C_REFLECTION,
+   {IDS_CHAN_OPACITY,   IDS_MAXCHAN_OPACITY,       MONO_CHANNEL   },			 //C_OPACITY,
+   {IDS_CHAN_SPECULAR,  IDS_CHAN_SPECULAR,         CLR_CHANNEL    },			 //C_SPECULAR,
+   {IDS_CHAN_PARALLAX,  IDS_CHAN_PARALLAX,         MONO_CHANNEL   },			 //C_PARALLAX,
+   {IDS_CHAN_BACKLIGHT, IDS_CHAN_BACKLIGHT,        CLR_CHANNEL    },			 //C_BACKLIGHT,
+   {IDS_CHAN_EMPTY,     IDS_MAXCHAN_EMPTY,         UNSUPPORTED_CHANNEL },		   
    {IDS_CHAN_EMPTY,     IDS_MAXCHAN_EMPTY,         UNSUPPORTED_CHANNEL },
    {IDS_CHAN_EMPTY,     IDS_MAXCHAN_EMPTY,         UNSUPPORTED_CHANNEL },
    {IDS_CHAN_EMPTY,     IDS_MAXCHAN_EMPTY,         UNSUPPORTED_CHANNEL },
@@ -149,7 +149,6 @@ enum
 	C_GLOW,
 	C_BUMP,
 	C_NORMAL,
-	C_UNK2,
 	C_DECAL0,
 	C_DECAL1,
 	C_DECAL2,
@@ -161,6 +160,12 @@ enum
 	C_OPACITY,
 	C_SPECULAR,
 	C_PARALLAX,
+	C_BACKLIGHT,
+	C_RESERVED1,
+	C_RESERVED2,
+	C_RESERVED3,
+	C_RESERVED4,
+	C_RESERVED5,
 	C_MAX_SUPPORTED,
 };
 
@@ -176,10 +181,14 @@ static const int nifShaderStdIDToChannel[N_ID_CHANNELS] = {
    C_GLOW,     // 5 - self-illumination 
    C_OPACITY,  // 6 - opacity
    -1,         // 7 - filter color
-   C_NORMAL,   // 8 - bump              
+   C_BUMP,     // 8 - bump              
    C_REFLECTION,//9 - reflection        
    -1,         // 10 - refraction 
    C_HEIGHT,   // 11 - displacement
+	-1,
+	-1,
+	-1,
+	-1,
 };
 
 // Rollups
@@ -254,7 +263,7 @@ public:
 	long StdIDToChannel(long stdID) { return nifShaderStdIDToChannel[stdID]; }
 
 	//BOOL KeyAtTime(int id,TimeValue t) { return pb->KeyFrameAtTime(id,t); }
-	ULONG GetRequirements(int subMtlNum) { return MTLREQ_PHONG; }
+	ULONG GetRequirements(int subMtlNum) { return MTLREQ_TRANSP|MTLREQ_PHONG; }
 
 	ShaderParamDlg* CreateParamDialog(HWND hOldRollup, HWND hwMtlEdit, IMtlParams *imp, StdMat2* theMtl, int rollupOpen, int);
 	ShaderParamDlg* GetParamDlg(int) { return (ShaderParamDlg*)pDlg; }
@@ -578,24 +587,6 @@ RefTargetHandle NifShader::Clone(RemapDir &remap)
 	return pShader;
 }
 
-void NifShader::GetIllumParams(ShadeContext &sc, IllumParams& ip)
-{
-	ip.stdParams = SupportStdParams();
-	// ip.shFlags = selfIllumClrOn? SELFILLUM_CLR_ON : 0;
-	TimeValue t = 0;
-	ip.channels[C_BASE] = GetDiffuseClr();
-	//ip.channels[(ID_DI)] = GetDiffuseClr();
-	//ip.channels[StdIDToChannel(ID_SP)] = GetSpecularClr();
-	//ip.channels[StdIDToChannel(ID_SH)].r = GetGlossiness();
-	//ip.channels[StdIDToChannel(ID_SS)].r = GetSpecularLevel();
-	//if( IsSelfIllumClrOn() )
-	ip.channels[C_GLOW] = pb->GetColor(ns_mat_emittance, 0, 0);
-	//else
-	//   ip.channels[C_GLOW].r = ip.channels[C_GLOW].g = ip.channels[C_GLOW].b = GetSelfIllum();
-}
-
-
-
 void NifShader::Update(TimeValue t, Interval &valid) {
 	Point3 p;
 	if (!ivalid.InInterval(t)) {
@@ -629,8 +620,28 @@ void NifShader::Reset()
 ///////////////////////////////////////////////////////////////////////////////////////////
 // The Shader
 //
+//#define USE_BLINN_SHADER
+#define USE_STRAUSS_SHADER
+//#define USE_CUSTOM_SHADER
+#ifdef USE_BLINN_SHADER
 
-#if 0
+void NifShader::GetIllumParams(ShadeContext &sc, IllumParams& ip)
+{
+	ip.stdParams = SupportStdParams();
+	// ip.shFlags = selfIllumClrOn? SELFILLUM_CLR_ON : 0;
+	TimeValue t = 0;
+	ip.channels[C_BASE] = GetDiffuseClr();
+	//ip.channels[(ID_DI)] = GetDiffuseClr();
+	//ip.channels[StdIDToChannel(ID_SP)] = GetSpecularClr();
+	//ip.channels[StdIDToChannel(ID_SH)].r = GetGlossiness();
+	//ip.channels[StdIDToChannel(ID_SS)].r = GetSpecularLevel();
+	//if( IsSelfIllumClrOn() )
+	//ip.channels[C_GLOW] = pb->GetColor(ns_mat_emittance, 0, 0);
+	//else
+	//   ip.channels[C_GLOW].r = ip.channels[C_GLOW].g = ip.channels[C_GLOW].b = GetSelfIllum();
+}
+
+
 void NifShader::Illum(ShadeContext &sc, IllumParams &ip)
 {
 	LightDesc* l = NULL;
@@ -699,7 +710,8 @@ void NifShader::Illum(ShadeContext &sc, IllumParams &ip)
 void NifShader::AffectReflection(ShadeContext &sc, IllumParams &ip, Color &rcol)
 { rcol *= ip.channels[ID_SP]; };
 
-#else
+#endif
+#ifdef USE_STRAUSS_SHADER
 
 // my magic constants
 static float SpecBoost = 1.3f;
@@ -773,6 +785,25 @@ void NifShaderCombineComponents(ShadeContext &sc, IllumParams& ip)
 		+ ip.reflIllumOut + ip.transIllumOut;
 }
 
+
+void NifShader::GetIllumParams(ShadeContext &sc, IllumParams& ip)
+{
+	ip.stdParams = SupportStdParams();
+	// ip.shFlags = selfIllumClrOn? SELFILLUM_CLR_ON : 0;
+	TimeValue t = 0;
+	ip.channels[C_BASE] = GetDiffuseClr();
+	ip.channels[C_OPACITY] = Color(1.0f, 1.0f, 1.0f);
+	//ip.channels[(ID_DI)] = GetDiffuseClr();
+	//ip.channels[StdIDToChannel(ID_SP)] = GetSpecularClr();
+	//ip.channels[StdIDToChannel(ID_SH)].r = GetGlossiness();
+	//ip.channels[StdIDToChannel(ID_SS)].r = GetSpecularLevel();
+	//if( IsSelfIllumClrOn() )
+		//ip.channels[C_GLOW] = pb->GetColor(ns_mat_emittance, 0, 0);
+	//else
+	//   ip.channels[C_GLOW].r = ip.channels[C_GLOW].g = ip.channels[C_GLOW].b = GetSelfIllum();
+}
+
+
 void NifShader::Illum(ShadeContext &sc, IllumParams &ip)
 {
 	LightDesc *l;
@@ -784,7 +815,7 @@ void NifShader::Illum(ShadeContext &sc, IllumParams &ip)
 		sp.x = stopX;
 #endif
 
-	float opac = 1.0f;
+	float opac = ip.channels[C_OPACITY].r;
 	float g = ip.channels[C_GLOW].r;
 	float m = 0.0f;
 	Color Cd = ip.channels[C_BASE];
@@ -900,7 +931,115 @@ void NifShader::Illum(ShadeContext &sc, IllumParams &ip)
 
 	NifShaderCombineComponents(sc, ip);
 }
+#endif
+#ifdef USE_CUSTOM_SHADER
 
+//---------------------------------------------------------------------------
+// Called to combine the various color and shading components
+void NifShaderCombineComponents(ShadeContext &sc, IllumParams& ip)
+{
+	ip.finalC = (ip.ambIllumOut + ip.diffIllumOut + ip.selfIllumOut) + ip.specIllumOut;
+}
+
+//---------------------------------------------------------------------------
+void NifShader::GetIllumParams(ShadeContext &sc, IllumParams &ip)
+{
+	ip.stdParams = SupportStdParams();
+	ip.channels[C_BASE] = pb->GetColor(ns_mat_diffuse, 0, 0);
+	ip.channels[C_GLOW] = pb->GetColor(ns_mat_selfillumclr, 0, 0);
+	ip.channels[C_SPECULAR] = pb->GetColor(ns_mat_specular, 0, 0);
+
+}
+
+//---------------------------------------------------------------------------
+void NifShader::Illum(ShadeContext &sc, IllumParams &ip)
+{
+	LightDesc *pLight;
+	Color lightCol;
+
+	// Get our parameters our of the channels
+	Color base = ip.channels[C_BASE];
+	Color dark = ip.channels[C_DARK];
+	Color detail = ip.channels[C_DETAIL];
+	Color decal1 = ip.channels[C_DECAL1];
+	Color bump = ip.channels[C_BUMP];
+	Color gloss = ip.channels[C_GLOSS];
+	Color glow = ip.channels[C_GLOW];
+	Color reflection = ip.channels[C_REFLECTION];
+	Color specular = ip.channels[C_SPECULAR];
+	Color emittance = pb->GetColor(ns_mat_emittance);
+	int iApplyMode = pb->GetInt(ns_apply_mode);
+	bool bSpecularOn = pb->GetInt(ns_mat_specenable) != 0;
+	float fShininess = pb->GetFloat(ns_mat_shininess);
+	Color ambient = Color(pb->GetColor(ns_mat_ambient));
+
+	ip.specIllumOut.Black();
+
+	if (iApplyMode)
+	{
+		for (int i = 0; i < sc.nLights; i++)
+		{
+			register float fNdotL, fDiffCoef;
+			Point3 L;
+
+			pLight = sc.Light(i);
+#if MAX_RELEASE < 4000
+			if (pLight->Illuminate(sc, ip.N, lightCol, L, fNdotL, fDiffCoef))
+#else
+			if (pLight->Illuminate(sc, sc.Normal(), lightCol, L, fNdotL, fDiffCoef))
+#endif
+			{
+				if (pLight->ambientOnly)
+				{
+					ip.ambIllumOut += lightCol;
+					continue;
+				}
+
+				if (fNdotL <= 0.0f)
+					continue;
+
+				if (pLight->affectDiffuse)
+					ip.diffIllumOut += fDiffCoef * lightCol;
+
+				if (bSpecularOn && pLight->affectSpecular)
+				{
+#if MAX_RELEASE < 4000
+					Point3 H = Normalize(L - ip.V);
+					float c = DotProd(ip.N, H);
+#else
+					Point3 H = Normalize(L - sc.V());
+					float c = DotProd(sc.Normal(), H);
+#endif
+					if (c > 0.0f)
+					{
+						c = (float)pow(c, fShininess);
+						// c * bright * lightCol;
+						ip.specIllumOut += c * lightCol;
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		ip.ambIllumOut.Black();
+		ip.diffIllumOut.White();
+	}
+
+	ip.ambIllumOut *= ambient;
+	ip.diffIllumOut *= dark * (base * detail);  // + decal;
+	ip.selfIllumOut = emittance + glow + decal1;
+	ip.specIllumOut *= specular;
+
+	NifShaderCombineComponents(sc, ip);
+}
+
+
+//---------------------------------------------------------------------------
+void NifShader::AffectReflection(ShadeContext &sc, IllumParams &ip, Color &rcol)
+{
+	rcol *= ip.channels[C_SPECULAR];
+};
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////////

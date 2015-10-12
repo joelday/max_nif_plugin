@@ -21,11 +21,13 @@
 #include "obj/BSShaderTextureSet.h"
 #include "obj/BSLightingShaderProperty.h"
 #include "ObjectRegistry.h"
+#include <obj/BSEffectShaderProperty.h>
 
 enum {
-	C_BASE, C_DARK, C_DETAIL, C_GLOSS, C_GLOW, C_BUMP, C_NORMAL, C_UNK2,
-	C_DECAL0, C_DECAL1, C_DECAL2, C_ENVMASK, C_ENV, C_HEIGHT, C_REFLECTION, C_OPACITY,
-	C_SPECULAR, C_PARALLAX
+	C_BASE, C_DARK, C_DETAIL, C_GLOSS, C_GLOW, C_BUMP, C_NORMAL,
+	C_DECAL0, C_DECAL1, C_DECAL2, C_DECAL3, C_ENVMASK, C_ENV,
+	C_HEIGHT, C_REFLECTION, C_OPACITY, C_SPECULAR, C_PARALLAX,
+	C_BACKLIGHT,
 };
 
 static bool GetTexFullName(Texmap *texMap, TSTR& fName)
@@ -63,11 +65,28 @@ void Exporter::makeTexture(NiAVObjectRef &parent, Mtl *mtl)
 
 	if (IsSkyrim())
 	{
+		NiGeometryRef geom = DynamicCast<NiGeometry>(parent);
+
 		BSLightingShaderPropertyRef texProp = new BSLightingShaderProperty();
 
 		//0=default 1=EnvMap, 2=Glow, 5=Skin, 6=Hair, 7=Unknown, 11=Ice/Parallax, 15=Eye.
 		BSLightingShaderPropertyShaderType shaderType = Niflib::LSPST_DEFAULT;
-		texProp->SetSkyrimShaderType(shaderType);
+
+		SkyrimShaderPropertyFlags1 flags1 = (SkyrimShaderPropertyFlags1)(SLSF1_SPECULAR | SLSF1_RECIEVE_SHADOWS | SLSF1_CAST_SHADOWS | SLSF1_OWN_EMIT | SLSF1_REMAPPABLE_TEXTURES | SLSF1_ZBUFFER_TEST);
+		SkyrimShaderPropertyFlags2 flags2 = (SkyrimShaderPropertyFlags2)(SLSF2_VERTEX_COLORS | SLSF2_ZBUFFER_WRITE | SLSF2_BACK_LIGHTING);
+
+		if (geom && geom->IsSkin())
+			flags1 = (SkyrimShaderPropertyFlags1)(flags1 | SLSF1_SKINNED);
+
+		TexClampMode clampMode = WRAP_S_WRAP_T;
+		switch (bmTex->GetTextureTiling())
+		{
+		case 3: clampMode = WRAP_S_WRAP_T; break;
+		case 1: clampMode = WRAP_S_CLAMP_T; break;
+		case 2: clampMode = CLAMP_S_WRAP_T; break;
+		case 0: clampMode = CLAMP_S_CLAMP_T; break;
+		}
+		texProp->SetTextureClampMode(clampMode);
 
 		BSShaderTextureSetRef texset = new BSShaderTextureSet();
 		texProp->SetTextureSet(texset);
@@ -82,7 +101,7 @@ void Exporter::makeTexture(NiAVObjectRef &parent, Mtl *mtl)
 		texProp->SetLightingEffect2(2.0f);
 		texProp->SetEnvironmentMapScale(1.0f);
 
-		TSTR diffuseStr, normalStr, glowStr, dispStr, envStr, envMaskStr;
+		TSTR diffuseStr, normalStr, glowStr, dispStr, envStr, envMaskStr, parallaxStr, backlightStr;
 
 		if (mtl && mtl->ClassID() == Class_ID(DMTL_CLASS_ID, 0)) {
 			StdMat2 *m = (StdMat2*)mtl;
@@ -111,9 +130,9 @@ void Exporter::makeTexture(NiAVObjectRef &parent, Mtl *mtl)
 					}
 				}
 			}
-			if (m->GetMapState(ID_SP) == 2) {
-				envStr = m->GetMapName(ID_SP);
-				if (Texmap *texMap = m->GetSubTexmap(ID_SP)) {
+			if (m->GetMapState(ID_RL) == 2) {
+				envStr = m->GetMapName(ID_RL);
+				if (Texmap *texMap = m->GetSubTexmap(ID_RL)) {
 					if (texMap->ClassID() == Class_ID(MASK_CLASS_ID, 0)) {
 						Texmap *envMap = texMap->GetSubTexmap(0);
 						Texmap *envMaskMap = texMap->GetSubTexmap(1);
@@ -123,39 +142,42 @@ void Exporter::makeTexture(NiAVObjectRef &parent, Mtl *mtl)
 					else {
 						GetTexFullName(texMap, envStr);
 					}
+					shaderType = Niflib::LSPST_ENVIRONMENT_MAP;
+					flags1 = (SkyrimShaderPropertyFlags1)(flags1 | Niflib::SLSF1_ENVIRONMENT_MAPPING);
+					flags2 = (SkyrimShaderPropertyFlags2)(flags2 | Niflib::SLSF2_ENVMAP_LIGHT_FADE);
 				}
 			}
+			if (m->GetMapState(ID_SP) == 2) {
+				glowStr = m->GetMapName(ID_SP);
+				if (Texmap *texMap = m->GetSubTexmap(ID_SP)) {
+					GetTexFullName(texMap, glowStr);
+					flags1 = (SkyrimShaderPropertyFlags1)(flags1 | Niflib::SLSF1_MODEL_SPACE_NORMALS);
+				}
+			}
+			
 			if (m->GetMapState(ID_SI) == 2) {
 				glowStr = m->GetMapName(ID_SI);
 				if (Texmap *texMap = m->GetSubTexmap(ID_SI)) {
 					GetTexFullName(texMap, glowStr);
 				}
 			}
-			if (m->GetMapState(ID_RL) == 2) {
-				dispStr = m->GetMapName(ID_RL);
-				if (Texmap *texMap = m->GetSubTexmap(ID_RL)) {
+			if (m->GetMapState(ID_DP) == 2) {
+				dispStr = m->GetMapName(ID_DP);
+				if (Texmap *texMap = m->GetSubTexmap(ID_DP)) {
 					GetTexFullName(texMap, dispStr);
 				}
 			}
-
 
 			TimeValue t = 0;
 			texProp->SetSpecularPower_Glossiness(m->GetShininess(t) * 100.0f);
 			//texProp->SetSpecularColor(m->getsh);
 			//texProp->SetSpecularStrength(m->GetShinStr(t) < 1.0f ? 3.0f : 0.0f);
-			texProp->SetAlpha(m->GetOpacity(t) / 100.0f);
+			texProp->SetAlpha(m->GetOpacity(t));
 			texProp->SetSpecularColor(TOCOLOR3(m->GetSpecular(t)));
 			//texProp->SetEmissiveColor(TOCOLOR(m->GetEmmis(t)));
 
-			//mtl->SetShinStr(0.0,0);
-			//mtl->SetShininess(shininess/100.0,0);
-			//mtl->SetOpacity(alpha*100.0f,0);
-			//mtl->SetSpecularColor(alpha*100.0f,0);
-
-			//texProp->SetLightingEffect1(0.3f);
-			//texProp->SetLightingEffect1(2.0f);
-			//texProp->SetEnvironmentMapStrength(1.0f);
-
+			texProp->SetShaderFlags1(flags1);
+			texProp->SetShaderFlags2(flags2);
 		}
 
 		textures[0] = T2AString(mAppSettings->GetRelativeTexPath(diffuseStr, sTexPrefix));
@@ -170,14 +192,20 @@ void Exporter::makeTexture(NiAVObjectRef &parent, Mtl *mtl)
 			textures[1] = T2AString(mAppSettings->GetRelativeTexPath(normalStr, sTexPrefix));
 		if (!glowStr.isNull())
 			textures[2] = T2AString(mAppSettings->GetRelativeTexPath(glowStr, sTexPrefix));
-		if (!dispStr.isNull())
-			textures[3] = T2AString(mAppSettings->GetRelativeTexPath(dispStr, sTexPrefix));
+		if (!parallaxStr.isNull())
+			textures[3] = T2AString(mAppSettings->GetRelativeTexPath(parallaxStr, sTexPrefix));
 		if (!envStr.isNull())
 			textures[4] = T2AString(mAppSettings->GetRelativeTexPath(envStr, sTexPrefix));
 		if (!envMaskStr.isNull())
 			textures[5] = T2AString(mAppSettings->GetRelativeTexPath(envMaskStr, sTexPrefix));
+		if (!dispStr.isNull())
+			textures[6] = T2AString(mAppSettings->GetRelativeTexPath(dispStr, sTexPrefix));
+		if (!backlightStr.isNull())
+			textures[7] = T2AString(mAppSettings->GetRelativeTexPath(backlightStr, sTexPrefix));
 
 		texset->SetTextures(textures);
+
+		texProp->SetSkyrimShaderType(shaderType);
 
 		// shader must be first, alpha can be second
 		NiPropertyRef prop = DynamicCast<NiProperty>(texProp);
@@ -228,9 +256,9 @@ void Exporter::makeTexture(NiAVObjectRef &parent, Mtl *mtl)
 					}
 				}
 			}
-			if (m->GetMapState(ID_SP) == 2) {
-				envStr = m->GetMapName(ID_SP);
-				if (Texmap *texMap = m->GetSubTexmap(ID_SP)) {
+			if (m->GetMapState(ID_RL) == 2) {
+				envStr = m->GetMapName(ID_RL);
+				if (Texmap *texMap = m->GetSubTexmap(ID_RL)) {
 					if (texMap->ClassID() == Class_ID(MASK_CLASS_ID, 0)) {
 						Texmap *envMap = texMap->GetSubTexmap(0);
 						Texmap *envMaskMap = texMap->GetSubTexmap(1);
@@ -248,9 +276,9 @@ void Exporter::makeTexture(NiAVObjectRef &parent, Mtl *mtl)
 					GetTexFullName(texMap, glowStr);
 				}
 			}
-			if (m->GetMapState(ID_RL) == 2) {
-				dispStr = m->GetMapName(ID_RL);
-				if (Texmap *texMap = m->GetSubTexmap(ID_RL)) {
+			if (m->GetMapState(ID_DP) == 2) {
+				dispStr = m->GetMapName(ID_DP);
+				if (Texmap *texMap = m->GetSubTexmap(ID_DP)) {
 					GetTexFullName(texMap, dispStr);
 				}
 			}
@@ -423,73 +451,75 @@ void Exporter::makeMaterial(NiAVObjectRef &parent, Mtl *mtl)
 	if (done)
 		return;
 
-	string name;
-	NiMaterialPropertyRef mtlProp(CreateNiObject<NiMaterialProperty>());
-	if (mtl)
+	if (!IsSkyrim())
 	{
-		Color c;
-
-		c = mtl->GetAmbient();
-		mtlProp->SetAmbientColor(Color3(c.r, c.g, c.b));
-
-		c = mtl->GetDiffuse();
-		mtlProp->SetDiffuseColor(Color3(c.r, c.g, c.b));
-
-		c = mtl->GetSpecular();
-		mtlProp->SetSpecularColor(Color3(c.r, c.g, c.b));
-
-		c = (mtl->GetSelfIllumColorOn()) ? mtl->GetSelfIllumColor() : Color(0, 0, 0);
-		mtlProp->SetEmissiveColor(Color3(c.r, c.g, c.b));
-
-		mtlProp->SetTransparency(1);
-		mtlProp->SetGlossiness(mtl->GetShininess() * 100.0f);
-		name = T2A(mtl->GetName());
-
-		if (mtl->ClassID() == Class_ID(DMTL_CLASS_ID, 0))
+		string name;
+		NiMaterialPropertyRef mtlProp(CreateNiObject<NiMaterialProperty>());
+		if (mtl)
 		{
-			StdMat2 * smtl = (StdMat2*)mtl;
-			mtlProp->SetTransparency(smtl->GetOpacity(0));
+			Color c;
 
-			if (smtl->SupportsShaders()) {
-				if (Shader *s = smtl->GetShader()) {
-					if (smtl->GetWire()) {
-						NiWireframePropertyRef wireProp = new NiWireframeProperty();
-						wireProp->SetFlags(1);
-						parent->AddProperty(wireProp);
-					}
-					if (smtl->GetTwoSided()) {
-						NiStencilPropertyRef stencil = new NiStencilProperty();
-						stencil->SetStencilFunction(TEST_GREATER);
-						stencil->SetStencilState(false);
-						stencil->SetPassAction(ACTION_INCREMENT);
-						stencil->SetFaceDrawMode(DRAW_BOTH);
-						stencil->SetFlags(19840);
-						parent->AddProperty(stencil);
-					}
-					if (smtl->IsFaceted()) {
-						NiShadePropertyRef shade = CreateNiObject<NiShadeProperty>();
-						shade->SetFlags(0);
-						parent->AddProperty(shade);
+			c = mtl->GetAmbient();
+			mtlProp->SetAmbientColor(Color3(c.r, c.g, c.b));
+
+			c = mtl->GetDiffuse();
+			mtlProp->SetDiffuseColor(Color3(c.r, c.g, c.b));
+
+			c = mtl->GetSpecular();
+			mtlProp->SetSpecularColor(Color3(c.r, c.g, c.b));
+
+			c = (mtl->GetSelfIllumColorOn()) ? mtl->GetSelfIllumColor() : Color(0, 0, 0);
+			mtlProp->SetEmissiveColor(Color3(c.r, c.g, c.b));
+
+			mtlProp->SetTransparency(1);
+			mtlProp->SetGlossiness(mtl->GetShininess() * 100.0f);
+			name = T2A(mtl->GetName());
+
+			if (mtl->ClassID() == Class_ID(DMTL_CLASS_ID, 0))
+			{
+				StdMat2 * smtl = (StdMat2*)mtl;
+				mtlProp->SetTransparency(smtl->GetOpacity(0));
+
+				if (smtl->SupportsShaders()) {
+					if (Shader *s = smtl->GetShader()) {
+						if (smtl->GetWire()) {
+							NiWireframePropertyRef wireProp = new NiWireframeProperty();
+							wireProp->SetFlags(1);
+							parent->AddProperty(wireProp);
+						}
+						if (smtl->GetTwoSided()) {
+							NiStencilPropertyRef stencil = new NiStencilProperty();
+							stencil->SetStencilFunction(TEST_GREATER);
+							stencil->SetStencilState(false);
+							stencil->SetPassAction(ACTION_INCREMENT);
+							stencil->SetFaceDrawMode(DRAW_BOTH);
+							stencil->SetFlags(19840);
+							parent->AddProperty(stencil);
+						}
+						if (smtl->IsFaceted()) {
+							NiShadePropertyRef shade = CreateNiObject<NiShadeProperty>();
+							shade->SetFlags(0);
+							parent->AddProperty(shade);
+						}
 					}
 				}
 			}
 		}
-	}
-	else
-	{
-		mtlProp->SetAmbientColor(Color3(0.588f, 0.588f, 0.588f));
-		mtlProp->SetDiffuseColor(Color3(1, 1, 1));
-		mtlProp->SetSpecularColor(Color3(0.9f, 0.9f, 0.9f));
-		mtlProp->SetEmissiveColor(Color3(0, 0, 0));
-		mtlProp->SetTransparency(1);
-		mtlProp->SetGlossiness(10);
-		name = "default";
-	}
+		else
+		{
+			mtlProp->SetAmbientColor(Color3(0.588f, 0.588f, 0.588f));
+			mtlProp->SetDiffuseColor(Color3(1, 1, 1));
+			mtlProp->SetSpecularColor(Color3(0.9f, 0.9f, 0.9f));
+			mtlProp->SetEmissiveColor(Color3(0, 0, 0));
+			mtlProp->SetTransparency(1);
+			mtlProp->SetGlossiness(10);
+			name = "default";
+		}
 
-	mtlProp->SetName(name);
+		mtlProp->SetName(name);
 
-	NiPropertyRef prop = DynamicCast<NiProperty>(mtlProp);
-	parent->AddProperty(prop);
+		parent->AddProperty(DynamicCast<NiProperty>(mtlProp));
+	}
 
 	makeTexture(parent, mtl);
 }
@@ -596,9 +626,6 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 		if (shaderByName != TSTR(TEXT("CivilizationIV Shader")))
 			return false;
 	}
-	bool isGamebryoShader = (shaderID == civ4Shader);
-	bool isCiv4Shader = isGamebryoShader && (shaderByName == TSTR(TEXT("CivilizationIV Shader")));
-
 	Color ambient = Color(0.0f, 0.0f, 0.0f), diffuse = Color(0.0f, 0.0f, 0.0f), specular = Color(0.0f, 0.0f, 0.0f), emittance = Color(0.0f, 0.0f, 0.0f);
 	float shininess = 0.0f, alpha = 0.0f, Magnitude = 0.0f, LumaScale = 0.0f, LumaOffset = 0.0f;
 	int TestRef = 0, srcBlend = 0, destBlend = 0, TestMode = 0;
@@ -795,8 +822,13 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 				vector<string> textures;
 				textures.resize(9);
 
-				SkyrimShaderPropertyFlags1 flags1 = (SkyrimShaderPropertyFlags1)(SLSF1_SPECULAR | SLSF1_SKINNED | SLSF1_RECIEVE_SHADOWS | SLSF1_CAST_SHADOWS | SLSF1_OWN_EMIT | SLSF1_REMAPPABLE_TEXTURES | SLSF1_ZBUFFER_TEST);
+				NiGeometryRef geom = DynamicCast<NiGeometry>(parent);
+
+				SkyrimShaderPropertyFlags1 flags1 = (SkyrimShaderPropertyFlags1)(SLSF1_RECIEVE_SHADOWS | SLSF1_CAST_SHADOWS | SLSF1_OWN_EMIT | SLSF1_REMAPPABLE_TEXTURES | SLSF1_ZBUFFER_TEST);
 				SkyrimShaderPropertyFlags2 flags2 = (SkyrimShaderPropertyFlags2)(SLSF2_ZBUFFER_WRITE | SLSF2_BACK_LIGHTING);
+
+				if (geom && geom->IsSkin())
+					flags1 = (SkyrimShaderPropertyFlags1)(flags1 | SLSF1_SKINNED);
 
 				if (shaderType == 5)
 					flags2 = (SkyrimShaderPropertyFlags2)(flags2 | SLSF2_SOFT_LIGHTING);
@@ -809,7 +841,7 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 				texProp->SetEnvironmentMapScale(1.0f);
 				texProp->SetTextureClampMode(WRAP_S_WRAP_T);
 
-				TSTR diffuseStr, normalStr, glowStr, dispStr, envStr, envMaskStr, specularStr, parallaxStr;
+				TSTR diffuseStr, normalStr, glowStr, dispStr, envStr, envMaskStr, backlightStr, parallaxStr;
 
 				if (mtl && mtl->ClassID() == Class_ID(DMTL_CLASS_ID, 0)) {
 					StdMat2 *m = (StdMat2*)mtl;
@@ -867,9 +899,9 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 								}
 							}
 						}
-						if (m->GetMapState(C_SPECULAR) == 2) {
-							if (Texmap *texMap = m->GetSubTexmap(C_SPECULAR)) {
-								GetTexFullName(texMap, specularStr);
+						if (m->GetMapState(C_BACKLIGHT) == 2) {
+							if (Texmap *texMap = m->GetSubTexmap(C_BACKLIGHT)) {
+								GetTexFullName(texMap, backlightStr);
 							}
 						}
 						if (m->GetMapState(C_PARALLAX) == 2) {
@@ -897,7 +929,6 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 					if (!dispStr.isNull())
 					{
 						textures[3] = T2AString(mAppSettings->GetRelativeTexPath(dispStr, sTexPrefix));
-						//flags1 = (SkyrimLightingShaderFlags1)(flags1 | Niflib::SLSF1_Skinned);
 					}
 					if (!envStr.isNull())
 					{
@@ -911,10 +942,10 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 						flags1 = (SkyrimShaderPropertyFlags1)(flags1 | Niflib::SLSF1_ENVIRONMENT_MAPPING);
 						flags2 = (SkyrimShaderPropertyFlags2)(flags2 | Niflib::SLSF2_ENVMAP_LIGHT_FADE);
 					}
-					if (!specularStr.isNull())
+					if (!backlightStr.isNull())
 					{
-						textures[7] = T2AString(mAppSettings->GetRelativeTexPath(specularStr, sTexPrefix));
-						flags1 = (SkyrimShaderPropertyFlags1)(flags1 | Niflib::SLSF1_MODEL_SPACE_NORMALS);
+						textures[7] = T2AString(mAppSettings->GetRelativeTexPath(backlightStr, sTexPrefix));
+						flags2 = (SkyrimShaderPropertyFlags2)(flags2 | Niflib::SLSF2_BACK_LIGHTING);
 					}
 					if (!parallaxStr.isNull())
 					{
@@ -944,7 +975,7 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 					//texProp->SetSpecularStrength(m->GetShinStr(t) < 1.0f ? 3.0f : 0.0f);
 					texProp->SetSpecularColor(TOCOLOR3(m->GetSpecular(t)));
 					texProp->SetEmissiveColor(TOCOLOR3(emittance));
-					texProp->SetAlpha(m->GetOpacity(t) / 100.0f);
+					texProp->SetAlpha(m->GetOpacity(t));
 					texProp->SetEnvironmentMapScale(envmapscale);
 					texProp->SetSpecularStrength(specularStrength);
 					texProp->SetRefractionStrength(refractionStrength);
@@ -1023,7 +1054,17 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 							GetTexFullName(texMap, diffuseStr);
 						}
 					}
-
+					if (m->GetMapState(C_BUMP) == 2) {
+						if (Texmap *texMap = m->GetSubTexmap(C_BUMP)) {
+							if (texMap->ClassID() == GNORMAL_CLASS_ID) {
+								texMap = texMap->GetSubTexmap(0);
+								GetTexFullName(texMap, normalStr);
+							}
+							else {
+								GetTexFullName(texMap, normalStr);
+							}
+						}
+					}
 					if (m->GetMapState(C_NORMAL) == 2) {
 						if (Texmap *texMap = m->GetSubTexmap(C_NORMAL)) {
 							if (texMap->ClassID() == GNORMAL_CLASS_ID) {
@@ -1193,14 +1234,6 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 						continue;
 
 					TexType textype = (TexType)i;
-					if (isCiv4Shader) {
-						const TexType civmap[] = { BASE_MAP, DARK_MAP, DETAIL_MAP, DECAL_0_MAP, BUMP_MAP, GLOSS_MAP, GLOW_MAP, DECAL_1_MAP, DECAL_2_MAP, DECAL_3_MAP };
-						textype = civmap[i];
-					}
-					else if (isGamebryoShader) {
-						const TexType civmap[] = { BASE_MAP, DARK_MAP, DETAIL_MAP, DECAL_0_MAP, NORMAL_MAP, UNKNOWN2_MAP, BUMP_MAP, GLOSS_MAP, GLOW_MAP, DECAL_1_MAP, DECAL_2_MAP, DECAL_3_MAP };
-						textype = civmap[i];
-					}
 
 					// Fallout 3 only
 					if (textype >= C_ENVMASK)
@@ -1267,4 +1300,24 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 		return true;
 	}
 	return false;
+}
+
+
+void Exporter::updateSkinnedMaterial(NiGeometryRef shape)
+{
+	if (!shape) return;
+	if (IsSkyrim()) {
+		if ( BSEffectShaderPropertyRef effectShaderRef = shape->GetBSPropertyOfType<Niflib::BSEffectShaderProperty>() )
+		{
+			SkyrimShaderPropertyFlags1 flags1 = effectShaderRef->GetShaderFlags1();
+			flags1 = (SkyrimShaderPropertyFlags1)(flags1 | SLSF1_SKINNED);
+			effectShaderRef->SetShaderFlags1(flags1);
+		}
+		if ( BSLightingShaderPropertyRef lightingShaderRef = shape->GetBSPropertyOfType<Niflib::BSLightingShaderProperty>() )
+		{
+			SkyrimShaderPropertyFlags1 flags1 = lightingShaderRef->GetShaderFlags1();
+			flags1 = (SkyrimShaderPropertyFlags1)(flags1 | SLSF1_SKINNED);
+			lightingShaderRef->SetShaderFlags1(flags1);
+		}
+	}
 }

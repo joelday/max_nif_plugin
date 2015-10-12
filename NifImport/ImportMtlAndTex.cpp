@@ -37,9 +37,10 @@ HISTORY:
 using namespace Niflib;
 
 enum {
-	C_BASE, C_DARK, C_DETAIL, C_GLOSS, C_GLOW, C_BUMP, C_NORMAL, C_UNK2,
-	C_DECAL0, C_DECAL1, C_DECAL2, C_ENVMASK, C_ENV, C_HEIGHT, C_REFLECTION,
-	C_OPACITY, C_SPECULAR, C_PARALLAX
+	C_BASE, C_DARK, C_DETAIL, C_GLOSS, C_GLOW, C_BUMP, C_NORMAL,
+	C_DECAL0, C_DECAL1, C_DECAL2, C_DECAL3, C_ENVMASK, C_ENV,
+	C_HEIGHT, C_REFLECTION, C_OPACITY, C_SPECULAR, C_PARALLAX,
+	C_BACKLIGHT,
 };
 
 #undef GNORMAL_CLASS_ID
@@ -68,12 +69,23 @@ Texmap* NifImporter::CreateMask(LPCTSTR name, Texmap* map, Texmap* mask)
 		TSTR tname = (name == nullptr) ? FormatText(TEXT("Mask %s"), map->GetName().data()) : TSTR(name);
 		texmap->SetName(tname);
 		texmap->SetSubTexmap(0, map);
-		texmap->SetSubTexmap(0, mask);
+		texmap->SetSubTexmap(1, mask);
 		return texmap;
 	}
 	return map;
 }
 
+Texmap* NifImporter::MakeAlpha(Texmap* tex)
+{
+	if (BitmapTex *bmp_tex = GetIBitmapTextInterface(tex)) {
+		bmp_tex->SetName(TEXT("Alpha"));
+		bmp_tex->SetAlphaAsMono(TRUE);
+		bmp_tex->SetAlphaSource(ALPHA_FILE);
+		bmp_tex->SetPremultAlpha(FALSE);
+		bmp_tex->SetOutputLevel(INFINITY, 0.0f);
+	}
+	return tex;
+}
 
 Texmap* NifImporter::CreateTexture(TexDesc& desc)
 {
@@ -414,6 +426,8 @@ StdMat2 *NifImporter::ImportMaterialAndTextures(ImpNode *node, NiAVObjectRef avO
 			mode = lightingShaderRef->GetTextureClampMode();
 			offset = lightingShaderRef->GetUvOffset();
 			tiling = lightingShaderRef->GetUvScale();
+
+			m->SetOpacity(lightingShaderRef->GetAlpha(), INFINITY);
 		}
 		if (effectShaderRef != nullptr) {
 			VertexColorsEnable = (effectShaderRef->GetShaderFlags2() & SLSF2_VERTEX_COLORS) != 0;
@@ -431,18 +445,25 @@ StdMat2 *NifImporter::ImportMaterialAndTextures(ImpNode *node, NiAVObjectRef avO
 				m->SetSubTexmap(ID_DI, tex);
 			if (Texmap* tex = CreateTexture(A2TString(textureSet->GetTexture(1)), mode, offset, tiling))
 				m->SetSubTexmap(ID_BU, CreateNormalBump(nullptr, tex));
-			if (Texmap* tex = CreateTexture(A2TString(textureSet->GetTexture(3)), mode, offset, tiling))
+			if (Texmap* tex = CreateTexture(A2TString(textureSet->GetTexture(2)), mode, offset, tiling))
 				m->SetSubTexmap(ID_SI, tex);
-			if (Texmap* tex = CreateTexture(A2TString(textureSet->GetTexture(4)), mode, offset, tiling))
-				m->SetSubTexmap(ID_RL, tex);
-			if (Texmap* tex = CreateTexture(A2TString(textureSet->GetTexture(5)), mode, offset, tiling)) {
-				if (Texmap* mask = CreateTexture(A2TString(textureSet->GetTexture(2)), mode, offset, tiling))
+			if (Texmap* tex = CreateTexture(A2TString(textureSet->GetTexture(4)), mode, offset, tiling)) {
+				if (Texmap* mask = CreateTexture(A2TString(textureSet->GetTexture(5)), mode, offset, tiling))
 					tex = CreateMask(nullptr, tex, mask);
-				m->SetSubTexmap(ID_SP, tex);
+				m->SetSubTexmap(ID_RL, tex);
+				m->SetTexmapAmt(ID_RL, 0, INFINITY);
+				tex->SetOutputLevel(INFINITY, 0);
+			}
+			if (alphaRef) {
+				// add opacity channel
+				if (Texmap* tex = CreateTexture(A2TString(textureSet->GetTexture(0)), mode, offset, tiling)) {
+					m->SetSubTexmap(ID_OP, MakeAlpha(tex));
+					m->SetTexmapAmt(ID_OP, 0.5f, INFINITY);
+				}
 			}
 		}
 		if (effectShaderRef != nullptr)
-		{					
+		{
 			if (ref != nullptr)
 			{
 				Color emittance = TOCOLOR(effectShaderRef->GetEmissiveColor());
@@ -521,8 +542,6 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 		s->GetClassName(shaderByName);
 
 	Class_ID shaderID = mtl->ClassID();
-	bool isGamebryoShader = (shaderID == civ4Shader);
-	bool isCiv4Shader = isGamebryoShader && strmatch(shaderByName, TEXT("CivilizationIV Shader"));
 
 	TexClampMode mode = WRAP_S_WRAP_T;
 	TexCoord offset = TexCoord(0.0f, 0.0f);
@@ -649,16 +668,7 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 		if (ntex > 0)
 		{
 			for (int i = 0; i < ntex; ++i) {
-
 				TexType textype = (TexType)i;
-				if (isCiv4Shader) {
-					const TexType civmap[] = { BASE_MAP, DARK_MAP, DETAIL_MAP, DECAL_0_MAP, BUMP_MAP, GLOSS_MAP, GLOW_MAP, DECAL_1_MAP, DECAL_2_MAP, DECAL_3_MAP };
-					textype = civmap[i];
-				}
-				else if (isGamebryoShader) {
-					const TexType civmap[] = { BASE_MAP, DARK_MAP, DETAIL_MAP, DECAL_0_MAP, NORMAL_MAP, UNKNOWN2_MAP, BUMP_MAP, GLOSS_MAP, GLOW_MAP, DECAL_1_MAP, DECAL_2_MAP, DECAL_3_MAP };
-					textype = civmap[i];
-				}
 				if (nifVersion <= 0x14010003) {
 					if (textype > C_NORMAL)
 						textype = (TexType)(i + 2);
@@ -684,7 +694,7 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 							if (shader < nTex) {
 								if (name == "NormalMapIndex") {
 									if (Texmap* tex = CreateTexture(texRef->GetShaderTexture(shader)))
-										mtl->SetSubTexmap(C_NORMAL, CreateNormalBump(nullptr, tex));
+										mtl->SetSubTexmap(C_BUMP, CreateNormalBump(nullptr, tex));
 								}
 								else if (name == "SpecularIntensityIndex") {
 									if (Texmap* tex = CreateTexture(texRef->GetShaderTexture(shader)))
@@ -727,7 +737,7 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 			if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(0))))
 				mtl->SetSubTexmap(C_BASE, tex);
 			if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(1))))
-				mtl->SetSubTexmap(C_NORMAL, CreateNormalBump(nullptr, tex));
+				mtl->SetSubTexmap(C_BUMP, CreateNormalBump(nullptr, tex));
 			if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(2))))
 				mtl->SetSubTexmap(C_ENVMASK, tex);
 			if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(3))))
@@ -766,7 +776,7 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 			if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(0))))
 				mtl->SetSubTexmap(C_BASE, tex);
 			if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(1))))
-				mtl->SetSubTexmap(C_NORMAL, CreateNormalBump(nullptr, tex));
+				mtl->SetSubTexmap(C_BUMP, CreateNormalBump(nullptr, tex));
 			if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(2))))
 				mtl->SetSubTexmap(C_ENVMASK, tex);
 			if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(3))))
@@ -857,8 +867,14 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 			if (BSShaderTextureSetRef textures = lightingShaderRef->GetTextureSet()) {
 				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(0)), mode, offset, tiling))
 					mtl->SetSubTexmap(C_BASE, tex);
+				if (alphaRef) { // add opacity channel					
+					if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(0)), mode, offset, tiling)) {
+						mtl->SetSubTexmap(C_OPACITY, MakeAlpha(tex));
+						mtl->SetTexmapAmt(C_OPACITY, 0.5f, INFINITY);
+					}
+				}
 				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(1)), mode, offset, tiling))
-					mtl->SetSubTexmap(C_NORMAL, CreateNormalBump(nullptr, tex));
+					mtl->SetSubTexmap(C_BUMP, CreateNormalBump(nullptr, tex));
 				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(2)), mode, offset, tiling)) // Glow/Skin/Hair
 					mtl->SetSubTexmap(C_GLOW, tex);
 				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(3)), mode, offset, tiling)) // Height/Parallax
@@ -867,8 +883,8 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 					mtl->SetSubTexmap(C_ENV, tex);
 				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(5)), mode, offset, tiling)) // Environment Mask
 					mtl->SetSubTexmap(C_ENVMASK, tex);
-				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(7)), mode, offset, tiling)) //specular
-					mtl->SetSubTexmap(C_SPECULAR, tex);
+				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(7)), mode, offset, tiling)) // Back Light
+					mtl->SetSubTexmap(C_BACKLIGHT, tex);
 				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(8)), mode, offset, tiling)) //Parallax
 					mtl->SetSubTexmap(C_PARALLAX, tex);
 			}
@@ -989,13 +1005,13 @@ Texmap* NifImporter::GetMaterialTextureSubMap(Mtl* mat, int id)
 			switch (id)
 			{
 			case ID_DI:  return mat->GetSubTexmap(C_BASE);
-			case ID_BU:  return mat->GetSubTexmap(C_NORMAL);
+			case ID_BU:  return mat->GetSubTexmap(C_BUMP);
 			case ID_RL:  return mat->GetSubTexmap(C_REFLECTION);
 			case ID_OP:  return mat->GetSubTexmap(C_OPACITY);
 			case ID_SP:  return mat->GetSubTexmap(C_SPECULAR);
 			case ID_SH:  return mat->GetSubTexmap(C_GLOSS);
 			case ID_SI:  return mat->GetSubTexmap(C_GLOW);
-			case ID_DP:  return mat->GetSubTexmap(C_PARALLAX);
+			case ID_DP:  return mat->GetSubTexmap(C_HEIGHT);
 			}
 		}
 	}

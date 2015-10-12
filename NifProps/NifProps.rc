@@ -1466,6 +1466,8 @@ STRINGTABLE
 BEGIN
     IDS_RIGHT_EYE_REFL_CENTER "Right Eye Reflection Center"
     IDS_SPECULAR_STR        "Specular Strength"
+    IDS_MAXCHAN_OPACITY     "opacityMap"
+    IDS_CHAN_BACKLIGHT      "Back Light"
 END
 
 #endif    // English (United States) resources

@@ -158,6 +158,7 @@ public:
 	Texmap* CreateTexture(const tstring& name, TexClampMode mode=WRAP_S_WRAP_T, TexCoord offset = TexCoord(0.0f, 0.0f), TexCoord tiling = TexCoord(1.0f, 1.0f));
 	Texmap* CreateNormalBump(LPCTSTR name, Texmap* nmap);
 	Texmap* CreateMask(LPCTSTR name, Texmap* nmap, Texmap* mask);
+	Texmap* MakeAlpha(Texmap* tex);
 
 	INode *CreateBone(const tstring& name, Point3 startPos, Point3 endPos, Point3 zAxis);
 	INode *CreateHelper(const tstring& name, Point3 startPos);
