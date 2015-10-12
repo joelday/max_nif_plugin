@@ -1529,7 +1529,7 @@ bool NifImporter::ImportMaterialAnimation( int paramBlockID, int subAnimID, Nifl
 		if( Control* tmpCtrl = (Control*) gi->CreateInstance( CTRL_FLOAT_CLASS_ID, Class_ID( HYBRIDINTERP_FLOAT_CLASS_ID, 0 ) ) )
 		{
 			MergeKeys<IBezFloatKey, FloatKey>( tmpCtrl, keys, 0.0f );
-			MSTR str = mtl->SubAnim( paramBlockID )->SubAnimName( subAnimID );
+			TSTR str = mtl->SubAnim( paramBlockID )->SubAnimName( subAnimID );
 			mtl->SubAnim( paramBlockID )->AssignController( tmpCtrl, subAnimID );
 			
 			return true;
@@ -1560,7 +1560,7 @@ bool NifImporter::GetControllerTimeRange(const NiTimeControllerRef& controller, 
 		TimeValue maxTime = TimeToFrame(interpCtrl->GetStopTime());
 		if (minTime != maxTime)
 		{
-			if (range.IsInfinite() || range.Empty())
+			if (range.Empty())
 			{
 				range.Set(minTime, maxTime);
 			}

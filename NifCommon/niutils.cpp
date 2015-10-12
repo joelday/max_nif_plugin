@@ -1337,7 +1337,7 @@ TSTR GetFileVersion(const wchar_t *fileName)
 TSTR GetFileVersion(const char *fileName)
 {
 	USES_CONVERSION;
-	return GetFileVersion(A2T(fileName));
+	return GetFileVersion(A2W(fileName));
 }
 
 // Calculate bounding sphere using minimum-volume axis-align bounding box.  Its fast but not a very good fit.

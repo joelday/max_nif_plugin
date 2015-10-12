@@ -79,7 +79,7 @@ bool NifImporter::ImportParticleSystem(Niflib::NiParticleSystemRef particleSyste
 				Niflib::NiNodeRef gravObj = gravModifier->GetGravityObject();
 				INode* gravBone = GetNode(gravObj->GetName());
 
-				if (!gravBone->GetInterface(GRAVITYOBJECT_CLASS_ID))
+				if (!gravBone->GetInterface(Interface_ID(GRAVITYOBJECT_CLASS_ID,0)))
 				{
 					INode* gravParentNode = gravBone->GetParentNode();
 
@@ -151,7 +151,11 @@ SimpleObject* NifImporter::ImportPCloud(Niflib::NiParticleSystemRef particleSyst
 
 				// Request update of emitter geo name
 				PartID pid;
+#if VERSION_3DSMAX < (17000<<16) // Version 17 (2015)
+				obj->NotifyRefChanged(FOREVER, distnode, pid, REFMSG_NODE_NAMECHANGE); 
+#else
 				obj->NotifyRefChanged(FOREVER, distnode, pid, REFMSG_NODE_NAMECHANGE, FALSE);
+#endif
 			}
 
 			// Set Width/Height/Depth of emitter

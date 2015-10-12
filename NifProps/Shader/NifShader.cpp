@@ -185,10 +185,6 @@ static const int nifShaderStdIDToChannel[N_ID_CHANNELS] = {
    C_REFLECTION,//9 - reflection        
    -1,         // 10 - refraction 
    C_HEIGHT,   // 11 - displacement
-	-1,
-	-1,
-	-1,
-	-1,
 };
 
 // Rollups

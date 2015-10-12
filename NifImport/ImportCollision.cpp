@@ -803,7 +803,7 @@ bool CollisionImport::ImportCompressedMeshShape(INode *rbody, bhkRigidBodyRef bo
 			INode *inode = ImportCollisionMesh(verts, tris, lm, parent);
 			CreatebhkCollisionModifier(inode, bv_type_packed, mtlIdx, lyrIdx, 0);
 			ImportBase(body, shape, parent, inode, ltm);
-			if (n > 1) inode->SetName(FormatText(TEXT("%s:%d"), TEXT("CMSD"), i++).data());
+			if (multipleShapes) inode->SetName(FormatText(TEXT("%s:%d"), TEXT("CMSD"), i++).data());
 			//AddShape(rbody, inode);
 			nodes.Append(1, &inode);
 		}

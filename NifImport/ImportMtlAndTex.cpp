@@ -485,7 +485,7 @@ StdMat2 *NifImporter::ImportMaterialAndTextures(ImpNode *node, NiAVObjectRef avO
 				Interval range;
 				if (GetControllerTimeRange(controllers, range))
 				{
-					if (range.IsInfinite() || range.Empty() || range.Start() != range.End()) {
+					if (range.Empty() || range.Start() != range.End()) {
 						gi->SetAnimRange(range);
 					}
 				}
@@ -897,7 +897,7 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 				Interval range;
 				if (GetControllerTimeRange(lightingShaderRef->GetControllers(), range))
 				{
-					if (range.IsInfinite() || range.Empty() || range.Start() != range.End()) {
+					if (range.Empty() || range.Start() != range.End()) {
 						gi->SetAnimRange(range);
 					}
 				}
@@ -950,7 +950,7 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 				Interval range;
 				if (GetControllerTimeRange(effectShaderRef->GetControllers(), range))
 				{
-					if (range.IsInfinite() || range.Empty() || range.Start() != range.End()) {
+					if (range.Empty() || range.Start() != range.End()) {
 						gi->SetAnimRange(range);
 					}
 					// get start/stop times

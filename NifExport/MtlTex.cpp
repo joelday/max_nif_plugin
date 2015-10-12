@@ -975,7 +975,7 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 					//texProp->SetSpecularStrength(m->GetShinStr(t) < 1.0f ? 3.0f : 0.0f);
 					texProp->SetSpecularColor(TOCOLOR3(m->GetSpecular(t)));
 					texProp->SetEmissiveColor(TOCOLOR3(emittance));
-					texProp->SetAlpha(m->GetOpacity(t));
+					texProp->SetAlpha(m->GetOpacity(t) / 100.0f);
 					texProp->SetEnvironmentMapScale(envmapscale);
 					texProp->SetSpecularStrength(specularStrength);
 					texProp->SetRefractionStrength(refractionStrength);
