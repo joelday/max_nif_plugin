@@ -167,6 +167,7 @@ void NifImporter::LoadIniSettings()
    // Locate which application to use. If Auto, find first app where this file appears in the root path list
    appSettings = nullptr;
    tstring curapp = GetIniValue<tstring>(NifImportSection, TEXT("CurrentApp"), TEXT("AUTO"));
+   tstring lastselapp = GetIniValue<tstring>(NifImportSection, TEXT("LastSelectedApp"), TEXT(""));
    if (0 == _tcsicmp(curapp.c_str(), TEXT("AUTO"))) {
       autoDetect = true;
       // Scan Root paths
@@ -186,6 +187,8 @@ void NifImporter::LoadIniSettings()
       autoDetect = false;
       appSettings = FindAppSetting(curapp);
    }
+   if (appSettings == nullptr && !lastselapp.empty())
+	   appSettings = FindAppSetting(lastselapp);
    if (appSettings == nullptr && !TheAppSettings.empty()){
       appSettings = &TheAppSettings.front();
    }
@@ -302,6 +305,7 @@ void NifImporter::SaveIniSettings()
    SetIniValue(NifImportSection, TEXT("DisableBSDismemberSkinModifier"), disableBSDismemberSkinModifier);
 
    SetIniValue<tstring>(NifImportSection, TEXT("CurrentApp"), autoDetect ? TEXT("AUTO") : appSettings->Name );
+   SetIniValue<tstring>(NifImportSection, TEXT("LastSelectedApp"), appSettings->Name);
 }
 
 void NifImporter::RegisterNode(Niflib::NiObjectNETRef node, INode* inode)

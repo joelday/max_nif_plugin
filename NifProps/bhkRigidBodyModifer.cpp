@@ -183,7 +183,7 @@ class bhkRigidBodyModifierClassDesc : public ClassDesc2
 
 // Parameter and ParamBlock IDs
 enum { havok_params, opt_params, clone_params, subshape_params };  // pblock ID
-enum { PB_BOUND_TYPE, PB_MATERIAL, PB_SKYRIM_MATERIAL, PB_OPT_ENABLE, PB_MAXEDGE, PB_FACETHRESH, PB_EDGETHRESH, PB_BIAS, PB_LAYER, PB_FILTER, };
+enum { PB_BOUND_TYPE, PB_MATERIAL, PB_OPT_ENABLE, PB_MAXEDGE, PB_FACETHRESH, PB_EDGETHRESH, PB_BIAS, PB_LAYER, PB_FILTER, };
 
 enum { havok_params_panel, };
 
@@ -205,7 +205,7 @@ static ParamBlockDesc2 havok_param_blk (
 	PB_BOUND_TYPE, 	_T("boundType"),	TYPE_INT, 0, IDS_BV_BOUNDING_TYPE,
 	  p_default, 		bv_type_shapes, 
 	  p_range, 		0, 6, 
-	  p_ui, 			havok_params,	TYPE_RADIO, 8, IDC_RDO_NO_COLL, IDC_RDO_AXIS_ALIGNED_BOX, IDC_RDO_SPHERE, IDC_RDO_CAPSULE, IDC_RDO_PROXY_MESH, IDC_RDO_CONVEX, IDC_RDO_PACKED_STRIPS, IDC_RDO_OBB,
+	  p_ui, 			havok_params,	TYPE_RADIO, 9, IDC_RDO_NO_COLL, IDC_RDO_AXIS_ALIGNED_BOX, IDC_RDO_SPHERE, IDC_RDO_CAPSULE, IDC_RDO_PROXY_MESH, IDC_RDO_CONVEX, IDC_RDO_PACKED_STRIPS, IDC_RDO_OBB, IDC_RDO_CMSD,
 	  p_end,
 
 	PB_OPT_ENABLE,	_T("enableOptimize"), TYPE_BOOL, 0, IDS_OPT_ENABLE,
@@ -357,7 +357,7 @@ namespace
 				InitLayerTypeCombo(hWnd, IDC_CB_LAYER);
 
 				int sel = NP_DEFAULT_HVK_LAYER;
-				Interval valid;
+				Interval valid = FOREVER;
 				mod->pblock->GetValue( PB_LAYER, 0, sel, valid);
 				mCbLayer.select( sel );
 
@@ -373,7 +373,7 @@ namespace
 			{
 			case IDC_CB_LAYER:
 				if (HIWORD(wParam)==CBN_SELCHANGE) {
-					mod->pblock->SetValue( PB_MATERIAL, 0, mCbLayer.selection() );
+					mod->pblock->SetValue( PB_LAYER, INFINITE, mCbLayer.selection() );
 				}
 				break;
 

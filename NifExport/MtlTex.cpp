@@ -73,7 +73,7 @@ void Exporter::makeTexture(NiAVObjectRef &parent, Mtl *mtl)
 		BSLightingShaderPropertyShaderType shaderType = Niflib::LSPST_DEFAULT;
 
 		SkyrimShaderPropertyFlags1 flags1 = (SkyrimShaderPropertyFlags1)(SLSF1_SPECULAR | SLSF1_RECIEVE_SHADOWS | SLSF1_CAST_SHADOWS | SLSF1_OWN_EMIT | SLSF1_REMAPPABLE_TEXTURES | SLSF1_ZBUFFER_TEST);
-		SkyrimShaderPropertyFlags2 flags2 = (SkyrimShaderPropertyFlags2)(SLSF2_VERTEX_COLORS | SLSF2_ZBUFFER_WRITE | SLSF2_BACK_LIGHTING);
+		SkyrimShaderPropertyFlags2 flags2 = (SkyrimShaderPropertyFlags2)(SLSF2_ZBUFFER_WRITE );
 
 		if (geom && geom->IsSkin())
 			flags1 = (SkyrimShaderPropertyFlags1)(flags1 | SLSF1_SKINNED);
@@ -825,7 +825,7 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 				NiGeometryRef geom = DynamicCast<NiGeometry>(parent);
 
 				SkyrimShaderPropertyFlags1 flags1 = (SkyrimShaderPropertyFlags1)(SLSF1_RECIEVE_SHADOWS | SLSF1_CAST_SHADOWS | SLSF1_OWN_EMIT | SLSF1_REMAPPABLE_TEXTURES | SLSF1_ZBUFFER_TEST);
-				SkyrimShaderPropertyFlags2 flags2 = (SkyrimShaderPropertyFlags2)(SLSF2_ZBUFFER_WRITE | SLSF2_BACK_LIGHTING);
+				SkyrimShaderPropertyFlags2 flags2 = (SkyrimShaderPropertyFlags2)(SLSF2_ZBUFFER_WRITE);
 
 				if (geom && geom->IsSkin())
 					flags1 = (SkyrimShaderPropertyFlags1)(flags1 | SLSF1_SKINNED);

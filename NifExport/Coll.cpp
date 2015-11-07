@@ -12,7 +12,7 @@
 
 #include "..\NifProps\bhkHelperFuncs.h"
 #include "..\NifProps\bhkHelperInterface.h"
-
+#include "vectorstream.hpp"
 #ifdef _DEBUG
 #include <assert.h>
 #include <crtdbg.h>
@@ -48,11 +48,18 @@ extern HINSTANCE hInstance;
 class HavokMoppCode
 {
 private:
+	struct RemoteCommand
+	{
+		virtual int Read(LPVOID buffer, int size) = 0;
+		virtual int Write(LPCVOID buffer, int size) = 0;
+	};
+
 	typedef int(__stdcall * fnGenerateMoppCode)(int nVerts, Vector3 const* verts, int nTris, Triangle const *tris);
 	typedef int(__stdcall * fnGenerateMoppCodeWithSubshapes)(int nShapes, int const *shapes, int nVerts, Vector3 const* verts, int nTris, Triangle const *tris);
 	typedef int(__stdcall * fnRetrieveMoppCode)(int nBuffer, unsigned char *buffer);
 	typedef int(__stdcall * fnRetrieveMoppScale)(float *value);
 	typedef int(__stdcall * fnRetrieveMoppOrigin)(Vector3 *value);
+	typedef int(__stdcall * fnExecuteCommand)(const char* cmd, RemoteCommand* ifc, DWORD dwTimeout);
 
 	HMODULE hMoppLib;
 	fnGenerateMoppCode GenerateMoppCode;
@@ -60,10 +67,12 @@ private:
 	fnRetrieveMoppScale RetrieveMoppScale;
 	fnRetrieveMoppOrigin RetrieveMoppOrigin;
 	fnGenerateMoppCodeWithSubshapes GenerateMoppCodeWithSubshapes;
+	fnExecuteCommand ExecuteCommand;
 
 public:
-	HavokMoppCode() : hMoppLib(0), GenerateMoppCode(0), RetrieveMoppCode(0)
-		, RetrieveMoppScale(0), RetrieveMoppOrigin(0), GenerateMoppCodeWithSubshapes(0)
+	HavokMoppCode() : hMoppLib(nullptr), GenerateMoppCode(nullptr), RetrieveMoppCode(nullptr)
+		, RetrieveMoppScale(nullptr), RetrieveMoppOrigin(nullptr), GenerateMoppCodeWithSubshapes(nullptr)
+		, ExecuteCommand(nullptr)
 	{
 	}
 
@@ -87,6 +96,7 @@ public:
 			RetrieveMoppCode = (fnRetrieveMoppCode)GetProcAddress(hMoppLib, "RetrieveMoppCode");
 			RetrieveMoppScale = (fnRetrieveMoppScale)GetProcAddress(hMoppLib, "RetrieveMoppScale");
 			RetrieveMoppOrigin = (fnRetrieveMoppOrigin)GetProcAddress(hMoppLib, "RetrieveMoppOrigin");
+			// ExecuteCommand = (fnExecuteCommand)GetProcAddress(hMoppLib, "ExecuteCommand");
 		}
 		return (NULL != GenerateMoppCode  && NULL != RetrieveMoppCode
 			&& NULL != RetrieveMoppScale && NULL != RetrieveMoppOrigin
@@ -154,6 +164,141 @@ public:
 		return code;
 	}
 
+	vector<Niflib::byte> CalculateMoppCode(Ref<bhkCompressedMeshShapeData> const & data, Niflib::Vector3* origin, float* scale)
+	{
+		vector<Niflib::byte> code;
+		if (Initialize())
+		{
+			vector<int> subshapeverts;
+			const vector<bhkCMSDBigTris>& bigTris = data->GetBigTris();
+			const vector<Vector4>& bigVerts = data->GetBigVerts();
+			const vector<bhkCMSDChunk>& chunks = data->GetChunks();
+
+			int totalVerts = bigVerts.size();
+			int totalTris = bigTris.size();
+			for (const bhkCMSDChunk& chunk : chunks) {
+				totalVerts += chunk.numVertices / 3;
+				totalTris += chunk.numStrips;
+			}
+			vector<Vector3> verts; verts.reserve(totalVerts);
+			vector<Triangle> tris; tris.reserve(totalTris);
+
+			int voffset = 0;
+			if (!bigVerts.empty())
+			{
+				int numVerts = data->GetBigVerts().size();
+				subshapeverts.push_back(numVerts);
+				for (int i = 0; i < bigVerts.size(); i++)
+					verts.push_back(TOVECTOR3(bigVerts[i]));
+				for (int i = 0; i < bigTris.size(); i++)
+					tris.push_back(Niflib::Triangle(bigTris[i].triangle1, bigTris[i].triangle2, bigTris[i].triangle3));
+				voffset += numVerts;
+			}
+
+			for (const bhkCMSDChunk& chunk : chunks) {
+				auto chunkOrigin = TOVECTOR3(chunk.translation);
+				int numVerts = chunk.numVertices / 3;
+				int numIndices = chunk.numIndices;
+				int numStrips = chunk.numStrips;
+				const auto& offsets = chunk.vertices;
+				const auto& indices = chunk.indices;
+				const auto& strips = chunk.strips;
+
+				for (auto n = 0; n < numVerts; n++) {
+					verts.push_back(chunkOrigin + Vector3(offsets[3 * n], offsets[3 * n + 1], offsets[3 * n + 2]) / 1000.0f);
+				}
+				// Stripped tris
+				int offset = 0;
+				for (auto s = 0; s < numStrips; s++) {
+					for (auto f = 0; f < strips[s] - 2; f++) {
+						if ((f + 1) % 2 == 0)
+							tris.push_back(Triangle(voffset + indices[offset + f + 2], voffset + indices[offset + f + 1], voffset + indices[offset + f + 0]));
+						else
+							tris.push_back(Triangle(voffset + indices[offset + f + 0], voffset + indices[offset + f + 1], voffset + indices[offset + f + 2]));
+					}
+					offset += strips[s];
+				}
+				// Non-stripped tris
+				for (auto f = 0; f < (numIndices - offset); f += 3) {
+					tris.push_back(Triangle(voffset + indices[offset + f + 0], voffset + indices[offset + f + 1], voffset + indices[offset + f + 2]));
+				}
+				subshapeverts.push_back(numVerts);
+			}
+
+			int len = 0;
+			if (GenerateMoppCodeWithSubshapes != nullptr)
+				len = GenerateMoppCodeWithSubshapes(subshapeverts.size(), &subshapeverts[0], verts.size(), &verts[0], tris.size(), &tris[0]);
+			else
+				len = GenerateMoppCode(verts.size(), &verts[0], tris.size(), &tris[0]);
+			if (len > 0)
+			{
+				code.resize(len);
+				if (0 != RetrieveMoppCode(len, &code[0]))
+				{
+					if (NULL != scale)
+						RetrieveMoppScale(scale);
+					if (NULL != origin)
+						RetrieveMoppOrigin(origin);
+				}
+				else
+				{
+					code.clear();
+				}
+			}
+		}
+		return code;
+	}
+
+	struct VectorStreams : RemoteCommand
+	{
+		vectorstream instr;
+		vectorstream outstr;
+		int Read(LPVOID buffer, int size) { return instr.readsome((char*)buffer, size); }
+		int Write(LPCVOID buffer, int size) { outstr.write((const char*)buffer, size); return size; }
+	};
+
+	void UpdateRigidBody(bhkRigidBodyRef& body)
+	{
+		if (ExecuteCommand != nullptr)
+		{
+			static int counter = 0;
+			DWORD dwTimeoutMillseconds = 1000 * 10;
+			VectorStreams streams;
+			Niflib::NifInfo info(Exporter::mNifVersionInt, Exporter::mNifUserVersion, Exporter::mNifUserVersion2);
+			WriteNifTree(streams.instr, body, info);
+			if (Exporter::mDebugEnabled)
+				WriteNifTree(FormatString("D:\\temp\\test%02d.nif", ++counter), body, info);
+			streams.instr.flush();
+			streams.instr.seekg(0);
+			streams.instr.seekp(0);
+			ExecuteCommand("UpdateRigidBody", &streams, dwTimeoutMillseconds);
+			if (!streams.outstr.vector().empty())
+			{
+				streams.outstr.seekg(0);
+				streams.outstr.seekp(0);
+
+				vector<NiObjectRef> blocks = ReadNifList(streams.outstr, &info);
+				bhkRigidBodyRef newBody = SelectFirstObjectOfType<bhkRigidBody>(blocks);
+				if (newBody != nullptr)
+					body = newBody;
+
+				if (Exporter::mDebugEnabled)
+					WriteNifTree(FormatString("D:\\temp\\test%02d_out.nif", counter), body, info);
+			}
+			else
+			{
+				// fallback calculation
+				if (body->GetMass() != 0.0)
+					body->UpdateMassProperties(1.0f, true, body->GetMass());
+			}
+		}
+		else
+		{
+			// fallback calculation
+			if (body->GetMass() != 0.0)
+				body->UpdateMassProperties(1.0f, true, body->GetMass());
+		}
+	}
 } TheHavokCode;
 
 static vector<Niflib::byte> ConstructHKMesh(NiTriBasedGeomRef shape, Niflib::Vector3& origin, float& scale)
@@ -162,10 +307,18 @@ static vector<Niflib::byte> ConstructHKMesh(NiTriBasedGeomRef shape, Niflib::Vec
 	return TheHavokCode.CalculateMoppCode(data->GetVertices(), data->GetTriangles(), &origin, &scale);
 }
 
-static vector<Niflib::byte> ConstructHKMesh(bhkPackedNiTriStripsShapeRef shape, Niflib::Vector3& origin, float& scale)
+static vector<Niflib::byte> ConstructHKMesh(bhkShapeRef shape, Niflib::Vector3& origin, float& scale)
 {
-	hkPackedNiTriStripsDataRef data = shape->GetData();
-	return TheHavokCode.CalculateMoppCode(shape->GetSubShapes(), data->GetVertices(), data->GetTriangles(), &origin, &scale);
+	if (bhkPackedNiTriStripsShapeRef mesh = DynamicCast<bhkPackedNiTriStripsShape>(shape))
+	{
+		hkPackedNiTriStripsDataRef data = mesh->GetData();
+		return TheHavokCode.CalculateMoppCode(mesh->GetSubShapes(), data->GetVertices(), data->GetTriangles(), &origin, &scale);
+	}
+	else if (bhkCompressedMeshShapeRef cmsd = DynamicCast<bhkCompressedMeshShape>(shape))
+	{
+		return TheHavokCode.CalculateMoppCode(cmsd->GetData(), &origin, &scale);
+	}
+	return vector<Niflib::byte>();
 }
 
 /*
@@ -342,13 +495,12 @@ Exporter::Result Exporter::exportCollision(NiNodeRef &parent, INode *node)
 			if (shape)
 			{
 				body->SetShape(DynamicCast<bhkShape>(shape));
+				updateRigidBody(body);
 
 				bhkCollisionObjectRef co = new bhkCollisionObject();
 				co->SetBody(DynamicCast<NiObject>(body));
 				newParent->SetCollisionObject(DynamicCast<NiCollisionObject>(co));
-
-				if (body->GetMass() != 0.0)
-					body->UpdateMassProperties(1.0f, true, body->GetMass());
+				// full bhkRigidBody Calc
 			}
 		}
 	}
@@ -450,8 +602,12 @@ bhkRigidBodyRef Exporter::makeCollisionBody(INode *node)
 	// setup body
 	bhkRigidBodyRef body = transenable ? new bhkRigidBodyT() : new bhkRigidBody();
 
-	body->SetLayer(OblivionLayer(lyr));
-	body->SetLayerCopy(OblivionLayer(lyr));
+	OblivionLayer obv_layer; SkyrimLayer sky_layer;
+	GetHavokLayersFromIndex(lyr, (int*)&obv_layer, (int*)&sky_layer);
+	body->SetLayer(obv_layer);
+	body->SetLayerCopy(obv_layer);
+	body->SetSkyrimLayer(sky_layer);
+
 	body->SetMotionSystem(MotionSystem(msys));
 	body->SetQualityType(MotionQuality(qtype));
 	body->SetMass(mass);
@@ -508,21 +664,23 @@ bhkNiTriStripsShapeRef Exporter::makeTriStripsShape(Mesh& mesh, Matrix3& sm, int
 	return shape;
 }
 
-static bhkMoppBvTreeShapeRef makeTreeShape(bhkPackedNiTriStripsShapeRef mesh, int mtlDefault)
+static bhkMoppBvTreeShapeRef makeTreeShape(bhkShapeRef shape, int mtlDefault)
 {
+	if (!TheHavokCode.Initialize()) return shape;
+
 	HavokMaterial material; SkyrimHavokMaterial skyrimMaterial;
 	GetHavokMaterialsFromIndex(mtlDefault, (int*)&material, (int*)&skyrimMaterial);
 
 	bhkMoppBvTreeShapeRef mopp = new bhkMoppBvTreeShape();
 	mopp->SetMaterial(material);
 	mopp->SetSkyrimMaterial(skyrimMaterial);
-	mopp->SetShape(mesh);
+	mopp->SetShape(shape);
 
 	try
 	{
 		Niflib::Vector3 offset;
 		float scale;
-		vector<Niflib::byte> moppcode = ConstructHKMesh(mesh, offset, scale);
+		vector<Niflib::byte> moppcode = ConstructHKMesh(shape, offset, scale);
 		mopp->SetMoppCode(moppcode);
 		mopp->SetMoppOrigin(offset);
 		mopp->SetMoppScale(scale);
@@ -533,7 +691,7 @@ static bhkMoppBvTreeShapeRef makeTreeShape(bhkPackedNiTriStripsShapeRef mesh, in
 	return mopp;
 }
 
-bhkPackedNiTriStripsShapeRef Exporter::makePackedTriStripsShape(Mesh& mesh, Matrix3& sm, int mtlDefault, OblivionLayer layer, int colFilter)
+bhkPackedNiTriStripsShapeRef Exporter::makePackedTriStripsShape(Mesh& mesh, Matrix3& sm, int mtlDefault, int layer, int colFilter)
 {
 	// Need to separate the vertices based on material.  
 	typedef vector<Triangle> Triangles;
@@ -582,12 +740,15 @@ bhkPackedNiTriStripsShapeRef Exporter::makePackedTriStripsShape(Mesh& mesh, Matr
 	HavokMaterial material; SkyrimHavokMaterial skyrimMaterial;
 	GetHavokMaterialsFromIndex(mtlDefault, (int*)&material, (int*)&skyrimMaterial);
 
+	OblivionLayer obv_layer; SkyrimLayer sky_layer;
+	GetHavokLayersFromIndex(layer, (int*)&obv_layer, (int*)&sky_layer);
+
 	// setup shape
 	bhkPackedNiTriStripsShapeRef shape = new bhkPackedNiTriStripsShape();
 	shape->SetData(data);
 
 	OblivionSubShape subshape;
-	subshape.layer = layer;
+	subshape.layer = obv_layer;
 	subshape.material = material;
 	subshape.colFilter = colFilter;
 	subshape.numVertices = verts.size();
@@ -634,7 +795,7 @@ bhkConvexVerticesShapeRef Exporter::makeConvexShape(Mesh& mesh, Matrix3& tm, int
 	sortVector4(norms);
 	shape->SetVertices(verts);
 	shape->SetNormalsAndDist(norms);
-	
+
 	HavokMaterial material; SkyrimHavokMaterial skyrimMaterial;
 	GetHavokMaterialsFromIndex(mtlDefault, (int*)&material, (int*)&skyrimMaterial);
 	shape->SetMaterial(material);
@@ -866,7 +1027,7 @@ bhkShapeRef	Exporter::makebhkCapsuleShape(INode *node, Object *obj, Matrix3& tm,
 	bhkShapeRef retval;
 
 	enum { cap_params, };
-	enum { PB_MATERIAL, PB_RADIUS1, PB_RADIUS2, PB_LENGTH, PB_SCALE};
+	enum { PB_MATERIAL, PB_RADIUS1, PB_RADIUS2, PB_LENGTH, PB_SCALE };
 
 	if (IParamBlock2* pblock2 = obj->GetParamBlockByID(cap_params))
 	{
@@ -892,7 +1053,7 @@ bhkShapeRef	Exporter::makebhkCapsuleShape(INode *node, Object *obj, Matrix3& tm,
 		rot.NoTrans();
 		rot.NoScale();
 
-		float distFromCenter = len*bhkAppScaleFactor/2.0f;
+		float distFromCenter = len*bhkAppScaleFactor / 2.0f;
 
 		Point3 pt1 = ((TransMatrix(Point3(0.0f, 0.0f, +distFromCenter)) * rot).GetTrans() + center) / bhkAppScaleFactor;
 		Point3 pt2 = ((TransMatrix(Point3(0.0f, 0.0f, -distFromCenter)) * rot).GetTrans() + center) / bhkAppScaleFactor;
@@ -925,12 +1086,18 @@ bhkShapeRef Exporter::makeTriStripsShape(INode *node, Matrix3& tm, int mtlDefaul
 
 	int lyr = OL_STATIC;
 	npGetProp(node, NP_HVK_LAYER, lyr, NP_DEFAULT_HVK_LAYER);
+	OblivionLayer obv_layer; SkyrimLayer sky_layer;
+	GetHavokLayersFromIndex(lyr, (int*)&obv_layer, (int*)&sky_layer);
+
 	shape->SetNumDataLayers(1);
-	shape->SetOblivionLayer(0, OblivionLayer(lyr));
+	shape->SetOblivionLayer(0, obv_layer);
 
 	int mtl = NP_DEFAULT_HVK_MATERIAL;
 	npGetProp(node, NP_HVK_MATERIAL, mtl, NP_DEFAULT_HVK_MATERIAL);
-	shape->SetMaterial(HavokMaterial(mtl));
+	HavokMaterial material; SkyrimHavokMaterial skyrimMaterial;
+	GetHavokMaterialsFromIndex(mtl, (int*)&material, (int*)&skyrimMaterial);
+	shape->SetMaterial(material);
+	shape->SetSkyrimMaterial(skyrimMaterial);
 
 	return StaticCast<bhkShape>(shape);
 }
@@ -1046,12 +1213,12 @@ bool Exporter::isCollision(INode *node)
 	return (mCollisionNodes.find(node) != mCollisionNodes.end());
 }
 
-static void AccumulateSubShapesFromGroup(INode *node, INodeTab& packedShapes, INodeTab& otherShapes)
+static void AccumulateSubShapesFromGroup(INode *node, INodeTab& packedShapes, INodeTab& cmsdShapes, INodeTab& otherShapes)
 {
 	ObjectState os = node->EvalWorldState(0);
 	if (node->IsGroupHead()) {
 		for (int i = 0; i < node->NumberOfChildren(); i++)
-			AccumulateSubShapesFromGroup(node->GetChildNode(i), packedShapes, otherShapes);
+			AccumulateSubShapesFromGroup(node->GetChildNode(i), packedShapes, cmsdShapes, otherShapes);
 	}
 	else if ((os.obj->ClassID() == SCUBA_CLASS_ID)
 		|| (os.obj->ClassID() == Class_ID(BOXOBJ_CLASS_ID, 0))
@@ -1068,13 +1235,15 @@ static void AccumulateSubShapesFromGroup(INode *node, INodeTab& packedShapes, IN
 	{
 		enum { list_params, bv_mesh, };  // pblock2 ID
 		enum { PB_MATERIAL, PB_MESHLIST, PB_BOUND_TYPE, PB_CENTER, };
-		enum { bv_type_none, bv_type_box, bv_type_shapes, bv_type_packed, bv_type_convex, };  // pblock ID
+		enum { bv_type_none, bv_type_box, bv_type_shapes, bv_type_packed, bv_type_convex, bv_type_capsule, bv_type_obb, bv_type_cmsd };  // pblock ID
 
 		int type = bv_type_none;
 		if (IParamBlock2* pblock2 = os.obj->GetParamBlockByID(list_params))
 			pblock2->GetValue(PB_BOUND_TYPE, 0, type, FOREVER, 0);
 		if (type == bv_type_packed)
 			packedShapes.Insert(0, 1, &node);
+		else if (type == bv_type_cmsd)
+			cmsdShapes.Insert(0, 1, &node);
 		else
 			otherShapes.Insert(0, 1, &node);
 	}
@@ -1091,6 +1260,8 @@ static void AccumulateSubShapesFromGroup(INode *node, INodeTab& packedShapes, IN
 				pblock2->GetValue(PB_BOUND_TYPE, 0, type, FOREVER, 0);
 			if (type == bv_type_packed)
 				packedShapes.Insert(0, 1, &node);
+			else if (type == bv_type_cmsd)
+				cmsdShapes.Insert(0, 1, &node);
 			else
 				otherShapes.Insert(0, 1, &node);
 		}
@@ -1123,8 +1294,12 @@ bhkShapeRef Exporter::makeListShape(INode *node, Matrix3& tm, bhkRigidBodyRef bo
 			float maxangvel = irb->GetMaxAngularVelocity(0);
 			float pendepth = irb->GetPenetrationDepth(0);
 
-			body->SetLayer(OblivionLayer(lyr));
-			body->SetLayerCopy(OblivionLayer(lyr));
+			OblivionLayer obv_layer; SkyrimLayer sky_layer;
+			GetHavokLayersFromIndex(lyr, (int*)&obv_layer, (int*)&sky_layer);
+
+			body->SetLayer(obv_layer);
+			body->SetLayerCopy(obv_layer);
+			body->SetSkyrimLayer(sky_layer);
 			body->SetMotionSystem(MotionSystem(msys));
 			body->SetQualityType(MotionQuality(qtype));
 			body->SetMass(mass);
@@ -1146,19 +1321,22 @@ bhkShapeRef Exporter::makeListShape(INode *node, Matrix3& tm, bhkRigidBodyRef bo
 		shape->SetSkyrimMaterial(skyrimMaterial);
 
 		// Locate all packed shapes for efficient mopp packing
-		INodeTab packedShapes, otherShapes;
+		INodeTab packedShapes, cmsdShapes, otherShapes;
 		for (int i = 0; i < nBlocks; i++) {
 			INode *tnode = NULL;
 			pblock2->GetValue(PB_MESHLIST, 0, tnode, FOREVER, i);
 			if (tnode != NULL)
-				AccumulateSubShapesFromGroup(tnode, packedShapes, otherShapes);
+				AccumulateSubShapesFromGroup(tnode, packedShapes, cmsdShapes, otherShapes);
 		}
 
 		vector<bhkShapeRef> shapes;
 
-		if (packedShapes.Count() > 0)
-		{
+		if (packedShapes.Count() > 0) {
 			if (bhkShapeRef subshape = makeModPackedTriStripShape(packedShapes, tm, mtl))
+				shapes.push_back(subshape);
+		}
+		if (cmsdShapes.Count() > 0) {
+			if (bhkShapeRef subshape = makeModCMSD(cmsdShapes, tm, mtl))
 				shapes.push_back(subshape);
 		}
 
@@ -1245,7 +1423,7 @@ bhkShapeRef	Exporter::makeProxyBoxShape(INode *node, Object *obj, Mesh& mesh, Ma
 {
 	enum { list_params, bv_mesh, };  // pblock2 ID
 	enum { PB_MATERIAL, PB_MESHLIST, PB_BOUND_TYPE, PB_CENTER, };
-	enum { bv_type_none, bv_type_box, bv_type_shapes, bv_type_packed, bv_type_convex, };  // pblock ID
+	enum { bv_type_none, bv_type_box, bv_type_shapes, bv_type_packed, bv_type_convex, bv_type_capsule, bv_type_obb, bv_type_cmsd };  // pblock ID
 
 	bhkShapeRef retval;
 	if (IParamBlock2* pblock2 = obj->GetParamBlockByID(list_params))
@@ -1291,7 +1469,7 @@ bhkShapeRef	Exporter::makeProxyOBBShape(INode *node, Object *obj, Mesh& mesh, Ma
 {
 	enum { list_params, bv_mesh, };  // pblock2 ID
 	enum { PB_MATERIAL, PB_MESHLIST, PB_BOUND_TYPE, PB_CENTER, };
-	enum { bv_type_none, bv_type_box, bv_type_shapes, bv_type_packed, bv_type_convex, };  // pblock ID
+	enum { bv_type_none, bv_type_box, bv_type_shapes, bv_type_packed, bv_type_convex, bv_type_capsule, bv_type_obb, bv_type_cmsd };  // pblock ID
 
 	bhkShapeRef retval;
 	if (IParamBlock2* pblock2 = obj->GetParamBlockByID(list_params))
@@ -1338,7 +1516,7 @@ bhkShapeRef	Exporter::makeProxyCapsuleShape(INode *node, Object *obj, Mesh& mesh
 {
 	enum { list_params, bv_mesh, };  // pblock2 ID
 	enum { PB_MATERIAL, PB_MESHLIST, PB_BOUND_TYPE, PB_CENTER, };
-	enum { bv_type_none, bv_type_box, bv_type_shapes, bv_type_packed, bv_type_convex, bv_type_capsule, bv_type_obb, bv_type_cmsd};  // pblock ID
+	enum { bv_type_none, bv_type_box, bv_type_shapes, bv_type_packed, bv_type_convex, bv_type_capsule, bv_type_obb, bv_type_cmsd };  // pblock ID
 
 	bhkShapeRef retval;
 	if (IParamBlock2* pblock2 = obj->GetParamBlockByID(list_params))
@@ -1363,8 +1541,8 @@ bhkShapeRef	Exporter::makeProxyCapsuleShape(INode *node, Object *obj, Mesh& mesh
 			shape->SetRadius(r1 / bhkAppScaleFactor);
 			shape->SetRadius1(r1 / bhkAppScaleFactor);
 			shape->SetRadius2(r1 / bhkAppScaleFactor);
-			shape->SetFirstPoint(TOVECTOR3(trans_pt1/bhkAppScaleFactor));
-			shape->SetSecondPoint(TOVECTOR3(trans_pt2/bhkAppScaleFactor));
+			shape->SetFirstPoint(TOVECTOR3(trans_pt1 / bhkAppScaleFactor));
+			shape->SetSecondPoint(TOVECTOR3(trans_pt2 / bhkAppScaleFactor));
 			shape->SetMaterial(material);
 			shape->SetSkyrimMaterial(skyrimMaterial);
 
@@ -1394,7 +1572,7 @@ bhkShapeRef	Exporter::makeProxySphereShape(INode *node, Object *obj, Mesh& mesh,
 {
 	enum { list_params, bv_mesh, };  // pblock2 ID
 	enum { PB_MATERIAL, PB_MESHLIST, PB_BOUND_TYPE, PB_CENTER, };
-	enum { bv_type_none, bv_type_box, bv_type_shapes, bv_type_packed, bv_type_convex, };  // pblock ID
+	enum { bv_type_none, bv_type_box, bv_type_shapes, bv_type_packed, bv_type_convex, bv_type_capsule, bv_type_obb, bv_type_cmsd };  // pblock ID
 
 	bhkShapeRef shape;
 	if (IParamBlock2* pblock2 = obj->GetParamBlockByID(list_params))
@@ -1409,7 +1587,7 @@ bhkShapeRef	Exporter::makeProxyConvexShape(INode *node, Object *obj, Mesh& mesh,
 {
 	enum { list_params, bv_mesh, };  // pblock2 ID
 	enum { PB_MATERIAL, PB_MESHLIST, PB_BOUND_TYPE, PB_CENTER, };
-	enum { bv_type_none, bv_type_box, bv_type_shapes, bv_type_packed, bv_type_convex, };  // pblock ID
+	enum { bv_type_none, bv_type_box, bv_type_shapes, bv_type_packed, bv_type_convex, bv_type_capsule, bv_type_obb, bv_type_cmsd };  // pblock ID
 
 	bhkShapeRef shape;
 	if (IParamBlock2* pblock2 = obj->GetParamBlockByID(list_params))
@@ -1431,7 +1609,7 @@ bhkShapeRef	Exporter::makeProxyTriStripShape(INode *node, Object *obj, Mesh& mes
 {
 	enum { list_params, bv_mesh, };  // pblock2 ID
 	enum { PB_MATERIAL, PB_MESHLIST, PB_BOUND_TYPE, PB_CENTER, };
-	enum { bv_type_none, bv_type_box, bv_type_shapes, bv_type_packed, bv_type_convex, };  // pblock ID
+	enum { bv_type_none, bv_type_box, bv_type_shapes, bv_type_packed, bv_type_convex, bv_type_capsule, bv_type_obb, bv_type_cmsd };  // pblock ID
 
 	bhkShapeRef shape;
 	if (IParamBlock2* pblock2 = obj->GetParamBlockByID(list_params))
@@ -1462,7 +1640,7 @@ bhkShapeRef	Exporter::makeProxyPackedTriStripShape(INode *node, Object *obj, Mes
 {
 	enum { list_params, bv_mesh, };  // pblock2 ID
 	enum { PB_MATERIAL, PB_MESHLIST, PB_BOUND_TYPE, PB_CENTER, };
-	enum { bv_type_none, bv_type_box, bv_type_shapes, bv_type_packed, bv_type_convex, };  // pblock ID
+	enum { bv_type_none, bv_type_box, bv_type_shapes, bv_type_packed, bv_type_convex, bv_type_capsule, bv_type_obb, bv_type_cmsd };  // pblock ID
 
 	bhkShapeRef shape;
 	if (IParamBlock2* pblock2 = obj->GetParamBlockByID(list_params))
@@ -1481,11 +1659,8 @@ bhkShapeRef	Exporter::makeProxyPackedTriStripShape(INode *node, Object *obj, Mes
 		localmesh.buildNormals();
 
 		Matrix3 ident(true);
-		bhkPackedNiTriStripsShapeRef trishape = makePackedTriStripsShape(localmesh, ident, mtlDefault, OblivionLayer(layer), filter);
-		if (TheHavokCode.Initialize())
-			shape = StaticCast<bhkShape>(makeTreeShape(trishape, mtl));
-		else
-			shape = StaticCast<bhkShape>(trishape);
+		bhkPackedNiTriStripsShapeRef trishape = makePackedTriStripsShape(localmesh, ident, mtlDefault, layer, filter);
+		shape = StaticCast<bhkShape>(makeTreeShape(trishape, mtl));
 	}
 	return shape;
 }
@@ -1494,7 +1669,7 @@ bhkShapeRef	Exporter::makeModifierShape(INode *node, Object* obj, Modifier* mod,
 {
 	enum { havok_params };
 	enum { PB_BOUND_TYPE, PB_MATERIAL, };
-	enum { bv_type_none, bv_type_box, bv_type_sphere, bv_type_capsule, bv_type_shapes, bv_type_convex, bv_type_packed, bv_type_obb, bv_type_cmsd};  // pblock ID
+	enum { bv_type_none, bv_type_box, bv_type_sphere, bv_type_capsule, bv_type_shapes, bv_type_convex, bv_type_packed, bv_type_obb, bv_type_cmsd };  // pblock ID
 
 	bhkShapeRef shape;
 
@@ -1516,6 +1691,7 @@ bhkShapeRef	Exporter::makeModifierShape(INode *node, Object* obj, Modifier* mod,
 	if (IParamBlock2* pblock2 = mod->GetParamBlockByID(havok_params))
 	{
 		mtlDefault = GetPBValue(pblock2, PB_MATERIAL, mtlDefault);
+		type = GetPBValue(pblock2, PB_BOUND_TYPE, type);
 	}
 	switch (type)
 	{
@@ -1550,6 +1726,10 @@ bhkShapeRef	Exporter::makeModifierShape(INode *node, Object* obj, Modifier* mod,
 	case bv_type_packed:
 		shape = makeModPackedTriStripShape(node, mod, const_cast<Mesh&>(*mesh), tm, mtlDefault);
 		break;
+
+	case bv_type_cmsd:
+		shape = makeModCMSD(node, mod, const_cast<Mesh&>(*mesh), tm, mtlDefault);
+		break;
 	}
 	return shape;
 }
@@ -1558,7 +1738,7 @@ bhkShapeRef	Exporter::makeModBoxShape(INode *node, Modifier* mod, Mesh& mesh, Ma
 {
 	enum { havok_params };
 	enum { PB_BOUND_TYPE, PB_MATERIAL, };
-	enum { bv_type_none, bv_type_box, bv_type_sphere, bv_type_capsule, bv_type_shapes, bv_type_convex, bv_type_packed, bv_type_obb, bv_type_cmsd};  // pblock ID
+	enum { bv_type_none, bv_type_box, bv_type_sphere, bv_type_capsule, bv_type_shapes, bv_type_convex, bv_type_packed, bv_type_obb, bv_type_cmsd };  // pblock ID
 	int mtl = mtlDefault;
 
 	if (IParamBlock2* pblock2 = mod->GetParamBlockByID(havok_params))
@@ -1605,7 +1785,7 @@ bhkShapeRef	Exporter::makeModSphereShape(INode *node, Modifier* mod, Mesh& mesh,
 {
 	enum { havok_params };
 	enum { PB_BOUND_TYPE, PB_MATERIAL, };
-	enum { bv_type_none, bv_type_box, bv_type_sphere, bv_type_capsule, bv_type_shapes, bv_type_convex, bv_type_packed, bv_type_obb, bv_type_cmsd};  // pblock ID
+	enum { bv_type_none, bv_type_box, bv_type_sphere, bv_type_capsule, bv_type_shapes, bv_type_convex, bv_type_packed, bv_type_obb, bv_type_cmsd };  // pblock ID
 
 	int mtl = mtlDefault;
 	if (IParamBlock2* pblock2 = mod->GetParamBlockByID(havok_params))
@@ -1652,7 +1832,7 @@ bhkShapeRef	Exporter::makeModCapsuleShape(INode *node, Modifier* mod, Mesh& mesh
 {
 	enum { havok_params };
 	enum { PB_BOUND_TYPE, PB_MATERIAL, };
-	enum { bv_type_none, bv_type_box, bv_type_sphere, bv_type_capsule, bv_type_shapes, bv_type_convex, bv_type_packed, bv_type_obb, bv_type_cmsd};  // pblock ID
+	enum { bv_type_none, bv_type_box, bv_type_sphere, bv_type_capsule, bv_type_shapes, bv_type_convex, bv_type_packed, bv_type_obb, bv_type_cmsd };  // pblock ID
 
 	node->EvalWorldState(0);
 
@@ -1681,14 +1861,14 @@ bhkShapeRef	Exporter::makeModCapsuleShape(INode *node, Modifier* mod, Mesh& mesh
 		shape->SetRadius(r1 / bhkAppScaleFactor);
 		shape->SetRadius1(r1 / bhkAppScaleFactor);
 		shape->SetRadius2(r1 / bhkAppScaleFactor);
-		shape->SetFirstPoint(TOVECTOR3(trans_pt1/bhkAppScaleFactor));
-		shape->SetSecondPoint(TOVECTOR3(trans_pt2/bhkAppScaleFactor));
+		shape->SetFirstPoint(TOVECTOR3(trans_pt1 / bhkAppScaleFactor));
+		shape->SetSecondPoint(TOVECTOR3(trans_pt2 / bhkAppScaleFactor));
 
 		HavokMaterial material; SkyrimHavokMaterial skyrimMaterial;
 		GetHavokMaterialsFromIndex(mtl, (int*)&material, (int*)&skyrimMaterial);
 		shape->SetMaterial(material);
 		shape->SetSkyrimMaterial(skyrimMaterial);
-		
+
 		Matrix3 ltm = TransMatrix(center) * node->GetObjTMAfterWSM(0) * tm;
 		if (ltm.IsIdentity())
 		{
@@ -1712,7 +1892,7 @@ bhkShapeRef	Exporter::makeModConvexShape(INode *node, Modifier* mod, Mesh& mesh,
 {
 	enum { havok_params };
 	enum { PB_BOUND_TYPE, PB_MATERIAL, };
-	enum { bv_type_none, bv_type_box, bv_type_sphere, bv_type_capsule, bv_type_shapes, bv_type_convex, bv_type_packed, bv_type_obb, bv_type_cmsd};  // pblock ID
+	enum { bv_type_none, bv_type_box, bv_type_sphere, bv_type_capsule, bv_type_shapes, bv_type_convex, bv_type_packed, bv_type_obb, bv_type_cmsd };  // pblock ID
 
 	int mtl = mtlDefault;
 	if (IParamBlock2* pblock2 = mod->GetParamBlockByID(havok_params))
@@ -1739,7 +1919,7 @@ bhkShapeRef	Exporter::makeModTriStripShape(INode *node, Modifier* mod, Mesh& mes
 {
 	enum { havok_params };
 	enum { PB_BOUND_TYPE, PB_MATERIAL, };
-	enum { bv_type_none, bv_type_box, bv_type_sphere, bv_type_capsule, bv_type_shapes, bv_type_convex, bv_type_packed, bv_type_obb, bv_type_cmsd};  // pblock ID
+	enum { bv_type_none, bv_type_box, bv_type_sphere, bv_type_capsule, bv_type_shapes, bv_type_convex, bv_type_packed, bv_type_obb, bv_type_cmsd };  // pblock ID
 
 	int mtl = mtlDefault;
 	if (IParamBlock2* pblock2 = mod->GetParamBlockByID(havok_params))
@@ -1798,13 +1978,13 @@ bhkShapeRef	Exporter::makeModPackedTriStripShape(INodeTab &map, Matrix3& tm, int
 		{
 			enum { list_params, bv_mesh, };  // pblock2 ID
 			enum { PB_MATERIAL, PB_MESHLIST, PB_BOUND_TYPE, PB_CENTER, PB_OPT_ENABLE, PB_MAXEDGE, PB_FACETHRESH, PB_EDGETHRESH, PB_BIAS, PB_LAYER, PB_FILTER, };
-			enum { bv_type_none, bv_type_box, bv_type_shapes, bv_type_packed, bv_type_convex, bv_type_cmsd};  // pblock ID
+			enum { bv_type_none, bv_type_box, bv_type_shapes, bv_type_packed, bv_type_convex, bv_type_capsule, bv_type_obb, bv_type_cmsd };  // pblock ID
 
 			int type = bv_type_none;
 			if (IParamBlock2* pblock2 = os.obj->GetParamBlockByID(list_params))
 			{
 				pblock2->GetValue(PB_BOUND_TYPE, 0, type, FOREVER, 0);
-				if (type == bv_type_packed)
+				if (type == bv_type_packed || type == bv_type_cmsd)
 				{
 					mtlDefault = GetPBValue(pblock2, PB_MATERIAL, mtlDefault);
 					pblock2->GetValue(PB_FILTER, 0, filter, FOREVER, 0);
@@ -1819,11 +1999,11 @@ bhkShapeRef	Exporter::makeModPackedTriStripShape(INodeTab &map, Matrix3& tm, int
 		{
 			enum { havok_params, opt_params, clone_params, subshape_params };  // pblock ID
 			enum { PB_BOUND_TYPE, PB_MATERIAL, PB_OPT_ENABLE, PB_MAXEDGE, PB_FACETHRESH, PB_EDGETHRESH, PB_BIAS, PB_LAYER, PB_FILTER, };
-			enum { bv_type_none, bv_type_box, bv_type_sphere, bv_type_capsule, bv_type_shapes, bv_type_convex, bv_type_packed, bv_type_obb, };  // pblock ID
+			enum { bv_type_none, bv_type_box, bv_type_shapes, bv_type_packed, bv_type_convex, bv_type_capsule, bv_type_obb, bv_type_cmsd };  // pblock ID
 
 			if (IParamBlock2* pblock2 = mod->GetParamBlockByID(havok_params)) {
-				pblock2->GetValue(PB_FILTER, 0, filter, FOREVER, 0);
-				pblock2->GetValue(PB_LAYER, 0, layer, FOREVER, 0);
+				pblock2->GetValue(PB_FILTER, INFINITE, filter, FOREVER, 0);
+				pblock2->GetValue(PB_LAYER, INFINITE, layer, FOREVER, 0);
 			}
 			if (bhkHelperInterface* bhkHelp = (bhkHelperInterface*)mod->GetInterface(BHKHELPERINTERFACE_DESC))
 				mesh = const_cast<Mesh*>(bhkHelp->GetMesh());
@@ -1840,7 +2020,8 @@ bhkShapeRef	Exporter::makeModPackedTriStripShape(INodeTab &map, Matrix3& tm, int
 		int vi[3];
 		if (TMNegParity(ltm)) {
 			vi[0] = 2; vi[1] = 1; vi[2] = 0;
-		} else {
+		}
+		else {
 			vi[0] = 0; vi[1] = 1; vi[2] = 2;
 		}
 
@@ -1870,8 +2051,11 @@ bhkShapeRef	Exporter::makeModPackedTriStripShape(INodeTab &map, Matrix3& tm, int
 		HavokMaterial material; SkyrimHavokMaterial skyrimMaterial;
 		GetHavokMaterialsFromIndex(mtl, (int*)&material, (int*)&skyrimMaterial);
 
+		OblivionLayer obv_layer; SkyrimLayer sky_layer;
+		GetHavokLayersFromIndex(layer, (int*)&obv_layer, (int*)&sky_layer);
+
 		OblivionSubShape subshape;
-		subshape.layer = OblivionLayer(layer);
+		subshape.layer = obv_layer;
 		subshape.material = material;
 		subshape.colFilter = filter;
 		subshape.numVertices = nvert;
@@ -1891,9 +2075,7 @@ bhkShapeRef	Exporter::makeModPackedTriStripShape(INodeTab &map, Matrix3& tm, int
 	shape->SetSubShapes(subshapes);
 	data->SetSubShapes(subshapes);
 
-	if (TheHavokCode.Initialize())
-		return StaticCast<bhkShape>(makeTreeShape(shape, mtl));
-	return shape;
+	return StaticCast<bhkShape>(makeTreeShape(shape, mtl));
 }
 
 bhkShapeRef	Exporter::makeModPackedTriStripShape(INode *node, Modifier* mod, Mesh& mesh, Matrix3& tm, int mtlDefault)
@@ -1908,19 +2090,16 @@ bhkShapeRef	Exporter::makeModPackedTriStripShape(INode *node, Modifier* mod, Mes
 	if (IParamBlock2* pblock2 = mod->GetParamBlockByID(havok_params))
 	{
 		mtl = GetPBValue(pblock2, PB_MATERIAL, mtlDefault);
-		pblock2->GetValue(PB_FILTER, 0, filter, FOREVER, 0);
-		pblock2->GetValue(PB_LAYER, 0, layer, FOREVER, 0);
+		pblock2->GetValue(PB_FILTER, INFINITE, filter, FOREVER, 0);
+		pblock2->GetValue(PB_LAYER, INFINITE, layer, FOREVER, 0);
 	}
 
 	Matrix3 ltm = node->GetObjTMAfterWSM(0) * tm;
 
 	bhkShapeRef shape;
-	if (bhkPackedNiTriStripsShapeRef trishape = makePackedTriStripsShape(mesh, ltm, mtl, OblivionLayer(layer), filter))
+	if (bhkPackedNiTriStripsShapeRef trishape = makePackedTriStripsShape(mesh, ltm, mtl, layer, filter))
 	{
-		if (TheHavokCode.Initialize())
-			shape = StaticCast<bhkShape>(makeTreeShape(trishape, mtl));
-		else
-			shape = StaticCast<bhkShape>(trishape);
+		shape = StaticCast<bhkShape>(trishape);
 	}
 	return shape;
 }
@@ -1979,12 +2158,347 @@ bhkShapeRef Exporter::makeProxyCMSD(INode *node, Object *obj, Mesh& mesh, Matrix
 	return makeProxyPackedTriStripShape(node, obj, mesh, tm, mtlDefault);
 }
 
+bhkShapeRef Exporter::makeModCMSD(INode *node, Modifier* mod, Mesh& mesh, Matrix3& tm, int mtlDefault)
+{
+	enum { havok_params, opt_params, clone_params, subshape_params };  // pblock ID
+	enum { PB_BOUND_TYPE, PB_MATERIAL, PB_OPT_ENABLE, PB_MAXEDGE, PB_FACETHRESH, PB_EDGETHRESH, PB_BIAS, PB_LAYER, PB_FILTER, };
+	enum { bv_type_none, bv_type_box, bv_type_sphere, bv_type_capsule, bv_type_shapes, bv_type_convex, bv_type_packed, bv_type_obb, };  // pblock ID
+
+	int mtl = mtlDefault;
+	int layer = NP_DEFAULT_HVK_LAYER;
+	int filter = NP_DEFAULT_HVK_FILTER;
+	if (IParamBlock2* pblock2 = mod->GetParamBlockByID(havok_params))
+	{
+		mtl = GetPBValue(pblock2, PB_MATERIAL, mtlDefault);
+		pblock2->GetValue(PB_FILTER, INFINITE, filter, FOREVER, 0);
+		pblock2->GetValue(PB_LAYER, INFINITE, layer, FOREVER, 0);
+	}
+
+	Matrix3 ltm = node->GetObjTMAfterWSM(0) * tm;
+
+	bhkShapeRef shape;
+	if (bhkCompressedMeshShapeRef trishape = makeCompressedMeshShape(mesh, ltm, mtl, layer, filter))
+	{
+		shape = StaticCast<bhkShape>(makeTreeShape(trishape, mtl));
+	}
+	return shape;
+}
+
 bhkShapeRef Exporter::makeModCMSD(INode *tnode, Matrix3& tm, int mtlDefault)
 {
 	return makeModPackedTriStripShape(tnode, tm, mtlDefault);
 }
 
+struct bhkCMSDMaterial_equal : std::unary_function<bhkCMSDMaterial, bool>
+{
+	const bhkCMSDMaterial &idx_;
+	bhkCMSDMaterial_equal(const bhkCMSDMaterial &idx) : idx_(idx) {}
+	bool operator()(const bhkCMSDMaterial &arg) const { 
+		return arg.skyrimMaterial == idx_.skyrimMaterial && arg.skyrimLayer == idx_.skyrimLayer; 
+	}
+};
+
 bhkShapeRef Exporter::makeModCMSD(INodeTab &map, Matrix3& tm, int mtlDefault)
 {
-	return makeModPackedTriStripShape(map, tm, mtlDefault);
+	// Need to separate the vertices based on material.  
+	typedef vector<Triangle> Triangles;
+
+	// setup shape
+	vector<bhkCMSDChunk> subshapes; subshapes.reserve(map.Count());
+	vector<bhkCMSDTransform> transforms; transforms.reserve(map.Count());
+	vector<bhkCMSDMaterial> materials; materials.reserve(map.Count());
+	Box3 bounds;
+
+	for (int i = 0; i < map.Count(); ++i) {
+
+		INode *node = map[i];
+
+		// skip group heads
+		if (node->IsGroupHead() || (node->IsHidden() && !mExportHidden))
+			continue;
+
+		ObjectState os = node->EvalWorldState(0);
+
+		int mtl = mtlDefault;
+		int layer = NP_DEFAULT_HVK_LAYER;
+		int filter = NP_DEFAULT_HVK_FILTER;
+		Mesh *mesh = NULL;
+
+		bool bNodeTransform = true;
+		if (os.obj->ClassID() == BHKPROXYOBJECT_CLASS_ID)
+		{
+			enum { list_params, bv_mesh, };  // pblock2 ID
+			enum { PB_MATERIAL, PB_MESHLIST, PB_BOUND_TYPE, PB_CENTER, PB_OPT_ENABLE, PB_MAXEDGE, PB_FACETHRESH, PB_EDGETHRESH, PB_BIAS, PB_LAYER, PB_FILTER, };
+			enum { bv_type_none, bv_type_box, bv_type_shapes, bv_type_packed, bv_type_convex, bv_type_capsule, bv_type_obb, bv_type_cmsd };  // pblock ID
+
+			int type = bv_type_none;
+			if (IParamBlock2* pblock2 = os.obj->GetParamBlockByID(list_params))
+			{
+				pblock2->GetValue(PB_BOUND_TYPE, 0, type, FOREVER, 0);
+				if (type == bv_type_cmsd)
+				{
+					mtl = GetPBValue(pblock2, PB_MATERIAL, mtlDefault);
+					pblock2->GetValue(PB_FILTER, INFINITE, filter, FOREVER, 0);
+					pblock2->GetValue(PB_LAYER, INFINITE, layer, FOREVER, 0);
+					if (TriObject *tri = (TriObject *)os.obj->ConvertToType(0, Class_ID(TRIOBJ_CLASS_ID, 0)))
+						mesh = const_cast<Mesh*>(&tri->GetMesh());
+					bNodeTransform = false;
+				}
+			}
+		}
+		else if (Modifier* mod = GetbhkCollisionModifier(node))
+		{
+			enum { havok_params, opt_params, clone_params, subshape_params };  // pblock ID
+			enum { PB_BOUND_TYPE, PB_MATERIAL, PB_OPT_ENABLE, PB_MAXEDGE, PB_FACETHRESH, PB_EDGETHRESH, PB_BIAS, PB_LAYER, PB_FILTER, };
+			enum { bv_type_none, bv_type_box, bv_type_shapes, bv_type_packed, bv_type_convex, bv_type_capsule, bv_type_obb, bv_type_cmsd };  // pblock ID
+
+			if (IParamBlock2* pblock2 = mod->GetParamBlockByID(havok_params)) {
+				mtl = GetPBValue(pblock2, PB_MATERIAL, mtlDefault);
+				pblock2->GetValue(PB_FILTER, INFINITE, filter, FOREVER, 0);
+				pblock2->GetValue(PB_LAYER, INFINITE, layer, FOREVER, 0);
+			}
+			if (bhkHelperInterface* bhkHelp = (bhkHelperInterface*)mod->GetInterface(BHKHELPERINTERFACE_DESC))
+				mesh = const_cast<Mesh*>(bhkHelp->GetMesh());
+		}
+		else
+		{
+			if (TriObject *tri = (TriObject *)os.obj->ConvertToType(0, Class_ID(TRIOBJ_CLASS_ID, 0)))
+				mesh = const_cast<Mesh*>(&tri->GetMesh());
+		}
+		if (mesh == NULL)
+			continue;
+
+		// Need to separate the vertices based on material.  
+		typedef vector<Triangle> Triangles;
+
+		// setup shape data
+		vector<Vector3> verts;
+		vector<Vector3> norms;
+		Triangles		tris;
+
+		Matrix3 ltm = (node->GetObjTMAfterWSM(0) * tm);
+		int vi[3];
+		if (TMNegParity(ltm)) {
+			vi[0] = 2; vi[1] = 1; vi[2] = 0;
+		}
+		else {
+			vi[0] = 0; vi[1] = 1; vi[2] = 2;
+		}
+
+		int nvert = mesh->getNumVerts();
+		int nface = mesh->getNumFaces();
+		mesh->buildNormals();
+		mesh->buildBoundingBox();
+		Box3 aabb = mesh->getBoundingBox();
+		Vector3 ptoffset = TOVECTOR3(aabb.Min()) / bhkAppScaleFactor;
+		bounds += aabb;
+
+		tris.resize(nface);
+		verts.resize(nvert);
+		norms.resize(nface);
+		for (int i = 0; i < nvert; ++i) {
+			verts[i] = TOVECTOR3((mesh->getVert(i) * ltm) / bhkAppScaleFactor);
+		}
+		for (int i = 0; i < nface; ++i)
+		{
+			Triangle& tri = tris[i];
+			norms[i] = TOVECTOR3(mesh->getFaceNormal(i));
+			Face& face = mesh->faces[i];
+			tri[0] = (USHORT)face.getVert(0);
+			tri[1] = (USHORT)face.getVert(1);
+			tri[2] = (USHORT)face.getVert(2);
+		}
+		TriStrips strips;
+		strippify(strips, verts, norms, tris);
+		vector<unsigned short > indices;
+		indices.reserve(nface * 3);
+		for (auto itr = strips.begin(); itr != strips.end(); ++itr) {
+			auto& strip = (*itr);
+			for (int j = 0; j < strip.size(); ++j) {
+				indices.push_back(strip[j]);
+			}
+		}
+
+		HavokMaterial material; SkyrimHavokMaterial skyrimMaterial;
+		GetHavokMaterialsFromIndex(mtl, (int*)&material, (int*)&skyrimMaterial);
+
+		OblivionLayer oblivlayer; SkyrimLayer skyrimLayer;
+		GetHavokLayersFromIndex(layer, (int*)&oblivlayer, (int*)&skyrimLayer);
+		
+		auto subshapeitr = subshapes.insert(subshapes.end(), bhkCMSDChunk());
+		bhkCMSDChunk& subshape = (*subshapeitr);
+
+		//auto transitr = transforms.insert(transforms.end(), bhkCMSDTransform());
+		//bhkCMSDTransform& subtrans = (*transitr);
+
+		subshape.transformIndex = 0;
+
+		bhkCMSDMaterial cmsdMaterial;
+		cmsdMaterial.skyrimMaterial = skyrimMaterial;
+		cmsdMaterial.skyrimLayer = skyrimLayer;
+		const auto& itr = std::find_if(materials.begin(), materials.end(), bhkCMSDMaterial_equal(cmsdMaterial));
+		if (itr == materials.end()) {
+			subshape.materialIndex = materials.size();
+			materials.push_back(cmsdMaterial);
+
+			bhkCMSDTransform trans;
+			trans.translation = TOVECTOR4(Point3());
+			trans.rotation = TOQUATXYZW(Quat());
+			transforms.push_back(trans);
+			subshape.transformIndex = subshape.materialIndex;
+		} else {
+			subshape.materialIndex = std::distance(materials.begin(), itr);
+			subshape.transformIndex = subshape.materialIndex;
+		}
+
+		subshape.translation = ptoffset;
+		subshape.numVertices = verts.size();
+		subshape.vertices.reserve(subshape.numVertices * 3);
+		for (auto itr = verts.begin(); itr != verts.end(); ++itr) {
+			const auto& v = (*itr);
+			subshape.vertices.push_back(static_cast<unsigned short>((v.x - ptoffset.x) * 1000.0f));
+			subshape.vertices.push_back(static_cast<unsigned short>((v.y - ptoffset.y) * 1000.0f));
+			subshape.vertices.push_back(static_cast<unsigned short>((v.z - ptoffset.z) * 1000.0f));
+		}
+		subshape.numIndices = indices.size();
+		subshape.indices = indices;
+		subshape.numStrips = strips.size();
+		subshape.strips.reserve(subshape.numStrips);
+		for (auto itr = strips.begin(); itr != strips.end(); ++itr)
+			subshape.strips.push_back((*itr).size());
+	}
+
+	bhkCompressedMeshShapeRef shape = new bhkCompressedMeshShape();
+	bhkCompressedMeshShapeDataRef data = new bhkCompressedMeshShapeData();
+	data->SetChunkTransforms(transforms);
+	data->SetChunkMaterials(materials);
+	data->SetChunks(subshapes);
+	data->SetBoundsMin(TOVECTOR4(bounds.Min(), 0.0f) / bhkAppScaleFactor);
+	data->SetBoundsMax(TOVECTOR4(bounds.Max(), bhkAppScaleFactor) / bhkAppScaleFactor);
+	shape->SetData(data);
+
+	return StaticCast<bhkShape>(makeTreeShape(shape, mtlDefault));
+}
+
+// returns partially construted Compessed Mesh Shape.  Will be passed to NifMopp later to fully compress with MOPP
+bhkCompressedMeshShapeRef Exporter::makeCompressedMeshShape(Mesh& mesh, Matrix3& sm, int mtlDefault, int lyrDefault, int colFilter)
+{
+	// Need to separate the vertices based on material.  
+	typedef vector<Triangle> Triangles;
+
+	// setup shape data
+	vector<Vector3> verts;
+	vector<Vector3> norms;
+	Triangles		tris;
+
+	int vi[3];
+	if (TMNegParity(sm)) {
+		vi[0] = 2; vi[1] = 1; vi[2] = 0;
+	}
+	else {
+		vi[0] = 0; vi[1] = 1; vi[2] = 2;
+	}
+
+	int nvert = mesh.getNumVerts();
+	int nface = mesh.getNumFaces();
+	mesh.buildNormals();
+	mesh.buildBoundingBox();
+	Box3 aabb = mesh.getBoundingBox();
+	Vector3 ptoffset = TOVECTOR3(aabb.Min()) / bhkAppScaleFactor;
+
+	tris.resize(nface);
+	verts.resize(nvert);
+	norms.resize(nface);
+	for (int i = 0; i < nvert; ++i) {
+		verts[i] = TOVECTOR3((mesh.getVert(i) * sm) / bhkAppScaleFactor);
+	}
+	for (int i = 0; i < nface; ++i)
+	{
+		Triangle& tri = tris[i];
+		norms[i] = TOVECTOR3(mesh.getFaceNormal(i));
+		Face& face = mesh.faces[i];
+		tri[0] = (USHORT)face.getVert(0);
+		tri[1] = (USHORT)face.getVert(1);
+		tri[2] = (USHORT)face.getVert(2);
+	}
+	TriStrips strips;
+	strippify(strips, verts, norms, tris);
+	vector<unsigned short > indices;
+	indices.reserve(nface * 3);
+	for (auto itr = strips.begin(); itr != strips.end(); ++itr) {
+		auto& strip = (*itr);
+		for (int j = 0; j < strip.size(); ++j) {
+			indices.push_back(strip[j]);
+		}
+	}
+	
+
+	bhkCompressedMeshShapeDataRef data = new bhkCompressedMeshShapeData();
+	HavokMaterial material; SkyrimHavokMaterial skyrimMaterial;
+	GetHavokMaterialsFromIndex(mtlDefault, (int*)&material, (int*)&skyrimMaterial);
+
+	OblivionLayer layer; SkyrimLayer skyrimLayer;
+	GetHavokLayersFromIndex(lyrDefault, (int*)&layer, (int*)&skyrimLayer);
+
+	// setup shape
+	bhkCompressedMeshShapeRef shape = new bhkCompressedMeshShape();
+	shape->SetData(data);
+
+	vector<bhkCMSDChunk> subshapes; subshapes.resize(1);
+	vector<bhkCMSDTransform> transforms; transforms.resize(1);
+	vector<bhkCMSDMaterial> materials; materials.resize(1);
+	bhkCMSDChunk& subshape = subshapes.front();
+	bhkCMSDTransform& subtrans = transforms.front();
+	bhkCMSDMaterial& submat = materials.front();
+	subtrans.translation = ptoffset;
+	subtrans.rotation = TOQUATXYZW(Quat());
+
+	submat.skyrimMaterial = skyrimMaterial;
+	submat.skyrimLayer = skyrimLayer;
+
+	data->SetChunkTransforms(transforms);
+
+	subshape.numVertices = verts.size();
+	subshape.vertices.reserve(subshape.numVertices * 3);
+	for (auto itr = verts.begin(); itr != verts.end(); ++itr) {
+		const auto& v = (*itr);
+		subshape.vertices.push_back(static_cast<unsigned short>((v.x - ptoffset.x) * 1000.0f));
+		subshape.vertices.push_back(static_cast<unsigned short>((v.y - ptoffset.y) * 1000.0f));
+		subshape.vertices.push_back(static_cast<unsigned short>((v.z - ptoffset.z) * 1000.0f));
+	}
+	subshape.numIndices = indices.size();
+	subshape.indices = indices;
+	subshape.numStrips = strips.size();
+	subshape.strips.reserve(subshape.numStrips);
+	for (auto itr = strips.begin(); itr != strips.end(); ++itr)
+		subshape.strips.push_back(strips.size());
+	data->SetChunks(subshapes);
+	return shape;
+}
+
+void Exporter::updateRigidBody(bhkRigidBodyRef& ref)
+{
+	TheHavokCode.UpdateRigidBody(ref);
+
+	// recursively update root node/targets
+	updateRootTarget(ref->GetShape(), mNiRoot);
+}
+
+
+void Exporter::updateRootTarget(Ref<bhkShape> ref, NiNodeRef ni_node)
+{
+	if (ref == nullptr) return;
+
+	if (bhkMoppBvTreeShapeRef treeShape = DynamicCast<bhkMoppBvTreeShape>(ref)) {
+		updateRootTarget(treeShape->GetShape(), ni_node);
+	}
+	else if (bhkListShapeRef listShape = DynamicCast<bhkListShape>(ref)) {
+		const auto& shapes = listShape->GetSubShapes();
+		for (auto itr = shapes.begin(); itr != shapes.end(); ++itr) {
+			updateRootTarget(*itr, ni_node);
+		}
+	}
+	else if ( bhkCompressedMeshShapeRef cmsr = DynamicCast<bhkCompressedMeshShape>(ref)) {
+		cmsr->SetTarget(mNiRoot);
+	}
 }

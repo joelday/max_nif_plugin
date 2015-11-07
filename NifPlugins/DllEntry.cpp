@@ -303,6 +303,8 @@ static void DoNotifyNodeUnHide(void *param, NotifyInfo *info)
 #include "Inertia.h"
 static void InitializeHavok()
 {
+	// disable in 64-bit as the base Niflib versions are more functional
+#ifndef WIN64
 	HMODULE hNifHavok = DelayLoadLibraryA("NifMopp.dll");
 	if ( hNifHavok != nullptr )
 	{
@@ -321,6 +323,7 @@ static void InitializeHavok()
 		Niflib::Inertia::SetCombineMassProperties( 
 			(Niflib::Inertia::fnCombineMassProperties)GetProcAddress(hNifHavok, "CombineMassProperties") );
 	}
+#endif
 }
 
 // Include delayloading

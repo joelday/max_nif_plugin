@@ -34,18 +34,13 @@ bool NifImporter::ImportMeshes(NiNodeRef node)
 	bool ok = true;
 	try
 	{
+		vector<NiTriBasedGeomRef> trigeom = DynamicCast<NiTriBasedGeom>(node->GetChildren());
 #if 1
-		vector<NiTriShapeRef> trinodes = DynamicCast<NiTriShape>(node->GetChildren());
-		for (vector<NiTriShapeRef>::iterator itr = trinodes.begin(), end = trinodes.end(); itr != end; ++itr) {
-			ok |= ImportMesh(*itr);
-		}
-		vector<NiTriStripsRef> tristrips = DynamicCast<NiTriStrips>(node->GetChildren());
-		for (vector<NiTriStripsRef>::iterator itr = tristrips.begin(), end = tristrips.end(); itr != end; ++itr) {
+		for (vector<NiTriBasedGeomRef>::iterator itr = trigeom.begin(), end = trigeom.end(); itr != end; ++itr) {
 			ok |= ImportMesh(*itr);
 		}
 #else
 		// Only do multiples on object that have same name and use XXX:# notation
-		vector<NiTriBasedGeomRef> trigeom = DynamicCast<NiTriBasedGeom>(node->GetChildren());
 		ok |= ImportMultipleGeometry(node, trigeom);
 #endif
 		vector<NiNodeRef> nodes = DynamicCast<NiNode>(node->GetChildren());
@@ -224,31 +219,7 @@ void NifImporter::SetNormals(Mesh& mesh, const vector<Niflib::Triangle>& tris, c
 	}
 }
 
-bool NifImporter::ImportMesh(NiTriShapeRef triShape)
-{
-	bool ok = true;
-
-	ImpNode *node = i->CreateNode();
-	if (!node) return false;
-	TriObject *triObject = CreateNewTriObject();
-	node->Reference(triObject);
-	tstring name = A2TString(triShape->GetName());
-	node->SetName(name.c_str());
-
-	INode *inode = node->GetINode();
-
-	// Texture
-	Mesh& mesh = triObject->GetMesh();
-	NiTriShapeDataRef triShapeData = DynamicCast<NiTriShapeData>(triShape->GetData());
-	if (triShapeData == nullptr)
-		return false;
-
-	vector<Triangle> tris = triShapeData->GetTriangles();
-	ok |= ImportMesh(node, triObject, triShape, triShapeData, tris);
-	return ok;
-}
-
-bool NifImporter::ImportMesh(NiTriStripsRef triStrips)
+bool NifImporter::ImportMesh(Niflib::NiTriBasedGeomRef triBasedGeom)
 {
 	bool ok = true;
 
@@ -257,18 +228,25 @@ bool NifImporter::ImportMesh(NiTriStripsRef triStrips)
 	INode *inode = node->GetINode();
 	TriObject *triObject = CreateNewTriObject();
 	node->Reference(triObject);
-	tstring name = A2TString(triStrips->GetName());
+	tstring name = A2TString(triBasedGeom->GetName());
 	node->SetName(name.c_str());
 
 	// Texture
 	Mesh& mesh = triObject->GetMesh();
-	NiTriStripsDataRef triStripsData = DynamicCast<NiTriStripsData>(triStrips->GetData());
-	if (triStripsData == nullptr)
+	NiGeometryDataRef data = triBasedGeom->GetData();
+	if (data == nullptr)
 		return false;
-
-	vector<Triangle> tris = triStripsData->GetTriangles();
-	ok |= ImportMesh(node, triObject, triStrips, triStripsData, tris);
-	return ok;
+	NiTriShapeDataRef triShapeData = DynamicCast<NiTriShapeData>(data);
+	if (triShapeData != nullptr) {
+		vector<Triangle> tris = triShapeData->GetTriangles();
+		return ImportMesh(node, triObject, triBasedGeom, triShapeData, tris);
+	}
+	NiTriStripsDataRef triStripsData = DynamicCast<NiTriStripsData>(data);
+	if (triStripsData != nullptr) {
+		vector<Triangle> tris = triStripsData->GetTriangles();
+		return ImportMesh(node, triObject, triBasedGeom, triStripsData, tris);
+	}
+	return false;
 }
 
 bool NifImporter::ImportMultipleGeometry(NiNodeRef parent, vector<NiTriBasedGeomRef>& glist)

@@ -162,9 +162,13 @@ NiNodeRef Exporter::getNode(INode* maxNode)
 
 NiNodeRef Exporter::createNode(INode* maxNode, const string& name)
 {
-	NodeToNodeMap::iterator itr = mNodeMap.find(maxNode);
-	if (itr != mNodeMap.end())
-		return (*itr).second;
+	USES_CONVERSION;
+	bool ismatch = strmatch(T2A(maxNode->GetName()), name);
+	if (ismatch) {
+		NodeToNodeMap::iterator itr = mNodeMap.find(maxNode);
+		if (itr != mNodeMap.end())
+			return (*itr).second;
+	}
 
 	NiNodeRef node;
 	if (!findNode(name, node))

@@ -275,7 +275,7 @@ wstringlist TokenizeCommandLine(LPCWSTR str, bool trim)
 	parse_line(str, nullptr, nullptr, &nargs, &nchars);
 	void *buffer = _alloca(nargs * sizeof(wchar_t *) + nchars * sizeof(wchar_t));
 	wchar_t **largv = static_cast<wchar_t **>(buffer);
-	parse_line(str, largv, static_cast<wchar_t*>(buffer) + nargs * sizeof(wchar_t*), &nargs, &nchars);
+	parse_line(str, largv, reinterpret_cast<wchar_t*>(static_cast<char*>(buffer) + nargs * sizeof(wchar_t*)), &nargs, &nchars);
 	for (int i = 0; i < nargs; ++i) {
 		LPWSTR p = largv[i];
 		if (p == nullptr) continue;
@@ -1638,10 +1638,10 @@ Modifier *CreatebhkCollisionModifier(INode* node, int type, int materialIndex, i
 
 	if (IParamBlock2* pblock2 = rbMod->GetParamBlockByID(havok_params))
 	{
-		pblock2->SetValue(PB_BOUND_TYPE, 0, type, 0);
-		pblock2->SetValue(PB_MATERIAL, 0, materialIndex, 0);
-		pblock2->SetValue(PB_LAYER, 0, layerIndex, 0);
-		pblock2->SetValue(PB_FILTER, 0, filter, 0);
+		pblock2->SetValue(PB_BOUND_TYPE, INFINITE, type, 0);
+		pblock2->SetValue(PB_MATERIAL, INFINITE, materialIndex, 0);
+		pblock2->SetValue(PB_LAYER, INFINITE, layerIndex, 0);
+		pblock2->SetValue(PB_FILTER, INFINITE, filter, 0);
 	}
 	return rbMod;
 }

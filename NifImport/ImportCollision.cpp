@@ -675,7 +675,7 @@ bool CollisionImport::ImportPackedNiTriStripsShape(INode *rbody, bhkRigidBodyRef
 
 				int mtlIdx = GetHavokIndexFromSkyrimMaterial(s.material);
 				int lyrIdx = GetHavokIndexFromSkyrimLayer(s.layer);
-				CreatebhkCollisionModifier(inode, bv_type_cmsd, mtlIdx, lyrIdx, s.colFilter);
+				CreatebhkCollisionModifier(inode, bv_type_packed, mtlIdx, lyrIdx, s.colFilter);
 				ImportBase(body, shape, parent, inode, ltm);
 
 				if (n > 1)
@@ -734,9 +734,9 @@ bool CollisionImport::ImportCompressedMeshShape(INode *rbody, bhkRigidBodyRef bo
 
 
 			int mtlIdx = GetHavokIndexFromSkyrimMaterial(shape->GetSkyrimMaterial());
-			int lyrIdx = GetHavokIndexFromSkyrimLayer(SKYL_UNIDENTIFIED);
+			int lyrIdx = GetHavokIndexFromSkyrimLayer(SKYL_STATIC);
 
-			CreatebhkCollisionModifier(inode, bv_type_packed, mtlIdx, lyrIdx, 0);
+			CreatebhkCollisionModifier(inode, bv_type_cmsd, mtlIdx, lyrIdx, 0);
 			ImportBase(body, shape, parent, inode, tm);
 			inode->SetName(FormatText(TEXT("%s:Big"), TEXT("CMSD")));
 			nodes.Append(1, &inode);
@@ -757,11 +757,7 @@ bool CollisionImport::ImportCompressedMeshShape(INode *rbody, bhkRigidBodyRef bo
 			const vector<unsigned short>& strips = chunk.strips;
 
 			vector<Vector3> verts(numOffsets / 3);
-			int numStripVerts = 0;
 			int offset = 0;
-
-			for (int v = 0; v < numStrips; v++)
-				numStripVerts += strips[v];
 
 			const bhkCMSDTransform& transform = transforms[chunk.transformIndex];
 			const bhkCMSDMaterial& material = materials[chunk.materialIndex];
@@ -801,7 +797,7 @@ bool CollisionImport::ImportCompressedMeshShape(INode *rbody, bhkRigidBodyRef bo
 			Matrix3 lm = wm * m3p;
 
 			INode *inode = ImportCollisionMesh(verts, tris, lm, parent);
-			CreatebhkCollisionModifier(inode, bv_type_packed, mtlIdx, lyrIdx, 0);
+			CreatebhkCollisionModifier(inode, bv_type_cmsd, mtlIdx, lyrIdx, 0);
 			ImportBase(body, shape, parent, inode, ltm);
 			if (multipleShapes) inode->SetName(FormatText(TEXT("%s:%d"), TEXT("CMSD"), i++).data());
 			//AddShape(rbody, inode);

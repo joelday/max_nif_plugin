@@ -73,6 +73,47 @@ void Exporter::strippify(TriStrips &strips, vector<Vector3> &verts, vector<Vecto
 	}
 }
 */
+void Exporter::strippify(TriStrips &strips, vector<Vector3> &verts, vector<Vector3> &norms, const Triangles &faces)
+{
+	strips.clear();
+	unsigned short *data = (unsigned short *)malloc(faces.size() * 3 * 2);
+
+	int i;
+	for (i = 0; i<faces.size(); i++)
+	{
+		data[i * 3 + 0] = faces[i][0];
+		data[i * 3 + 1] = faces[i][1];
+		data[i * 3 + 2] = faces[i][2];
+	}
+
+	PrimitiveGroup * groups = 0;
+	unsigned short numGroups = 0;
+
+	// GF 3+
+	SetCacheSize(CACHESIZE_GEFORCE3);
+	// don't generate hundreds of strips
+	SetStitchStrips(true);
+	GenerateStrips(data, (unsigned int)faces.size() * 3, &groups, &numGroups);
+	free(data);
+
+	if (!groups)
+		return;
+
+	for (int g = 0; g<numGroups; g++)
+	{
+		if (groups[g].type == PT_STRIP)
+		{
+			strips.push_back(TriStrip(groups[g].numIndices));
+			TriStrip &strip = strips.back();
+
+			for (auto s = 0U; s<groups[g].numIndices; s++)
+				strip[s] = groups[g].indices[s];
+		}
+	}
+	
+	delete[] groups;
+}
+
 void Exporter::strippify(FaceGroup &grp)
 {
    TriStrips &strips = grp.strips;
@@ -94,7 +135,7 @@ void Exporter::strippify(FaceGroup &grp)
 	SetCacheSize(CACHESIZE_GEFORCE3);
 	// don't generate hundreds of strips
 	SetStitchStrips(true);
-	GenerateStrips(data, grp.faces.size()*3, &groups, &numGroups);
+	GenerateStrips(data, (unsigned int)grp.faces.size()*3, &groups, &numGroups);
 
 	free( data );
 	
@@ -110,7 +151,7 @@ void Exporter::strippify(FaceGroup &grp)
 				strips.push_back(TriStrip(groups[g].numIndices));
 				TriStrip &strip = strips.back();
 
-				for (int s=0; s<groups[g].numIndices; s++)
+				for (auto s=0U; s<groups[g].numIndices; s++)
 					strip[s] = groups[g].indices[s];
 			}
 		}
@@ -118,7 +159,7 @@ void Exporter::strippify(FaceGroup &grp)
 	{
 		// remap indices
 		PrimitiveGroup *rmGroups;
-		RemapIndices(groups, numGroups, grp.verts.size(), &rmGroups);
+		RemapIndices(groups, (unsigned int)numGroups, (unsigned int)grp.verts.size(), &rmGroups);
 
 		FaceGroup tmp = grp;
 
@@ -129,7 +170,7 @@ void Exporter::strippify(FaceGroup &grp)
 				strips.push_back(TriStrip(rmGroups[g].numIndices));
 				TriStrip &strip = strips.back();
 
-				for (int s=0; s<rmGroups[g].numIndices; s++)
+				for (auto s=0U; s<rmGroups[g].numIndices; s++)
 				{
 					strip[s] = rmGroups[g].indices[s];
 
@@ -155,7 +196,7 @@ NiTriStripsDataRef Exporter::makeTriStripsData(const TriStrips &strips)
 
 	if (strips.size() > 0)
 	{
-		stripData->SetStripCount(strips.size());
+		stripData->SetStripCount((unsigned int)strips.size());
 
 		int i = 0;
 		TriStrips::const_iterator it;

@@ -58,6 +58,7 @@ tstring Exporter::mNifskopeDir;
 bool Exporter::mTriPartStrips = true;
 tstring Exporter::mRootType;
 tstringlist Exporter::mRootTypes;
+bool Exporter::mDebugEnabled = false;
 
 #ifndef FOOTPRINT_CLASS_ID
 #  define FOOTPRINT_CLASS_ID Class_ID(0x3011,0)        
@@ -248,6 +249,7 @@ Exporter::Result Exporter::doExport(NiNodeRef &root, INode *node)
 		sortNodes(mNiRoot);
 	ApplyAllSkinOffsets(StaticCast<NiAVObject>(mNiRoot));
 	root = mNiRoot;
+	mNiRoot = nullptr;
 	return Ok;
 }
 

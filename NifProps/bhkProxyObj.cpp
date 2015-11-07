@@ -112,6 +112,7 @@ public:
    void BuildColConvex();
    void BuildColCapsule();
    void BuildColOBB();
+   void BuildColCMSD();
    void BuildOptimize(Mesh&mesh);
 
    void UpdateUI();
@@ -178,7 +179,7 @@ static ParamBlockDesc2 param_blk (
     PB_BOUND_TYPE, 	_T("boundType"),	TYPE_INT, 0, IDS_BV_BOUNDING_TYPE,
 	  p_default, 		0, 
 	  p_range, 			0, 5, 
-	  p_ui, 			list_params,	TYPE_RADIO, 7, IDC_RDO_NO_COLL, IDC_RDO_AXIS_ALIGNED_BOX, IDC_RDO_STRIPS_SHAPE, IDC_RDO_PACKED_STRIPS, IDC_RDO_CONVEX, IDC_RDO_CAPSULE, IDC_RDO_OBB,
+	  p_ui, 			list_params,	TYPE_RADIO, 8, IDC_RDO_NO_COLL, IDC_RDO_AXIS_ALIGNED_BOX, IDC_RDO_STRIPS_SHAPE, IDC_RDO_PACKED_STRIPS, IDC_RDO_CONVEX, IDC_RDO_CAPSULE, IDC_RDO_OBB, IDC_RDO_CMSD,
 	  p_end,
 
 	PB_MESHLIST,   _T("meshProxy"),  TYPE_INODE_TAB,		0,	P_AUTO_UI|P_VARIABLE_SIZE,	IDS_MESHLIST,
@@ -449,8 +450,8 @@ namespace
 				InitLayerTypeCombo(hWnd, IDC_CB_LAYER);
 
 				int sel = NP_DEFAULT_HVK_LAYER;
-				Interval valid;
-				mod->pblock2->GetValue( PB_LAYER, 0, sel, valid);
+				Interval valid= FOREVER;
+				mod->pblock2->GetValue( PB_LAYER, INFINITE, sel, valid);
 				mCbLayer.select( sel );
 
 				Update(t);
@@ -465,7 +466,7 @@ namespace
 			{
 			case IDC_CB_LAYER:
 				if (HIWORD(wParam)==CBN_SELCHANGE) {
-					mod->pblock2->SetValue( PB_LAYER, 0, mCbLayer.selection() );
+					mod->pblock2->SetValue( PB_LAYER, INFINITE, mCbLayer.selection() );
 				}
 				break;
 
@@ -595,6 +596,10 @@ void bhkProxyObject::BuildMesh(TimeValue t)
 
 	case bv_type_obb:
 		BuildColOBB();
+		break;
+
+	case bv_type_cmsd:
+		BuildColCMSD();
 		break;
 	}
 }
@@ -846,6 +851,11 @@ void bhkProxyObject::BuildColStrips()
 }
 
 void bhkProxyObject::BuildColPackedStrips()
+{
+	BuildColStrips();
+}
+
+void bhkProxyObject::BuildColCMSD()
 {
 	BuildColStrips();
 }

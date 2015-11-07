@@ -599,6 +599,7 @@ void NifImporter::ImportBones(NiNodeRef node, bool recurse)
 		NiNodeRef parent = node->GetParent();
 		tstring parentname = A2TString((parent ? parent->GetName() : ""));
 		Matrix44 m4 = node->GetWorldTransform();
+		bool forceReuse = false;
 
 		// Check for Prn strings and change parent if necessary
 		if (supportPrnStrings) {
@@ -629,6 +630,8 @@ void NifImporter::ImportBones(NiNodeRef node, bool recurse)
 				name = realname;
 				len += tm.GetTranslation().Magnitude();
 				parent = parent->GetParent();
+				parentname = A2TString((parent ? parent->GetName() : ""));
+				forceReuse = true;
 			}
 		}
 
@@ -661,7 +664,7 @@ void NifImporter::ImportBones(NiNodeRef node, bool recurse)
 
 
 		INode *bone = nullptr;
-		if (!doNotReuseExistingBones) // Games like BC3 reuse the same bone names
+		if (forceReuse || !doNotReuseExistingBones) // Games like BC3 reuse the same bone names
 		{
 			bone = FindNode(node);
 			if (bone == nullptr)

@@ -58,6 +58,7 @@
 #include "obj/BsxFlags.h"
 #include "obj/NiStringExtraData.h"
 #include "obj/bhkRigidBodyT.h"
+#include "obj/bhkCompressedMeshShape.h"
 
 // undef macros for tristripper
 //#undef max

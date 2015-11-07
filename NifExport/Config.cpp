@@ -182,6 +182,8 @@ void Exporter::readConfig(Interface *i)
 
 	  mRootType = GetIniValue<tstring>(NifExportSection, TEXT("RootType"), TEXT("NiNode"), iniName);
 	  mRootTypes = TokenizeString(GetIniValue<tstring>(NifExportSection, TEXT("RootTypes"), TEXT("NiNode;BSFadeNode"), iniName).c_str(), TEXT(";"));
+
+	  mDebugEnabled = GetIniValue(NifExportSection, TEXT("EnableDebug"), false, iniName);
   }
 }
 
@@ -227,6 +229,7 @@ AppSettings * Exporter::exportAppSettings()
    } else {
       SetIniValue<tstring>(NifExportSection, TEXT("CurrentApp"), appSettings->Name, iniName);
    }
+   SetIniValue<tstring>(NifExportSection, TEXT("LastSelectedApp"), appSettings->Name, iniName);
 
    appSettings->NiVersion = Exporter::mNifVersion;
    appSettings->NiUserVersion = Exporter::mNifUserVersion;
@@ -245,6 +248,7 @@ AppSettings *Exporter::importAppSettings(tstring fname)
 
    // Locate which application to use. If Auto, find first app where this file appears in the root path list
    tstring curapp = GetIniValue<tstring>(NifExportSection, TEXT("CurrentApp"), TEXT("AUTO"), iniName);
+   tstring lastselapp = GetIniValue<tstring>(NifExportSection, TEXT("LastSelectedApp"), TEXT(""), iniName);
    if (0 == _tcsicmp(curapp.c_str(), TEXT("AUTO"))) {
       Exporter::mAutoDetect = true;
       // Scan Root paths
@@ -258,6 +262,8 @@ AppSettings *Exporter::importAppSettings(tstring fname)
       Exporter::mAutoDetect = false;
       appSettings = FindAppSetting(curapp);
    }
+   if (appSettings == NULL && !lastselapp.empty())
+	   appSettings = FindAppSetting(lastselapp);
    if (appSettings == NULL && !TheAppSettings.empty())
       appSettings = &TheAppSettings.front();
 

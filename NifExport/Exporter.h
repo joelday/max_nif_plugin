@@ -120,6 +120,7 @@ public:
 	static bool         mTriPartStrips;
 	static tstring      mRootType;
 	static tstringlist  mRootTypes;
+	static bool         mDebugEnabled;
 
 	Exporter(Interface *i, AppSettings *appSettings);
 
@@ -196,10 +197,12 @@ public:
 	Box3                 mBoundingBox;
 	NodeList             mAnimationRoots;
 	Interval             globalRange;
-        float                bhkAppScaleFactor;
+    float                bhkAppScaleFactor;
 
 
 	Result               exportNodes(NiNodeRef &root, INode *node);
+	void                 updateRootTarget(Ref<bhkShape> ref, NiNodeRef ni_node);
+	void                 updateRigidBody(bhkRigidBodyRef& ref);
 	Result               exportCollision(NiNodeRef &root, INode *node);
 	Result               scanForCollision(INode *node);
 	bool                 isCollision(INode *node);
@@ -285,7 +288,9 @@ public:
 
 	Ref<bhkConvexVerticesShape> makeConvexShape(Mesh& mesh, Matrix3& tm, int mtlDefault);
 	Ref<bhkNiTriStripsShape>    makeTriStripsShape(Mesh& mesh, Matrix3& sm, int mtlDefault);
-	Ref<bhkPackedNiTriStripsShape>    makePackedTriStripsShape(Mesh& mesh, Matrix3& sm, int mtlDefault, OblivionLayer layer, int colFilter);
+	Ref<bhkPackedNiTriStripsShape>    makePackedTriStripsShape(Mesh& mesh, Matrix3& sm, int mtlDefault, int layer, int colFilter);
+	Ref<bhkCompressedMeshShape> makeCompressedMeshShape(Mesh& mesh, Matrix3& sm, int mtlDefault, int layer, int colFilter);
+	
 
 	bhkShapeRef          makeProxyShape(INode *node, Object *obj, Matrix3& tm, int mtlDefault);
 	bhkShapeRef          makeProxyBoxShape(INode *node, Object *obj, Mesh& mesh, Matrix3& tm, int mtlDefault);
@@ -307,6 +312,7 @@ public:
 	bhkShapeRef          makeModPackedTriStripShape(INode *node, Modifier* mod, Mesh& mesh, Matrix3& tm, int mtlDefault);
 	bhkShapeRef          makeModPackedTriStripShape(INode *tnode, Matrix3& tm, int mtlDefault);
 	bhkShapeRef          makeModPackedTriStripShape(INodeTab &map, Matrix3& tm, int mtlDefault);
+	bhkShapeRef          makeModCMSD(INode *node, Modifier* mod, Mesh& mesh, Matrix3& tm, int mtlDefault);
 	bhkShapeRef          makeModCMSD(INode *tnode, Matrix3& tm, int mtlDefault);
 	bhkShapeRef          makeModCMSD(INodeTab &map, Matrix3& tm, int mtlDefault);
 

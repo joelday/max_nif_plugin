@@ -136,8 +136,7 @@ public:
 	void SetTriangles(Mesh& mesh, const vector<Niflib::Triangle>& v);
 	void SetNormals(Mesh& mesh, const vector<Niflib::Triangle>& t, const vector<Niflib::Vector3>& v);
 
-	bool ImportMesh(Niflib::NiTriShapeRef triShape);
-	bool ImportMesh(Niflib::NiTriStripsRef triStrips);
+	bool ImportMesh(Niflib::NiTriBasedGeomRef triBasedGeom);
 	bool ImportMultipleGeometry(Niflib::NiNodeRef parent, vector<Niflib::NiTriBasedGeomRef>& glist);
 	StdMat2 *ImportMaterialAndTextures(ImpNode *node, Niflib::NiAVObjectRef avObject);
 	bool ImportMaterialAndTextures(ImpNode *node, vector<Niflib::NiTriBasedGeomRef>& glist);

@@ -20,7 +20,7 @@ for %%j in (Win32) do (
         mkdir "%DEST%\%%j\max-%%i-plugins-%1\plugins" > nul 2<&1
         xcopy /D /Y /I "%SRC%MaxNifTools.ini" "%DEST%\%%j\max-%%i-plugins-%1\plugcfg\" > nul 2<&1
         xcopy /D /Y /I "%SRC%staging\%%j\release - max %%i\NifPlugins\*.dl*" "%DEST%\%%j\max-%%i-plugins-%1\plugins\" > nul 2<&1
-        xcopy /D /Y /I "%SRC%..\NifMopp\NifMopp.dll" "%DEST%\%%j\max-%%i-plugins-%1\plugins\" > nul 2<&1
+        xcopy /D /Y /I "%SRC%..\NifMopp\%%j\NifMopp.dll" "%DEST%\%%j\max-%%i-plugins-%1\plugins\" > nul 2<&1
         xcopy /D /Y /I "%SRC%..\NifMagic\%%j\NifMagic.dll" "%DEST%\%%j\max-%%i-plugins-%1\plugins\" > nul 2<&1
         REM pushd "%DEST%\max-%%i-plugins-%1\" && ntzip -9 -r "..\max-%%i-plugins-%1.zip" * && popd
     )

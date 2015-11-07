@@ -199,6 +199,7 @@ void Exporter::InitializeTimeController(NiTimeControllerRef ctrl, NiNodeRef pare
 
 NiNodeRef Exporter::createAccumNode(NiNodeRef parent, INode *node)
 {
+	USES_CONVERSION;
 	//
 	//Tweak by veryxRV
 	//
@@ -210,7 +211,7 @@ NiNodeRef Exporter::createAccumNode(NiNodeRef parent, INode *node)
 	}
 	else
 	{
-		accumNode = createNode(node, FormatString("%s NonAccum", node->GetName()));
+		accumNode = createNode(node, FormatString("%s NonAccum", T2A(node->GetName())));
 		accumNode->SetLocalTransform(Matrix44::IDENTITY);
 		parent->AddChild(DynamicCast<NiAVObject>(accumNode));
 	}
