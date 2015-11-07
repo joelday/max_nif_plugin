@@ -9,6 +9,12 @@ IF EXIST "%ProgramFiles(x86)%" set Program_64=%ProgramFiles%
 IF NOT EXIST "%ProgramFiles(x86)%" set Program_32=%ProgramFiles%
 IF NOT EXIST "%ProgramFiles(x86)%" set Program_64=
 
+if NOT "%ADSK_3DSMAX_SDK_2012%" == "" set MAXINSTALLPATH2012=%ADSK_3DSMAX_SDK_2012%
+if NOT "%ADSK_3DSMAX_SDK_2013%" == "" set MAXINSTALLPATH2013=%ADSK_3DSMAX_SDK_2013%
+if NOT "%ADSK_3DSMAX_SDK_2014%" == "" set MAXINSTALLPATH2014=%ADSK_3DSMAX_SDK_2014%
+if NOT "%ADSK_3DSMAX_SDK_2015%" == "" set MAXINSTALLPATH2015=%ADSK_3DSMAX_SDK_2015%
+if NOT "%ADSK_3DSMAX_SDK_2016%" == "" set MAXINSTALLPATH2016=%ADSK_3DSMAX_SDK_2016%
+
 if "%GMAXINSTALLPATH12%"  == "" set GMAXINSTALLPATH12=%SystemDrive%\gmax12
 if "%MAXINSTALLPATH40%"   == "" set MAXINSTALLPATH40=%SystemDrive%\3dsmax4
 if "%MAXINSTALLPATH42%"   == "" set MAXINSTALLPATH42=%SystemDrive%\3dsmax42
@@ -21,13 +27,12 @@ if "%MAXINSTALLPATH2008%" == "" set MAXINSTALLPATH2008=%Program_32%\AutoDesk\3ds
 if "%MAXINSTALLPATH2009%" == "" set MAXINSTALLPATH2009=%Program_32%\AutoDesk\3ds Max 2009
 if "%MAXINSTALLPATH2010%" == "" set MAXINSTALLPATH2010=%Program_32%\AutoDesk\3ds Max 2010
 if "%MAXINSTALLPATH2011%" == "" set MAXINSTALLPATH2011=%Program_32%\AutoDesk\Autodesk 3ds Max 2011 SDK
-if "%ADSK_3DSMAX_SDK_2012%" == "" set MAXINSTALLPATH2012=%ADSK_3DSMAX_SDK_2012%
 if "%MAXINSTALLPATH2012%" == "" set MAXINSTALLPATH2012=%Program_32%\AutoDesk\3ds Max 2012 SDK
-if "%MAXINSTALLPATH2013%" == "" set MAXINSTALLPATH2013=%Program_32%\AutoDesk\3ds Max 2013 SDK
-if "%MAXINSTALLPATH2014%" == "" set MAXINSTALLPATH2014=%Program_32%\AutoDesk\3ds Max 2014 SDK
-if "%MAXINSTALLPATH2015%" == "" set MAXINSTALLPATH2015=%Program_32%\AutoDesk\3ds Max 2015 SDK
-if "%MAXINSTALLPATH2016%" == "" set MAXINSTALLPATH2016=%Program_32%\AutoDesk\3ds Max 2016 SDK
-
+if "%MAXINSTALLPATH2013%" == "" set MAXINSTALLPATH2013=%Program_64%\AutoDesk\3ds Max 2013 SDK
+if "%MAXINSTALLPATH2014%" == "" set MAXINSTALLPATH2014=%Program_64%\AutoDesk\3ds Max 2014 SDK
+if "%MAXINSTALLPATH2015%" == "" set MAXINSTALLPATH2015=%Program_64%\AutoDesk\3ds Max 2015 SDK
+if "%MAXINSTALLPATH2016%" == "" set MAXINSTALLPATH2016=%Program_64%\AutoDesk\3ds Max 2016 SDK
+ 
 REM svn update
 set SUPPRESS_BUILD_CONFIG=0
 call makeconfig.bat
@@ -63,10 +68,7 @@ IF EXIST "%MAXINSTALLPATH2012%" (
     msbuild NifPlugins.sln "/p:Configuration=Release - Max 2012" /p:Platform=Win32
     IF EXIST "%Program_64%" msbuild NifPlugins.sln "/p:Configuration=Release - Max 2012" /p:Platform=x64
 )
-IF EXIST "%MAXINSTALLPATH2013%" (
-    msbuild NifPlugins.sln "/p:Configuration=Release - Max 2013" /p:Platform=Win32
-    IF EXIST "%Program_64%" msbuild NifPlugins.sln "/p:Configuration=Release - Max 2013" /p:Platform=x64
-)
+IF EXIST "%MAXINSTALLPATH2013%" msbuild NifPlugins.sln "/p:Configuration=Release - Max 2013" /p:Platform=x64
 IF EXIST "%MAXINSTALLPATH2014%" msbuild NifPlugins.sln "/p:Configuration=Release - Max 2014" /p:Platform=x64
 IF EXIST "%MAXINSTALLPATH2015%" msbuild NifPlugins.sln "/p:Configuration=Release - Max 2015" /p:Platform=x64
 IF EXIST "%MAXINSTALLPATH2016%" msbuild NifPlugins.sln "/p:Configuration=Release - Max 2016" /p:Platform=x64

@@ -10,7 +10,7 @@
 #ifndef NIFVERSION_H
 #define NIFVERSION_H
 
-#include "config.h"
+#include "config.h" 
 
 //
 // Define the major, minor, build, patch version numbers

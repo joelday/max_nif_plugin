@@ -26,7 +26,7 @@
     ------------
 
       Plugins:
-        3D Studio Max 2016
+        3D Studio Max 2012, 2015, 2016
 
     Installation
     ------------
@@ -39,13 +39,18 @@
     Copy NifPlugins.dlu, to your 3dsmax\plugins directory.
 
 	Copy MaxNifTools.ini to the correct plugcfg directory:
-	Windows Vista and Greater:
-	  %USERPROFILE%\AppData\Local\Autodesk\3dsMax\<version>\enu\plugcfg
-	Windows XP:
-	  %APPDATA%\Autodesk\3dsMax\<version>\enu\plugcfg
-
+      For 2013 and later:
+        %USERPROFILE%\AppData\Local\Autodesk\3dsMax\<version>\enu\en-US\plugcfg
+        
+      For 2012 and less:
+        Windows Vista and Greater:
+          %USERPROFILE%\AppData\Local\Autodesk\3dsMax\<version>\enu\plugcfg
+        Windows XP:
+          %APPDATA%\Autodesk\3dsMax\<version>\enu\plugcfg
+          
 	You can copy MaxNifTools.ini to your 3dsmax\plugcfg directory but the
 	  folder may be readonly so is discouraged but might still work.
+      
     The plugin will search the AppData folder first though as that is the 
 	  recommended location from Autodesk and Microsoft.
 

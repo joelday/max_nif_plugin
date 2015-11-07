@@ -58,9 +58,9 @@ IF EXIST "c:\Program Files\7-Zip\7z.exe" (
     popd
 )
 
-IF EXIST "c:\Program Files\Inno Setup 5\ISCC.exe" (
+IF EXIST "D:\Development\Tools\Inno Setup 5\ISCC.exe" (
     pushd "%SRC%"
-    "c:\Program Files\Inno Setup 5\ISCC.exe" /Q /fniftools-max-plugins-%VERSION% "/o%DEST%\" MaxNifTools.iss
+    "D:\Development\Tools\Inno Setup 5\ISCC.exe" /Q /fniftools-max-plugins-%VERSION% "/o%DEST%\" MaxNifTools.iss
     popd
 )
 popd
