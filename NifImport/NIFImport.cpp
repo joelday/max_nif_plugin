@@ -73,11 +73,13 @@ INode* NifImporter::CreateImportNode(const TCHAR *name, Object *obj, INode* pare
 
 void NifImporter::ReadBlocks()
 {
-   //blocks = ReadNifList( name );
 	Niflib::NifInfo info;
-	root = ReadNifTree(T2AString(name), &info);
+	blocks = ReadNifList(T2AString(name), &info);
+	//root = ReadNifTree(T2AString(name), &info);
+	root = SelectFirstObjectOfType<NiObject>(blocks);
 	nifVersion = info.version;
 	userVersion = info.userVersion;
+	userVersion2 = info.userVersion2;
 	this->unnamedCounter = 0;
 	BuildNodes();
 }
@@ -122,6 +124,7 @@ void NifImporter::Initialize()
       skeleton = GetSkeleton(appSettings);
       importSkeleton = (appSettings != nullptr) ? appSettings->useSkeleton : false;
 	  importSkeleton &= !isBiped;
+	  bool skeletonExists = (-1 != _taccess(skeleton.c_str(), 0));
 
       // Guess that the skeleton is the same one in the current directory
       if (importSkeleton && !defaultSkeletonName.empty()) {
@@ -131,7 +134,7 @@ void NifImporter::Initialize()
          PathAddBackslash(buffer);
          PathAppend(buffer, defaultSkeletonName.c_str());
 		 bool defaultSkeletonExists = (-1 != _taccess(buffer, 0));
-		 importSkeleton &= (hasSkeleton || defaultSkeletonExists);
+		 importSkeleton &= (hasSkeleton || defaultSkeletonExists || skeletonExists);
 		 if (defaultSkeletonExists)
             skeleton = buffer;
       } else {
@@ -497,10 +500,13 @@ bool NifImporter::DoImport()
    return true;
 }
 bool NifImporter::IsSkyrim() const {
-	return (nifVersion == 0x14020007 && userVersion == 12);
+	return (nifVersion == 0x14020007 && userVersion == 12 && userVersion2 < 130);
 }
 bool NifImporter::IsFallout3() const {
 	return (nifVersion == 0x14020007 && userVersion == 11);
+}
+bool NifImporter::IsFallout4() const {
+	return (nifVersion == 0x14020007 && userVersion == 12 && userVersion2 == 130);
 }
 bool NifImporter::IsOblivion() const {
 	return ((nifVersion == 0x14000004 || nifVersion == 0x14000005) && (userVersion == 11 || userVersion == 10));

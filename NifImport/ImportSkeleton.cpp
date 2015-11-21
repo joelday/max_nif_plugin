@@ -24,6 +24,7 @@ HISTORY:
 #include <float.h>
 #include <dummy.h>
 #include <obj/NiSwitchNode.h>
+#include <obj/BSSkin__Instance.h>
 
 using namespace Niflib;
 
@@ -85,6 +86,9 @@ static void BuildControllerRefList(NiNodeRef node, map<tstring, int>& ctrlCount)
 bool NifImporter::HasSkeleton()
 {
 	if (!skeletonCheck.empty()) {
+		if (IsFallout4() && CountNodesByType(blocks, BSSkin__Instance::TYPE) > 0)
+			return true;
+
 		vector<NiNodeRef> bipedRoots = SelectNodesByName(nodes, skeletonCheck.c_str());
 		return !bipedRoots.empty();
 	}

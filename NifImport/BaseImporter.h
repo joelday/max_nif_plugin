@@ -34,6 +34,7 @@ public:
 	TSTR wikiSite;
 	int nifVersion;
 	int userVersion;
+	int userVersion2;
 
 	bool hasErrors;
 	string errorMsg;

@@ -122,21 +122,21 @@ bool NifImporter::ImportParticleSystem(Niflib::NiParticleSystemRef particleSyste
 	return false;
 }
 
-SimpleObject* NifImporter::ImportPCloud(Niflib::NiParticleSystemRef particleSystem)
+SimpleObject* NifImporter::ImportPCloud(NiParticleSystemRef particleSystem)
 {
 	if (SimpleObject* obj = (SimpleObject*)gi->CreateInstance(GEOMOBJECT_CLASS_ID, PCLOUD_CLASS_ID))
 	{
 		if (IParamArray* parray = obj->GetParamBlock())
 		{
-			std::vector<Niflib::NiPSysModifierRef> modifiers = particleSystem->GetModifiers();
+			std::vector<NiPSysModifierRef> modifiers = particleSystem->GetModifiers();
 			if (modifiers.size() <= 0)
 				return NULL;
 
-			Niflib::NiPSysEmitterRef emitterRef = SelectFirstObjectOfType<Niflib::NiPSysEmitter>(modifiers);
-			if (emitterRef->IsDerivedType(Niflib::NiPSysMeshEmitter::TYPE))
+			NiPSysEmitterRef emitterRef = SelectFirstObjectOfType<NiPSysEmitter>(modifiers);
+			if (emitterRef->IsDerivedType(NiPSysMeshEmitter::TYPE))
 			{
-				Niflib::NiPSysMeshEmitterRef meshEmitterRef = Niflib::DynamicCast<Niflib::NiPSysMeshEmitter>(emitterRef);
-				std::vector<Niflib::NiTriBasedGeomRef> emitters = meshEmitterRef->GetEmitterMeshes();
+				NiPSysMeshEmitterRef meshEmitterRef = DynamicCast<NiPSysMeshEmitter>(emitterRef);
+				std::vector<NiTriBasedGeomRef> emitters = DynamicCast<NiTriBasedGeom>(meshEmitterRef->GetEmitterMeshes());
 
 				// Set emitter type to Object
 				parray->SetValue(0 /* PB_CREATEIN */, 0, 3 /* IDC_AP_FILLOBJECT */);

@@ -246,9 +246,12 @@ StdMat2 *NifImporter::ImportMaterialAndTextures(ImpNode *node, NiAVObjectRef avO
 	vector<NiPropertyRef> props = avObject->GetProperties();
 	NiMaterialPropertyRef matRef = SelectFirstObjectOfType<NiMaterialProperty>(props);
 	BSShaderPropertyRef shaderRef = SelectFirstObjectOfType<BSShaderProperty>(props);
-	NiGeometryRef geoprop = DynamicCast<NiGeometry>(avObject);
-	BSEffectShaderPropertyRef effectShaderRef = geoprop->GetBSPropertyOfType<Niflib::BSEffectShaderProperty>();
-	BSLightingShaderPropertyRef lightingShaderRef = geoprop->GetBSPropertyOfType<Niflib::BSLightingShaderProperty>();
+	BSEffectShaderPropertyRef effectShaderRef = SelectFirstObjectOfType<BSEffectShaderProperty>(props);
+	BSLightingShaderPropertyRef lightingShaderRef = SelectFirstObjectOfType<BSLightingShaderProperty>(props);
+	
+	//NiGeometryRef geoprop = DynamicCast<NiGeometry>(avObject);
+	//BSEffectShaderPropertyRef effectShaderRef = geoprop->GetBSPropertyOfType<Niflib::BSEffectShaderProperty>();
+	//BSLightingShaderPropertyRef lightingShaderRef = geoprop->GetBSPropertyOfType<Niflib::BSLightingShaderProperty>();
 
 	if (matRef != nullptr || shaderRef != nullptr || effectShaderRef != nullptr || lightingShaderRef != nullptr) {
 
@@ -281,7 +284,7 @@ StdMat2 *NifImporter::ImportMaterialAndTextures(ImpNode *node, NiAVObjectRef avO
 		NiStencilPropertyRef stencilRef = avObject->GetPropertyByType(NiStencilProperty::TYPE);
 		NiShadePropertyRef shadeRef = avObject->GetPropertyByType(NiShadeProperty::TYPE);
 
-		if (IsFallout3() || IsSkyrim()) {
+		if (IsFallout3() || IsSkyrim() || IsFallout4()) {
 			m->SetAmbient(Color(0.588f, 0.588f, 0.588f), 0);
 			m->SetDiffuse(Color(0.588f, 0.588f, 0.588f), 0);
 			m->SetSpecular(Color(0.902f, 0.902f, 0.902f), 0);
@@ -562,7 +565,7 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 		float shininess = matRef->GetGlossiness();
 		float alpha = matRef->GetTransparency();
 
-		if (IsFallout3() || IsSkyrim()) {
+		if (IsFallout3() || IsSkyrim() || IsFallout4()) {
 			ambient = diffuse = Color(0.588f, 0.588f, 0.588f);
 			//specular = Color(0.902f, 0.902f, 0.902f);
 		}

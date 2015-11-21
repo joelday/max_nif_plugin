@@ -19,6 +19,9 @@ HISTORY:
 #endif
 #include "../NifProps/iNifProps.h"
 #include "obj/BSDismemberSkinInstance.h"
+#include <obj/BSTriShape.h>
+#include <obj/BSSkin__Instance.h>
+#include <obj/BSSkin__BoneData.h>
 
 using namespace Niflib;
 
@@ -43,6 +46,15 @@ bool NifImporter::ImportMeshes(NiNodeRef node)
 		// Only do multiples on object that have same name and use XXX:# notation
 		ok |= ImportMultipleGeometry(node, trigeom);
 #endif
+
+		if (IsFallout4()) {
+			// handle Fallout 4
+			vector<BSTriShapeRef> bsshapes = DynamicCast<BSTriShape>(node->GetChildren());
+			for (vector<BSTriShapeRef>::iterator itr = bsshapes.begin(), end = bsshapes.end(); itr != end; ++itr) {
+				ok |= ImportBSTriShape(*itr);
+			}
+		}
+
 		vector<NiNodeRef> nodes = DynamicCast<NiNode>(node->GetChildren());
 		for (vector<NiNodeRef>::iterator itr = nodes.begin(), end = nodes.end(); itr != end; ++itr) {
 			ok |= ImportMeshes(*itr);
@@ -247,6 +259,102 @@ bool NifImporter::ImportMesh(Niflib::NiTriBasedGeomRef triBasedGeom)
 		return ImportMesh(node, triObject, triBasedGeom, triStripsData, tris);
 	}
 	return false;
+}
+
+bool NifImporter::ImportBSTriShape(Niflib::BSTriShapeRef shape)
+{
+	bool ok = true;
+
+	ImpNode *node = i->CreateNode();
+	if (!node) return false;
+	INode *inode = node->GetINode();
+	TriObject *triObject = CreateNewTriObject();
+	node->Reference(triObject);
+	tstring name = A2TString(shape->GetName());
+	node->SetName(name.c_str());
+
+	// Texture
+	Mesh& mesh = triObject->GetMesh();
+	INode *tnode = node->GetINode();
+
+	Matrix44 baseTM = (importBones) ? shape->GetLocalTransform() : shape->GetWorldTransform();
+	node->SetTransform(0, TOMATRIX3(baseTM));
+
+	// Vertex info
+	vector<Triangle> tris = shape->GetTriangles();
+	{
+		int nVertices = shape->GetVertexCount();
+		vector<Vector3> vertices = shape->GetVertices();
+		mesh.setNumVerts(nVertices);
+		for (int i = 0; i < nVertices; ++i) {
+			Vector3 &v = vertices[i];
+			mesh.verts[i].Set(v.x, v.y, v.z);
+		}
+	}
+	// uv texture info
+	{
+		mesh.setNumMaps(1, TRUE);
+		int n = 0, j = 0;
+		vector<TexCoord> texCoords = shape->GetUVSet();
+		n = texCoords.size();
+		if (j == 0)
+		{
+			mesh.setNumTVerts(n, TRUE);
+			for (int i = 0; i < n; ++i) {
+				TexCoord& texCoord = texCoords[i];
+				mesh.tVerts[i].Set(texCoord.u, (flipUVTextures) ? 1.0f - texCoord.v : texCoord.v, 0);
+			}
+		}
+		mesh.setMapSupport(j + 1, TRUE);
+		mesh.setNumMapVerts(j + 1, n, TRUE);
+		if (UVVert *tVerts = mesh.mapVerts(j + 1)) {
+			for (int i = 0; i < n; ++i) {
+				TexCoord& texCoord = texCoords[i];
+				tVerts[i].Set(texCoord.u, (flipUVTextures) ? 1.0f - texCoord.v : texCoord.v, 0);
+			}
+		}
+	}
+	// Triangles and texture vertices
+	SetTriangles(mesh, tris);
+	if (shape->HasNormals()) {
+		SetNormals(mesh, tris, shape->GetNormals());
+	}
+	if (shape->HasColors()) {
+		vector<Color4> cv = shape->GetColors();
+		ImportVertexColor(tnode, triObject, tris, cv, 0);
+	}
+
+	if (Mtl* m = ImportMaterialAndTextures(node, shape))
+	{
+		gi->GetMaterialLibrary().Add(m);
+		node->GetINode()->SetMtl(m);
+	}
+
+	if (removeDegenerateFaces)
+		mesh.RemoveDegenerateFaces();
+	if (removeIllegalFaces)
+		mesh.RemoveIllegalFaces();
+	if (enableSkinSupport)
+		ImportSkin(node, shape);
+	if (weldVertices)
+		WeldVertices(mesh);
+
+	i->AddNodeToScene(node);
+
+	inode->EvalWorldState(0);
+
+	// attach child
+	if (INode *parent = GetNode(shape->GetParent()))
+		parent->AttachChild(inode, 1);
+
+	inode->Hide(shape->GetVisibility() ? FALSE : TRUE);
+
+	if (enableAutoSmooth) {
+		mesh.AutoSmooth(TORAD(autoSmoothAngle), FALSE, FALSE);
+	}
+
+	RegisterNode(shape, inode);
+	return true;
 }
 
 bool NifImporter::ImportMultipleGeometry(NiNodeRef parent, vector<NiTriBasedGeomRef>& glist)
@@ -805,6 +913,183 @@ bool NifImporter::ImportSkin(ImpNode *node, NiTriBasedGeomRef triGeom, int v_sta
 	}
 	return ok;
 }
+
+bool NifImporter::ImportSkin(ImpNode *node, Niflib::BSTriShapeRef shape, int v_start)
+{
+	bool ok = true;
+	
+	if (!shape->HasSkin())
+		return false;
+
+	INode *tnode = node->GetINode();
+
+	BSSkin__InstanceRef nifSkin = DynamicCast<BSSkin__Instance>(shape->GetSkin());
+	BSSkin__BoneDataRef data = nifSkin->GetBoneData();
+	vector<NiNodeRef> nifBones = nifSkin->GetBones();
+
+	//create a skin modifier and add it
+	Modifier *skinMod = GetOrCreateSkin(tnode);
+	TriObject *triObject = GetTriObject(tnode->GetObjectRef());
+	Mesh& m = triObject->GetMesh();
+
+	//get the skin interface
+	if (ISkin *skin = (ISkin *)skinMod->GetInterface(I_SKIN)) {
+		ISkinImportData* iskinImport = (ISkinImportData*)skinMod->GetInterface(I_SKINIMPORTDATA);
+
+		// Set the num weights to 4.  Yes its in the nif but Shon doesn't like to expose those values 
+		//   and the value always seems to be 4 anyway.  I'd also this be more dynamic than hard coded numbers
+		//   but I cant figure out the correct values to pass the scripting engine from here so I'm giving up.
+		int numWeightsPerVertex = 4;
+#if VERSION_3DSMAX >= ((5000<<16)+(15<<8)+0) // Version 5+
+		IParamBlock2 *params = skinMod->GetParamBlockByID(2/*advanced*/);
+		params->SetValue(0x7/*bone_Limit*/, 0, numWeightsPerVertex);
+#endif
+
+		// Can get some truly bizarre animations without this in MAX with Civ4 Leaderheads
+#if VERSION_3DSMAX > ((5000<<16)+(15<<8)+0) // Version 6+
+		BOOL ignore = TRUE;
+		params->SetValue(0xE/*ignoreBoneScale*/, 0, ignore);
+#endif
+
+		//RefTargetHandle advanced = skinMod->GetReference(3);
+		//setMAXScriptValue(advanced, "bone_Limit", 0, numWeightsPerVertex);
+
+		Matrix3 geom = TOMATRIX3(shape->GetLocalTransform());
+		Matrix3 m3 = TOMATRIX3(data->GetOverallTransform());
+		Matrix3 im3 = Inverse(m3);
+		Matrix3 nm3 = im3 * geom;
+		iskinImport->SetSkinTm(tnode, nm3, nm3); // ???
+												 // Create Bone List
+		Tab<INode*> bones;
+		for (size_t i = 0; i < nifBones.size(); ++i) {
+			NiNodeRef bone = nifBones[i];
+			if (INode *boneRef = FindNode(bone)) {
+				bones.Append(1, &boneRef);
+				iskinImport->AddBoneEx(boneRef, TRUE);
+
+				//// Set Bone Transform
+				Matrix3 b3 = TOMATRIX3(data->GetBoneTransform(i));
+				Matrix3 ib3 = Inverse(b3);
+				ib3 *= geom;
+				iskinImport->SetBoneTm(boneRef, ib3, ib3);
+			}
+		}
+		if (bones.Count() != data->GetBoneCount())
+			return false;
+
+		ObjectState os = tnode->EvalWorldState(0);
+
+		// Need to get a list of bones and weights for each vertex.
+		int boneIndex[4];
+		float weights[4];
+		vector<VertexHolder> vertexHolders;
+		vertexHolders.resize(m.numVerts);
+		for (int i = 0, n = shape->GetVertexCount(); i < n; ++i) {
+			VertexHolder& h = vertexHolders[i];
+			h.vertIndex = i;
+			int weightCount = shape->GetBoneWeights(i, weights, boneIndex);
+			for (int j = 0; j < weightCount; ++j) {
+				if (INode *boneRef = bones[boneIndex[j]]) {
+					++h.count;
+					h.weights.Append(1, &weights[j]);
+					h.boneNodeList.Append(1, &boneRef);
+				}
+			}
+		}
+
+		tnode->EvalWorldState(0);
+		skinMod->DisableModInViews();
+		skinMod->EnableModInViews();
+#if VERSION_3DSMAX < ((5000<<16)+(15<<8)+0) // Version 4
+		gi->SetCommandPanelTaskMode(TASK_MODE_MODIFY);
+		gi->SelectNode(tnode);
+#endif
+		// Assign the weights 
+		for (vector<VertexHolder>::iterator itr = vertexHolders.begin(), end = vertexHolders.end(); itr != end; ++itr) {
+			VertexHolder& h = (*itr);
+			if (h.count) {
+				float sum = 0.0f;
+				for (int i = 0; i < h.count; ++i)
+					sum += h.weights[i];
+				ASSERT(fabs(sum - 1.0) < 0.001);
+				BOOL add = iskinImport->AddWeights(tnode, h.vertIndex, h.boneNodeList, h.weights);
+				add = add;
+			}
+		}
+		// This is a kludge to get skin transforms to update and avoid jumping around after modifying the transforms.
+		//   Initially they show up incorrectly but magically fix up if you go to the modifier roll up.
+		//   There is still an outstanding issue with skeleton and GetObjectTMBeforeWSM.
+		skinMod->DisableModInViews();
+		skinMod->EnableModInViews();
+
+#if 0
+		// If Fallout 3 BSDismembermentSkinInstance, ...
+		if (!disableBSDismemberSkinModifier)
+		{
+			if (BSDismemberSkinInstanceRef bsdsi = DynamicCast<BSDismemberSkinInstance>(nifSkin))
+			{
+				Modifier *dismemberSkinMod = GetOrCreateBSDismemberSkin(tnode);
+				if (IBSDismemberSkinModifier *disSkin = (IBSDismemberSkinModifier *)dismemberSkinMod->GetInterface(I_BSDISMEMBERSKINMODIFIER)) {
+					// Evaluate node ensure the modifier data is created
+					ObjectState os = tnode->EvalWorldState(0);
+
+					FaceMap faceMap;
+					int nfaces = m.getNumFaces();
+					for (int i = 0; i < nfaces; ++i) {
+						Face f = m.faces[i];
+						faceMap[rotate(f)] = i;
+					}
+
+					Tab<IBSDismemberSkinModifierData*> modData = disSkin->GetModifierData();
+					for (int i = 0; i < modData.Count(); ++i) {
+						IBSDismemberSkinModifierData* bsdsmd = modData[i];
+
+						Tab<BSDSPartitionData> &flags = bsdsmd->GetPartitionFlags();
+						vector<BodyPartList> partitions = bsdsi->GetPartitions();
+						if (partitions.empty())
+							continue;
+
+						bsdsmd->SetActivePartition(partitions.size() - 1);
+						for (int j = 0; j < partitions.size(); ++j) {
+							flags[j].bodyPart = (DismemberBodyPartType)partitions[j].bodyPart;
+							flags[j].partFlag = partitions[j].partFlag;
+						}
+
+						for (int j = 0; j < part->GetNumPartitions(); ++j) {
+							bsdsmd->SetActivePartition(j);
+							dismemberSkinMod->SelectAll(0); // ensures bitarrays are properly synced to mesh
+							dismemberSkinMod->ClearSelection(0);
+							vector<Triangle> triangles = part->GetTriangles(j);
+							vector<unsigned short> map = part->GetVertexMap(j);
+							GenericNamedSelSetList& fselSet = bsdsmd->GetFaceSelList();
+							if (BitArray* pfsel = fselSet.GetSetByIndex(j))
+							{
+								BitArray& fsel = *pfsel;
+								int size = fsel.GetSize();
+								if (size < nfaces)
+									fsel.SetSize(nfaces);
+
+								for (vector<Triangle>::iterator itrtri = triangles.begin(); itrtri != triangles.end(); ++itrtri) {
+									Face f; f.setVerts(map[(*itrtri).v1], map[(*itrtri).v2], map[(*itrtri).v3]);
+									FaceMap::iterator fitr = faceMap.find(rotate(f));
+									if (fitr != faceMap.end())
+										fsel.Set((*fitr).second);
+								}
+							}
+						}
+						bsdsmd->SetActivePartition(0);
+					}
+					disSkin->LocalDataChanged();
+					dismemberSkinMod->DisableModInViews();
+					dismemberSkinMod->EnableModInViews();
+				}
+			}
+		}
+#endif
+	}
+	return ok;
+}
+
 
 void NifImporter::WeldVertices(Mesh& mesh)
 {

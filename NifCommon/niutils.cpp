@@ -963,6 +963,17 @@ int CountNodesByName(const vector<NiNodeRef>& blocks, LPCWSTR match)
 	return CountNodesByName(blocks, W2A(match));
 }
 
+int CountNodesByType(const vector<NiObjectRef>& blocks, Type type)
+{
+	int count = 0;
+	for (vector<NiObjectRef>::const_iterator itr = blocks.begin(), end = blocks.end(); itr != end; ++itr) {
+		const NiObjectRef& block = (*itr);
+		if (block->IsDerivedType(type))
+			++count;
+	}
+	return count;
+}
+
 // Get a vector of names from an NiNode vector
 vector<string> GetNamesOfNodes(const vector<Niflib::NiNodeRef>& nodes)
 {

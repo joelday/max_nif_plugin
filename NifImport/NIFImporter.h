@@ -20,6 +20,7 @@ HISTORY:
 #include <obj/NiPSysGravityModifier.h>
 #include <obj/NiTimeController.h>
 #include <AnimKey.h>
+#include <obj/BSTriShape.h>
 
 namespace Niflib
 {
@@ -137,6 +138,7 @@ public:
 	void SetNormals(Mesh& mesh, const vector<Niflib::Triangle>& t, const vector<Niflib::Vector3>& v);
 
 	bool ImportMesh(Niflib::NiTriBasedGeomRef triBasedGeom);
+	bool ImportBSTriShape(Niflib::BSTriShapeRef triBasedGeom);
 	bool ImportMultipleGeometry(Niflib::NiNodeRef parent, vector<Niflib::NiTriBasedGeomRef>& glist);
 	StdMat2 *ImportMaterialAndTextures(ImpNode *node, Niflib::NiAVObjectRef avObject);
 	bool ImportMaterialAndTextures(ImpNode *node, vector<Niflib::NiTriBasedGeomRef>& glist);
@@ -145,6 +147,7 @@ public:
 	bool ImportMesh(ImpNode *node, TriObject *o, Niflib::NiTriBasedGeomRef triGeom, Niflib::NiTriBasedGeomDataRef triGeomData, vector<Niflib::Triangle>& tris);
 	bool ImportVertexColor(INode *tnode, TriObject *o, vector<Niflib::Triangle>& tris, vector<Niflib::Color4> cv, int cv_offset = 0);
 	bool ImportSkin(ImpNode *node, Niflib::NiTriBasedGeomRef triGeom, int v_start = 0);
+	bool ImportSkin(ImpNode *node, Niflib::BSTriShapeRef shape, int v_start = 0);
 
 	bool ImportSpecialNodes();
 	bool ImportParticleSystems(Niflib::NiNodeRef root);
@@ -209,6 +212,7 @@ public:
 
 	bool IsSkyrim() const;
 	bool IsFallout3() const;
+	bool IsFallout4() const;
 	bool IsOblivion() const;
 	bool IsMorrowind() const;
 

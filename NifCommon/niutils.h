@@ -39,7 +39,10 @@ INFO: See Implementation for minimalist comments
 #include <obj\NiNode.h>
 #include <obj\NiTriBasedGeom.h>
 #include <gen\QuaternionXYZW.h>
+#include <gen\HalfTexCoord.h>
+#include <gen\HalfVector3.h>
 #include <nif_math.h>
+#include <nif_io.h>
 
 #ifndef _countof
 #define _countof(x) (sizeof(x)/sizeof((x)[0]))
@@ -501,6 +504,7 @@ extern int CountNodesByName(const vector<Niflib::NiNodeRef>& blocks, LPCWSTR mat
 extern std::vector<std::string> GetNamesOfNodes( const vector<Niflib::NiNodeRef>& blocks );
 extern std::vector<Niflib::NiNodeRef> SelectNodesByName( const vector<Niflib::NiNodeRef>& blocks, LPCSTR match);
 extern std::vector<Niflib::NiNodeRef> SelectNodesByName(const vector<Niflib::NiNodeRef>& blocks, LPCWSTR match);
+extern int CountNodesByType(const vector<Niflib::NiObjectRef>& blocks, Niflib::Type);
 
 extern INode* FindINode(Interface *i, const string& name);
 extern INode* FindINode(Interface *i, const wstring& name);
@@ -665,6 +669,29 @@ static inline float Average(const Point3& val) {
 
 static inline float Average(const Niflib::Vector3& val) {
    return (val.x + val.y + val.z) / 3.0f;
+}
+
+static inline Niflib::TexCoord TOTEXCOORD(const Niflib::HalfTexCoord& b) {
+	return Niflib::TexCoord(Niflib::ConvertHFloatToFloat(b.u), Niflib::ConvertHFloatToFloat(b.v));
+}
+
+static inline Niflib::HalfTexCoord TOHTEXCOORD(const Niflib::TexCoord& b) {
+	Niflib::HalfTexCoord a;
+	a.u = Niflib::ConvertFloatToHFloat(b.u);
+	a.v = Niflib::ConvertFloatToHFloat(b.v);
+	return a;
+}
+
+static inline Niflib::Vector3 TOVECTOR3(const Niflib::HalfVector3& b) {
+	return Niflib::Vector3(Niflib::ConvertHFloatToFloat(b.x), Niflib::ConvertHFloatToFloat(b.y), Niflib::ConvertHFloatToFloat(b.z));
+}
+
+static inline Niflib::HalfVector3 TOHVECTOR3(const Niflib::Vector3& b) {
+	Niflib::HalfVector3 a;
+	a.x = Niflib::ConvertFloatToHFloat(b.x);
+	a.y = Niflib::ConvertFloatToHFloat(b.y);
+	a.z = Niflib::ConvertFloatToHFloat(b.z);
+	return a;
 }
 
 template <typename U, typename T>
