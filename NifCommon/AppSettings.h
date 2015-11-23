@@ -39,6 +39,7 @@ public:
    tstringlist extensions;
    tstring Skeleton;
    bool useSkeleton;
+   tstringlist skeletonSearchPaths;
    bool goToSkeletonBindPosition;
    bool disableCreateNubsForBones;
    int textureUseFullPath;

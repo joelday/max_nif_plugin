@@ -59,6 +59,8 @@ void AppSettings::ReadSettings(tstring iniFile)
 
 	Skeleton = GetSetting<tstring>(TEXT("Skeleton"));
 	useSkeleton = GetSetting<bool>(TEXT("UseSkeleton"), useSkeleton);
+	skeletonSearchPaths = TokenizeString(GetSetting<tstring>(TEXT("SkeletonSearchPaths"), TEXT(".")).c_str(), TEXT(";"));
+
 	goToSkeletonBindPosition = GetSetting<bool>(TEXT("GoToSkeletonBindPosition"), goToSkeletonBindPosition);
 	disableCreateNubsForBones = GetSetting<bool>(TEXT("DisableCreateNubsForBones"), disableCreateNubsForBones);
 	applyOverallTransformToSkinAndBones = GetSetting<int>(TEXT("ApplyOverallTransformToSkinAndBones"), -1);

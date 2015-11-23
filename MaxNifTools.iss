@@ -233,6 +233,7 @@ var i: Integer;
     BCDataDirPage: TInputDirWizardPage;
     F3DataDirPage: TInputDirWizardPage;
     FNVDataDirPage: TInputDirWizardPage;
+    F4DataDirPage: TInputDirWizardPage;
     SKDataDirPage: TInputDirWizardPage;
 
 function InitializeSetup(): Boolean;
@@ -286,17 +287,18 @@ function DataDirPage_ShouldSkipPage(Page: TWizardPage): Boolean;
 begin
     Result := True;
     case Page.ID of
-      SKDataDirPage.ID: Result    := not UsagePage.Values[0];
-      F3DataDirPage.ID: Result    := not UsagePage.Values[1];
-      FNVDataDirPage.ID: Result    := not UsagePage.Values[2];
-      OBDataDirPage.ID: Result    := not UsagePage.Values[3];
-      OBSIDataDirPage.ID: Result  := not UsagePage.Values[4];
-      MWDataDirPage.ID: Result    := not UsagePage.Values[5];
-      Civ4DataDirPage.ID: Result  := not UsagePage.Values[6];
-      DAoCDataDirPage.ID: Result  := not UsagePage.Values[7];
-      FFDataDirPage.ID: Result    := not UsagePage.Values[8];
-      FF3RDataDirPage.ID: Result  := not UsagePage.Values[9];
-      BCDataDirPage.ID: Result    := not UsagePage.Values[10];
+      F4DataDirPage.ID: Result    := not UsagePage.Values[0];
+      SKDataDirPage.ID: Result    := not UsagePage.Values[1];
+      F3DataDirPage.ID: Result    := not UsagePage.Values[2];
+      FNVDataDirPage.ID: Result    := not UsagePage.Values[3];
+      OBDataDirPage.ID: Result    := not UsagePage.Values[4];
+      OBSIDataDirPage.ID: Result  := not UsagePage.Values[5];
+      MWDataDirPage.ID: Result    := not UsagePage.Values[6];
+      Civ4DataDirPage.ID: Result  := not UsagePage.Values[7];
+      DAoCDataDirPage.ID: Result  := not UsagePage.Values[8];
+      FFDataDirPage.ID: Result    := not UsagePage.Values[9];
+      FF3RDataDirPage.ID: Result  := not UsagePage.Values[10];
+      BCDataDirPage.ID: Result    := not UsagePage.Values[11];
       
     end;
 end;
@@ -310,6 +312,7 @@ begin
     'Custom Directories', 'Select Custom Directories for supported Games',
     'Please specify which games you wish to add custom directories for, then click Next.',
     False, False);
+  UsagePage.Add('Fallout 4');
   UsagePage.Add('Skyrim');
   UsagePage.Add('Fallout 3');
   UsagePage.Add('Fallout NV');
@@ -323,7 +326,15 @@ begin
   UsagePage.Add('Star Trek: Bridge Commander');
 
   { Create pages for each Game texture locations }
-  SKDataDirPage := CreateInputDirPage(UsagePage.ID,
+  F4DataDirPage := CreateInputDirPage(UsagePage.ID,
+    'Select Fallout 4 Data Directory', 'Where are the extracted Fallout 4 data files located?',
+    'Select the folders in which 3ds Max should look for files, then click Next.',
+    False, '');
+  F4DataDirPage.OnShouldSkipPage := @DataDirPage_ShouldSkipPage;
+  F4DataDirPage.Add('Extracted Model Directory (e.g. root directory containing the Meshes directory)');
+  F4DataDirPage.Add('Extracted Textures Directory (e.g. root directory containing the Textures directory)');
+
+  SKDataDirPage := CreateInputDirPage(F4DataDirPage.ID,
     'Select Skyrim Data Directory', 'Where are the extracted Skyrim data files located?',
     'Select the folders in which 3ds Max should look for files, then click Next.',
     False, '');
@@ -339,7 +350,7 @@ begin
   F3DataDirPage.Add('Extracted Model Directory (e.g. root directory containing the Meshes directory)');
   F3DataDirPage.Add('Extracted Textures Directory (e.g. root directory containing the Textures directory)');
 
-  FNVDataDirPage := CreateInputDirPage(SKDataDirPage.ID,
+  FNVDataDirPage := CreateInputDirPage(F3DataDirPage.ID,
     'Select Fallout New Vegas Data Directory', 'Where are the extracted Fallout New Vegas data files located?',
     'Select the folders in which 3ds Max should look for files, then click Next.',
     False, '');
@@ -347,7 +358,7 @@ begin
   FNVDataDirPage.Add('Extracted Model Directory (e.g. root directory containing the Meshes directory)');
   FNVDataDirPage.Add('Extracted Textures Directory (e.g. root directory containing the Textures directory)');
 
-  OBDataDirPage := CreateInputDirPage(F3DataDirPage.ID,
+  OBDataDirPage := CreateInputDirPage(FNVDataDirPage.ID,
     'Select Oblivion Data Directory', 'Where are the extracted Oblivion data files located?',
     'Select the folders in which 3ds Max should look for files, then click Next.',
     False, '');
@@ -412,17 +423,18 @@ begin
   BCDataDirPage.Add('Extracted Textures Directory (e.g. root directory containing the Textures directory)');
   
   { Set default values, using settings that were stored last time if possible }
-  UsagePage.Values[0] := GetPrevDataBool('bSK', False);
-  UsagePage.Values[1] := GetPrevDataBool('bF3', False);
-  UsagePage.Values[2] := GetPrevDataBool('bOB', False);
-  UsagePage.Values[3] := GetPrevDataBool('bOBSI', False);
-  UsagePage.Values[4] := GetPrevDataBool('bMW', False);
-  UsagePage.Values[5] := GetPrevDataBool('bCiv4', False);
-  UsagePage.Values[6] := GetPrevDataBool('bDAoC', False);
-  UsagePage.Values[7] := GetPrevDataBool('bFF', False);
-  UsagePage.Values[8] := GetPrevDataBool('bFF3R', False);
-  UsagePage.Values[9] := GetPrevDataBool('bBC', False);
-  UsagePage.Values[10] := GetPrevDataBool('bFNV', False);
+  UsagePage.Values[0] := GetPrevDataBool('bF4', False);
+  UsagePage.Values[1] := GetPrevDataBool('bSK', False);
+  UsagePage.Values[2] := GetPrevDataBool('bF3', False);
+  UsagePage.Values[3] := GetPrevDataBool('bFNV', False);
+  UsagePage.Values[4] := GetPrevDataBool('bOB', False);
+  UsagePage.Values[5] := GetPrevDataBool('bOBSI', False);
+  UsagePage.Values[6] := GetPrevDataBool('bMW', False);
+  UsagePage.Values[7] := GetPrevDataBool('bCiv4', False);
+  UsagePage.Values[8] := GetPrevDataBool('bDAoC', False);
+  UsagePage.Values[9] := GetPrevDataBool('bFF', False);
+  UsagePage.Values[10] := GetPrevDataBool('bFF3R', False);
+  UsagePage.Values[11] := GetPrevDataBool('bBC', False);
 
   OBDataDirPage.Values[0] := GetPreviousData('OBModelDir', '');
   OBDataDirPage.Values[1] := GetPreviousData('OBTexDir', '');
@@ -446,6 +458,8 @@ begin
   SKDataDirPage.Values[1] := GetPreviousData('SKTexDir', '');
   FNVDataDirPage.Values[0] := GetPreviousData('FNVModelDir', '');
   FNVDataDirPage.Values[1] := GetPreviousData('FNVTexDir', '');
+  F4DataDirPage.Values[0] := GetPreviousData('F4ModelDir', '');
+  F4DataDirPage.Values[1] := GetPreviousData('F4TexDir', '');
 
 end;
 
@@ -455,17 +469,18 @@ var
   UsageMode: String;
 begin
   { Store the settings so we can restore them next time }
-  SetPrevDataString(PreviousDataKey, 'bSK',   UsagePage.Values[0]);
-  SetPrevDataString(PreviousDataKey, 'bF3',   UsagePage.Values[1]);
-  SetPrevDataString(PreviousDataKey, 'bFNV',   UsagePage.Values[2]);
-  SetPrevDataString(PreviousDataKey, 'bOB',   UsagePage.Values[3]);
-  SetPrevDataString(PreviousDataKey, 'bOBSI', UsagePage.Values[4]);
-  SetPrevDataString(PreviousDataKey, 'bMW',   UsagePage.Values[5]);
-  SetPrevDataString(PreviousDataKey, 'bCiv4', UsagePage.Values[6]);
-  SetPrevDataString(PreviousDataKey, 'bDAoC', UsagePage.Values[7]);
-  SetPrevDataString(PreviousDataKey, 'bFF',   UsagePage.Values[8]);
-  SetPrevDataString(PreviousDataKey, 'bFF3R', UsagePage.Values[9]);
-  SetPrevDataString(PreviousDataKey, 'bBC',   UsagePage.Values[10]);
+  SetPrevDataString(PreviousDataKey, 'bF4',   UsagePage.Values[0]);
+  SetPrevDataString(PreviousDataKey, 'bSK',   UsagePage.Values[1]);
+  SetPrevDataString(PreviousDataKey, 'bF3',   UsagePage.Values[2]);
+  SetPrevDataString(PreviousDataKey, 'bFNV',   UsagePage.Values[3]);
+  SetPrevDataString(PreviousDataKey, 'bOB',   UsagePage.Values[4]);
+  SetPrevDataString(PreviousDataKey, 'bOBSI', UsagePage.Values[5]);
+  SetPrevDataString(PreviousDataKey, 'bMW',   UsagePage.Values[6]);
+  SetPrevDataString(PreviousDataKey, 'bCiv4', UsagePage.Values[7]);
+  SetPrevDataString(PreviousDataKey, 'bDAoC', UsagePage.Values[8]);
+  SetPrevDataString(PreviousDataKey, 'bFF',   UsagePage.Values[9]);
+  SetPrevDataString(PreviousDataKey, 'bFF3R', UsagePage.Values[10]);
+  SetPrevDataString(PreviousDataKey, 'bBC',   UsagePage.Values[11]);
 
   SetPreviousData(PreviousDataKey, 'OBModelDir', OBDataDirPage.Values[0]);
   SetPreviousData(PreviousDataKey, 'OBTexDir', OBDataDirPage.Values[1]);
@@ -489,6 +504,8 @@ begin
   SetPreviousData(PreviousDataKey, 'SKTexDir', SKDataDirPage.Values[1]);
   SetPreviousData(PreviousDataKey, 'FNVModelDir', FNVDataDirPage.Values[0]);
   SetPreviousData(PreviousDataKey, 'FNVTexDir', FNVDataDirPage.Values[1]);
+  SetPreviousData(PreviousDataKey, 'F4ModelDir', F4DataDirPage.Values[0]);
+  SetPreviousData(PreviousDataKey, 'F4TexDir', F4DataDirPage.Values[1]);
 
 end;
 
@@ -909,46 +926,50 @@ begin
       iniFile := ExpandFileName(iniFile);
 
       if UsagePage.Values[0] then begin
+        SetIniString('Fallout 4', 'MeshRootPath', F4DataDirPage.Values[0], iniFile);
+        SetIniString('Fallout 4', 'TextureRootPath', F4DataDirPage.Values[1], iniFile);
+      end;
+      if UsagePage.Values[1] then begin
         SetIniString('Skyrim', 'MeshRootPath', SKDataDirPage.Values[0], iniFile);
         SetIniString('Skyrim', 'TextureRootPath', SKDataDirPage.Values[1], iniFile);
       end;
-      if UsagePage.Values[1] then begin
+      if UsagePage.Values[2] then begin
         SetIniString('Fallout 3', 'MeshRootPath', F3DataDirPage.Values[0], iniFile);
         SetIniString('Fallout 3', 'TextureRootPath', F3DataDirPage.Values[1], iniFile);
       end;
-      if UsagePage.Values[2] then begin
+      if UsagePage.Values[3] then begin
         SetIniString('Fallout NV', 'MeshRootPath', FNVDataDirPage.Values[0], iniFile);
         SetIniString('Fallout NV', 'TextureRootPath', FNVDataDirPage.Values[1], iniFile);
       end;
-      if UsagePage.Values[3] then begin {Oblivion}
+      if UsagePage.Values[4] then begin {Oblivion}
         SetIniString('Oblivion', 'MeshRootPath', OBDataDirPage.Values[0], iniFile);
         SetIniString('Oblivion', 'TextureRootPath', OBDataDirPage.Values[1], iniFile);
       end
-      if UsagePage.Values[4] then begin
+      if UsagePage.Values[5] then begin
         SetIniString('Oblivion', 'IslesMeshRootPath', OBSIDataDirPage.Values[0], iniFile);
         SetIniString('Oblivion', 'IslesTextureRootPath', OBSIDataDirPage.Values[1], iniFile);
       end
-      if UsagePage.Values[5] then begin
+      if UsagePage.Values[6] then begin
         SetIniString('Morrowind', 'MeshRootPath', MWDataDirPage.Values[0], iniFile);
         SetIniString('Morrowind', 'TextureRootPath', MWDataDirPage.Values[1], iniFile);
       end
-      if UsagePage.Values[6] then begin
+      if UsagePage.Values[7] then begin
         SetIniString('Civilization 4', 'MeshRootPath', Civ4DataDirPage.Values[0], iniFile);
         SetIniString('Civilization 4', 'TextureRootPath', Civ4DataDirPage.Values[1], iniFile);
       end
-      if UsagePage.Values[7] then begin
+      if UsagePage.Values[8] then begin
         SetIniString('Dark Age of Camelot', 'MeshRootPath', DAoCDataDirPage.Values[0], iniFile);
         SetIniString('Dark Age of Camelot', 'TextureRootPath', DAoCDataDirPage.Values[1], iniFile);
       end
-      if UsagePage.Values[8] then begin
+      if UsagePage.Values[9] then begin
         SetIniString('Freedom Force', 'MeshRootPath', FFDataDirPage.Values[0], iniFile);
         SetIniString('Freedom Force', 'TextureRootPath', FFDataDirPage.Values[1], iniFile);
       end
-      if UsagePage.Values[9] then begin
+      if UsagePage.Values[10] then begin
         SetIniString('Freedom Force vs. the 3rd Reich', 'MeshRootPath', FF3RDataDirPage.Values[0], iniFile);
         SetIniString('Freedom Force vs. the 3rd Reich', 'TextureRootPath', FF3RDataDirPage.Values[1], iniFile);
       end
-      if UsagePage.Values[10] then begin
+      if UsagePage.Values[11] then begin
         SetIniString('Star Trek: Bridge Commander', 'MeshRootPath', BCDataDirPage.Values[0], iniFile);
         SetIniString('Star Trek: Bridge Commander', 'TextureRootPath', BCDataDirPage.Values[1], iniFile);
       end;
