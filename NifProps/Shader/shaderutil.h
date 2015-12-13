@@ -20,30 +20,6 @@
 
 #define MIN_ORIENT		-999.99	
 #define MAX_ORIENT		999.99	
-//
-//
-//class CombineComponentsCompShader : public Shader, public ISpecularCompositeShader,
-//								    public ExposureMaterialControl {
-//public:
-//	CombineComponentsCompShader() : useComposite(false) {}
-//
-//	ULONG GetRequirements( int subMtlNum ){ return isNoExposure() | MTLREQ_PHONG | MTLREQ_PREPRO; }
-//	void CombineComponents( ShadeContext &sc, IllumParams& ip );
-//
-//	// [dl | 13march2003] Replaced this using statement by this inline function to
-//	// resolve compile errors.
-//	//using Shader::GetInterface;
-//	virtual void* GetInterface(ULONG id) { return Shader::GetInterface(id); }
-//
-//	virtual BaseInterface* GetInterface(Interface_ID id);
-//	virtual void ChooseSpecularMethod(TimeValue t, RenderGlobalContext* rgc);
-//
-//	bool getUseComposite() { return useComposite; }
-//
-//private:
-//	bool	useComposite;
-//};
-
 
 void CombineComponentsAdd( IllumParams& ip );
 
@@ -150,5 +126,57 @@ inline float DegToRdn( float d ){ return d * (1.0f/180.0f) * Pi; } // d/360*2*pi
 inline float RdnToDeg( float r ){ return r * 180.0f * (1.0f/Pi); } // r/2pi*360
 
 Point3 RotateVec( Point3& p, Point3& axis, float rdn );
+
+
+
+
+
+// IDs for all the ParamBlocks and their parameters.  One block UI per rollout.
+enum { fos_shader, fos_mtl, fos_bgsm, std_bgem, };  // pblock IDs
+																			   // fos_shader param IDs
+enum
+{
+	fos_shader_type, fos_name, fos_filename,
+};
+// fos_extended param IDs
+enum {
+fos_tileu, fos_tilev, fos_uoffset, fos_voffset, fos_uscale, fos_vscale,
+fos_alpha, fos_alphablendmode, fos_blendstate, fos_blendfunc1, fos_blendfunc2,
+fos_alphatestref, fos_alphatest, fos_zbufferwrite, fos_zbuffertest,
+fos_screenspacereflections, fos_wetnesscontrolscreenspacereflections,
+fos_decal, fos_twosided, fos_decalnofade, fos_nonoccluder,
+fos_refraction, fos_refractionfalloff, fos_refractionpower,
+fos_environmentmapping, fos_environmentmappingmaskscale, fos_grayscaletopalettecolor,
+};
+
+// fos_sampling param IDs
+enum
+{
+	fos_diffusetexture, fos_normaltexture, fos_smoothspectexture, fos_greyscaletexture,
+	fos_envmaptexture, fos_glowtexture, fos_innerlayertexture, fos_wrinklestexture,
+	fos_displacementtexture, fos_enableeditoralpharef, fos_rimlighting, fos_rimpower,
+	fos_backlightpower, fos_subsurfacelighting, fos_subsurfacelightingrolloff,
+	fos_specularenabled, fos_specularcolor, fos_specularmult, fos_smoothness,
+	fos_fresnelpower, fos_wetnesscontrolspecscale, fos_wetnesscontrolspecpowerscale,
+	fos_wetnesscontrolspecminvar, fos_wetnesscontrolenvmapscale, fos_wetnesscontrolfresnelpower,
+	fos_wetnesscontrolmetalness, fos_rootmaterialpath, fos_anisolighting, fos_emitenabled,
+	fos_emittancecolor, fos_emittancemult, fos_modelspacenormals, fos_externalemittance,
+	fos_backlighting, fos_receiveshadows, fos_hidesecret, fos_castshadows,
+	fos_dissolvefade, fos_assumeshadowmask, fos_glowmap, fos_environmentmappingwindow,
+	fos_environmentmappingeye, fos_hair, fos_hairtintcolor, fos_tree, fos_facegen,
+	fos_skintint, fos_tessellate, fos_displacementtexturebias, fos_displacementtexturescale,
+	fos_tessellationpnscale, fos_tessellationbasefactor, fos_tessellationfadedistance,
+	fos_grayscaletopalettescale, fos_skewspecularalpha,
+};
+// fos_dynamics param IDs
+enum
+{
+fos_basetexture, fos_grayscaletexture, fos_envmaptexture2, fos_normaltexture2,
+fos_envmapmasktexture, fos_bloodenabled, fos_effectlightingenabled, fos_falloffenabled,
+fos_falloffcolorenabled,fos_grayscaletopalettealpha, fos_softenabled,fos_basecolor,
+fos_basecolorscale,  fos_falloffstartangle, fos_falloffstopangle, fos_falloffstartopacity,
+fos_falloffstopopacity, fos_lightinginfluence, fos_envmapminlod, fos_softdepth, 
+};
+
 
 #endif

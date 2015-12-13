@@ -19,7 +19,8 @@ extern TSTR shortDescription;
 // Class Ids
 const Class_ID FO4SHADER_CLASS_ID(0x7a6bc2e7, 0x71106f41);
 
-enum { ref_params, ref_activemtl, ref_oldmtl, MAX_REFERENCES };
+enum { ref_base, ref_mtl, ref_bgsm, ref_bgem, ref_activemtl, ref_oldmtl, MAX_REFERENCES };
+
 // Paramblock2 name
 enum { shader_params, };
 // Paramblock2 parameter list
@@ -152,28 +153,6 @@ static const int FO4ShaderStdIDToChannel[] = {
 	-1,           // 23 -  
 };
 
-// Rollups
-enum { basic_params, };
-
-enum
-{
-	ns_mat_ambient, ns_mat_diffuse, ns_mat_specular,
-	ns_mat_selfillumclr, ns_mat_selfillum,
-	ns_mat_glossiness, ns_mat_speclevel, ns_mat_softenlevel,
-	ns_mat_shininess, ns_mat_alpha, ns_mat_dither,
-	ns_mat_selfillumon, ns_mat_specenable,
-	ns_mat_emittance,
-	//////////////////////////////////////////////////////////////////////////
-	ns_alpha_mode, ns_alpha_src, ns_alpha_dest,
-	//////////////////////////////////////////////////////////////////////////
-	ns_vertex_colors_enable, ns_vertex_srcmode, ns_vertex_light,
-	//////////////////////////////////////////////////////////////////////////
-	ns_apply_mode,
-	//////////////////////////////////////////////////////////////////////////
-	ns_test_ref, ns_testmode, ns_alphatest_enable, ns_no_sorter,
-	//////////////////////////////////////////////////////////////////////////
-};
-
 const ULONG SHADER_PARAMS = (STD_PARAM_SELFILLUM | STD_PARAM_SELFILLUM_CLR
 	| STD_PARAM_SPECULAR_CLR | STD_PARAM_GLOSSINESS
 	| STD_PARAM_SELFILLUM_CLR_ON
@@ -191,16 +170,15 @@ class FO4Shader : public Shader, IBSShaderMaterialData {
 	friend class FO4ShaderBGSMRollup;
 	friend class FO4ShaderBGEMRollup;
 	BOOL rolloutOpen;
-protected:
-	IParamBlock2      *pb;   // ref 0
-	MaterialReference *pMtlFileRef; // ref 1
-	MaterialReference *pMtlFileRefOld; // ref 2
+public:
+	IParamBlock2      *pb_base;     // ref 0
+	IParamBlock2      *pb_mtl;      // ref 1
+	IParamBlock2      *pb_bgsm;     // ref 2
+	IParamBlock2      *pb_bgem;     // ref 3
+	MaterialReference *pMtlFileRef; // ref 4
+	MaterialReference *pMtlFileRefOld; // ref 5
 	Interval    ivalid;
 	FO4ShaderDlg* pDlg;
-
-	BOOL bSelfIllumClrOn;
-	Color cSelfIllumClr, cAmbientClr, cDiffuseClr, cSpecularClr;
-	float fGlossiness, fSelfIllum, fSpecularLevel, fSoftenLevel;
 
 public:
 	FO4Shader();
@@ -232,15 +210,16 @@ public:
 	void DeleteThis() override { delete this; }
 
 	int NumSubs() override { return 1; }
-	Animatable* SubAnim(int i) override { return (i == 0) ? pb : nullptr; }
-	TSTR SubAnimName(int i) override { return TSTR(GetString(IDS_SH_PARAMETERS)); }
+
+	Animatable* SubAnim(int i) override;
+	TSTR SubAnimName(int i) override;
+
 	int SubNumToRefNum(int subNum) override { return subNum; }
 
 	// add direct ParamBlock2 access
-	int   NumParamBlocks() override { return 1; }
-	IParamBlock2* GetParamBlock(int i) override { return pb; }
-	IParamBlock2* GetParamBlockByID(BlockID id) override { return (pb->ID() == id) ? pb : nullptr; }
-
+	int   NumParamBlocks() override { return 4; }
+	IParamBlock2* GetParamBlock(int i) override;
+	IParamBlock2* GetParamBlockByID(BlockID id) override;
 	int NumRefs() override;
 
 	RefTargetHandle GetReference(int i) override;
@@ -276,35 +255,35 @@ public:
 	void SetLockADTex(BOOL lock)  override { }
 	BOOL GetLockADTex()  override { return FALSE; }
 
-	virtual void SetSelfIllum(float v, TimeValue t)  override { fSelfIllum = v;       pb->SetValue(ns_mat_selfillum, t, v, 0); }
-	virtual void SetSelfIllumClrOn(BOOL on)  override { bSelfIllumClrOn = on; pb->SetValue(ns_mat_selfillumon, 0, on, 0); }
-	virtual void SetSelfIllumClr(Color c, TimeValue t) override { cSelfIllumClr = c;    pb->SetValue(ns_mat_selfillumclr, t, c, 0); }
-	virtual void SetAmbientClr(Color c, TimeValue t)  override { cAmbientClr = c;      pb->SetValue(ns_mat_ambient, t, c, 0); }
-	virtual void SetDiffuseClr(Color c, TimeValue t)  override { cDiffuseClr = c;      pb->SetValue(ns_mat_diffuse, t, c, 0); }
-	virtual void SetSpecularClr(Color c, TimeValue t)  override { cSpecularClr = c;     pb->SetValue(ns_mat_specular, t, c, 0); }
-	virtual void SetGlossiness(float v, TimeValue t)  override { fGlossiness = v;      pb->SetValue(ns_mat_glossiness, t, v, 0); }
-	virtual void SetSpecularLevel(float v, TimeValue t)  override { fSpecularLevel = v;   pb->SetValue(ns_mat_speclevel, t, v, 0); }
-	virtual void SetSoftenLevel(float v, TimeValue t)  override { fSoftenLevel = v;     pb->SetValue(ns_mat_softenlevel, t, v, 0); }
+	virtual void SetSelfIllum(float v, TimeValue t)  override { }
+	virtual void SetSelfIllumClrOn(BOOL on)  override { }
+	virtual void SetSelfIllumClr(Color c, TimeValue t) override { }
+	virtual void SetAmbientClr(Color c, TimeValue t)  override { }
+	virtual void SetDiffuseClr(Color c, TimeValue t)  override { }
+	virtual void SetSpecularClr(Color c, TimeValue t)  override { }
+	virtual void SetGlossiness(float v, TimeValue t)  override { }
+	virtual void SetSpecularLevel(float v, TimeValue t)  override { }
+	virtual void SetSoftenLevel(float v, TimeValue t)  override { }
 
-	virtual BOOL IsSelfIllumClrOn(int mtlNum, BOOL backFace)  override { return bSelfIllumClrOn; }
-	virtual Color GetAmbientClr(int mtlNum = 0, BOOL backFace = 0)  override { return cAmbientClr; }
-	virtual Color GetDiffuseClr(int mtlNum = 0, BOOL backFace = 0)  override { return cDiffuseClr; }
-	virtual Color GetSpecularClr(int mtlNum = 0, BOOL backFace = 0)  override { return cSpecularClr; }
-	virtual Color GetSelfIllumClr(int mtlNum = 0, BOOL backFace = 0)  override { return cSelfIllumClr; }
-	virtual float GetSelfIllum(int mtlNum = 0, BOOL backFace = 0)  override { return fSelfIllum; }
-	virtual float GetGlossiness(int mtlNum = 0, BOOL backFace = 0)  override { return fGlossiness; }
-	virtual float GetSpecularLevel(int mtlNum = 0, BOOL backFace = 0)  override { return fSpecularLevel; }
-	virtual float GetSoftenLevel(int mtlNum = 0, BOOL backFace = 0)  override { return fSoftenLevel; }
+	virtual BOOL IsSelfIllumClrOn(int mtlNum, BOOL backFace)  override { return FALSE; }
+	virtual Color GetAmbientClr(int mtlNum = 0, BOOL backFace = 0)  override { return Color(0.5f, 0.5f, 0.5f);; }
+	virtual Color GetDiffuseClr(int mtlNum = 0, BOOL backFace = 0)  override { return Color(0.5f, 0.5f, 0.5f);; }
+	virtual Color GetSpecularClr(int mtlNum = 0, BOOL backFace = 0)  override { return Color(0.5f, 0.5f, 0.5f);; }
+	virtual Color GetSelfIllumClr(int mtlNum = 0, BOOL backFace = 0)  override { return Color(0.5f, 0.5f, 0.5f);; }
+	virtual float GetSelfIllum(int mtlNum = 0, BOOL backFace = 0)  override { return 0.0f; }
+	virtual float GetGlossiness(int mtlNum = 0, BOOL backFace = 0)  override { return 0.0f; }
+	virtual float GetSpecularLevel(int mtlNum = 0, BOOL backFace = 0)  override { return 0.0f; }
+	virtual float GetSoftenLevel(int mtlNum = 0, BOOL backFace = 0)  override { return 0.0f; }
 
-	virtual BOOL IsSelfIllumClrOn()  override { return pb->GetInt(ns_mat_selfillumon, 0, 0) ? TRUE : FALSE; }
-	virtual Color GetAmbientClr(TimeValue t)  override { return pb->GetColor(ns_mat_ambient, 0, 0); }
-	virtual Color GetDiffuseClr(TimeValue t)  override { return pb->GetColor(ns_mat_diffuse, 0, 0); }
-	virtual Color GetSpecularClr(TimeValue t)  override { return pb->GetColor(ns_mat_specular, 0, 0); }
-	virtual float GetGlossiness(TimeValue t)  override { return pb->GetFloat(ns_mat_glossiness, 0, 0); }
-	virtual float GetSpecularLevel(TimeValue t)  override { return pb->GetFloat(ns_mat_speclevel, 0, 0); }
-	virtual float GetSoftenLevel(TimeValue t)  override { return pb->GetFloat(ns_mat_softenlevel, 0, 0); }
-	virtual float GetSelfIllum(TimeValue t)  override { return pb->GetFloat(ns_mat_selfillum, 0, 0); }
-	virtual Color GetSelfIllumClr(TimeValue t)  override { return pb->GetColor(ns_mat_selfillumclr, 0, 0); }
+	virtual BOOL IsSelfIllumClrOn()  override { return FALSE; }
+	virtual Color GetAmbientClr(TimeValue t)  override { return Color(0.5f, 0.5f, 0.5f); }
+	virtual Color GetDiffuseClr(TimeValue t)  override { return Color(0.5f, 0.5f, 0.5f); }
+	virtual Color GetSpecularClr(TimeValue t)  override { return Color(0.5f, 0.5f, 0.5f); }
+	virtual float GetGlossiness(TimeValue t)  override { return 0.0f; }
+	virtual float GetSpecularLevel(TimeValue t)  override { return 0.0f; }
+	virtual float GetSoftenLevel(TimeValue t)  override { return 0.0f; }
+	virtual float GetSelfIllum(TimeValue t)  override { return 0.0f; }
+	virtual Color GetSelfIllumClr(TimeValue t)  override { return Color(0.5f, 0.5f, 0.5f); }
 	virtual float EvalHiliteCurve2(float x, float y, int level = 0)  override { return 0.0f; }
 
 	void SetPanelOpen(BOOL open) { rolloutOpen = open; }
@@ -312,8 +291,8 @@ public:
 	void AffectReflection(ShadeContext &sc, IllumParams &ip, Color &rClr) override;
 
 	float EvalHiliteCurve(float x)  override {
-		double phExp = pow(2.0, fGlossiness * 10.0); // expensive.!! TBD
-		return fSpecularLevel*static_cast<float>(pow(static_cast<double>(cos(x*PI)), phExp));
+		double phExp = pow(2.0, 1.0f * 10.0); // expensive.!! TBD
+		return 1.0f*static_cast<float>(pow(static_cast<double>(cos(x*PI)), phExp));
 	}
 
 
@@ -365,112 +344,79 @@ public:
 FO4ShaderClassDesc FO4ShaderDesc;
 extern ClassDesc2 * GetFO4ShaderDesc() { return &FO4ShaderDesc; }
 
-static ParamBlockDesc2 param_blk(
-	shader_params, _T("shaderParameters"), 0, &FO4ShaderDesc, P_AUTO_CONSTRUCT, 0,
-	//rollout
-	ns_mat_ambient, _T("ambient"), TYPE_RGBA, P_ANIMATABLE, IDS_MAT_AMBIENT,
-		p_default, Color(0.0f, 0.0f, 0.0f),
-		//p_ui, basic_params, TYPE_COLORSWATCH, IDC_CLR_AMBIENT,
-		p_end,
-	ns_mat_diffuse, _T("diffuse"), TYPE_RGBA, P_ANIMATABLE, IDS_MAT_DIFFUSE,
-		p_default, Color(0.5f, 0.5f, 0.5f),
-		//p_ui, basic_params, TYPE_COLORSWATCH, IDC_CLR_DIFFUSE,
-		p_end,
-	ns_mat_specular, _T("specular"), TYPE_RGBA, P_ANIMATABLE, IDS_MAT_SPECULAR,
-		p_default, Color(1.0f, 1.0f, 1.0f),
-		//p_ui, basic_params, TYPE_COLORSWATCH, IDC_CLR_SPECULAR,
-		p_end,
-	ns_mat_emittance, _T("emittance"), TYPE_RGBA, P_ANIMATABLE, IDS_MAT_EMITTANCE,
-		p_default, Color(0.0f, 0.0f, 0.0f),
-		//p_ui, basic_params, TYPE_COLORSWATCH, IDC_CLR_EMITTANCE,
-		p_end,
-	ns_mat_specenable, _T("SpecularEnable"), TYPE_BOOL, 0, IDS_MAT_SPECULARENABLE,
-		p_default, FALSE,
-		//p_ui, basic_params, TYPE_SINGLECHEKBOX, IDC_OPT_ENABLE,
-		p_end,
-	ns_mat_selfillumon, _T("useSelfIllumColor"), TYPE_BOOL, 0, IDS_MAT_SELFILLUMON,
-		p_default, FALSE,
-		p_end,
-	ns_mat_selfillumclr, _T("selfillumclr"), TYPE_RGBA, P_ANIMATABLE, IDS_MAT_SELFILLUMCLR,
-		p_default, Color(0.0f, 0.0f, 0.0f),
-		p_end,
-	ns_mat_selfillum, _T("selfillum"), TYPE_FLOAT, P_ANIMATABLE, IDS_MAT_SELFILLUM,
-		p_default, 0.0f,
-		p_end,
-	ns_mat_glossiness, _T("glossiness"), TYPE_FLOAT, P_ANIMATABLE, IDS_MAT_GLOSSINESS,
-		p_default, 0.0f,
-		p_range, 0.0, 200.0,
-		p_end,
-	ns_mat_speclevel, _T("specularLevel"), TYPE_FLOAT, P_ANIMATABLE, IDS_MAT_SPECLEVEL,
-		p_default, 1.0f,
-		p_range, 0.0, 999.0,
-		p_end,
-	ns_mat_softenlevel, _T("softenlevel"), TYPE_FLOAT, P_ANIMATABLE, IDS_MAT_SOFTENLEVEL,
-		p_default, 0.0f,
-		p_end,
-	ns_mat_shininess, _T("shininess"), TYPE_FLOAT, P_ANIMATABLE, IDS_MAT_SHININESS,
-		p_default, 10.0f,
-		p_end,
-	ns_mat_alpha, _T("alpha"), TYPE_FLOAT, P_ANIMATABLE, IDS_MAT_ALPHA,
-		p_default, 1.0f,
-		p_end,
-	ns_mat_dither, _T("Dither"), TYPE_BOOL, P_ANIMATABLE, IDS_MAT_DITHER,
-		p_default, FALSE,
-		p_end,
-	//////////////////////////////////////////////////////////////////////////
-	ns_alpha_mode, _T("alphaMode"), TYPE_INT, 0, IDS_ALPHA_MODE,
-		p_default, 0,
-		p_range, 0, 5,
-		p_end,
-	ns_alpha_src, _T("srcBlend"), TYPE_INT, 0, IDS_ALPHA_SRC,
-		p_default, 6,
-		p_end,
-	ns_alpha_dest, _T("destBlend"), TYPE_INT, 0, IDS_ALPHA_DEST,
-		p_default, 7,
-		p_end,
-	//////////////////////////////////////////////////////////////////////////
-	ns_vertex_colors_enable, _T("VertexColorsEnable"), TYPE_BOOL, 0, IDS_VERTEXCOLORENABLE,
-		p_default, TRUE,
-		p_end,
-	ns_vertex_srcmode, _T("SrcVertexMode"), TYPE_INT, 0, IDS_SRC_VERTEX_MODE,
-		p_default, 2,
-		p_end,
-	ns_vertex_light, _T("LightingMode"), TYPE_INT, 0, IDS_LIGHTING_MODE,
-		p_default, 1,
-		p_end,
-	//////////////////////////////////////////////////////////////////////////
-	ns_apply_mode, _T("ApplyMode"), TYPE_INT, 0, IDS_APPLY_MODE,
-		p_default, 2,
-		p_end,
-	//////////////////////////////////////////////////////////////////////////
-	ns_test_ref, _T("TestRef"), TYPE_INT, 0, IDS_TEST_REF,
-		p_default, 0,
-		p_range, 0, 255,
-		p_end,
-	ns_testmode, _T("TestMode"), TYPE_INT, 0, IDS_TEST_MODE,
-		p_default, 4,
-		p_end,
-	ns_alphatest_enable, _T("AlphaTestEnable"), TYPE_BOOL, 0, IDS_ALPHATEST_ENABLE,
-		p_default, FALSE,
-		p_end,
-	ns_no_sorter, _T("NoSorter"), TYPE_BOOL, 0, IDS_ALPHA_NOSORTER,
-		p_default, FALSE,
-		p_end,
-	//////////////////////////////////////////////////////////////////////////
 
-	p_end);
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+////////////////////////
+// Extended Rollout
+#if 0
+class BasePBAccessor : public PBAccessor
+{
+public:
+	void Set(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t)    // set from v
+	{
+		auto* m = static_cast<FO4Shader*>(owner);
+		IParamMap2* map = m->pb_base ? m->pb_base->GetMap() : NULL;
+
+		switch (id)
+		{
+		}
+	}
+};
+
+static BasePBAccessor base_pb_accessor;
+
+// extra rollout dialog proc
+class ExtraDlgProc : public ParamMap2UserDlgProc
+{
+public:
+	INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+	{
+		switch (msg)
+		{
+		case WM_INITDIALOG: {
+			auto* m = static_cast<FO4Shader*>(map->GetParamBlock()->GetOwner());
+			//m->UpdateExtraParams(m->GetShader()->SupportStdParams());
+			return TRUE;
+		}
+		}
+		return FALSE;
+	}
+	void DeleteThis() { }
+};
+
+static ExtraDlgProc extraDlgProc;
+
+// extended parameters
+static ParamBlockDesc2 std2_extended_blk(fos_shader, _T("extendedParameters"), 0, &stdmtl2CD, P_AUTO_CONSTRUCT + P_AUTO_UI, EXTENDED_PB_REF,
+	//rollout
+	IDD_DMTL_EXTRA6, IDS_DS_EXTRA, 0, APPENDROLL_CLOSED, &extraDlgProc,
+	// params
+
+	std2_opacity, _T("opacity"), TYPE_PCNT_FRAC, P_ANIMATABLE, IDS_DS_OPACITY,
+	p_default, 0.0,
+	p_range, 0.0, 100.0,   // UI us in the shader rollout
+	p_accessor, &base_pb_accessor,
+	p_end,
+
+	p_end
+	);
+
+#endif
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 FO4Shader::FO4Shader()
 {
-	pb = nullptr;
+	pb_base = nullptr;
+	pb_mtl = nullptr;
+	pb_bgsm = nullptr;
+	pb_bgem = nullptr;
 	pMtlFileRef = nullptr;
 	pMtlFileRefOld = nullptr;
 	FO4ShaderDesc.MakeAutoParamBlocks(this);   // make and intialize paramblock2
 	pDlg = nullptr;
-
-	bSelfIllumClrOn = FALSE;
-	cSelfIllumClr = cAmbientClr = cDiffuseClr = cSpecularClr = Color(0.0f, 0.0f, 0.0f);
-	fGlossiness = fSelfIllum = fSpecularLevel = fSoftenLevel = 0.0f;
 
 	ivalid.SetEmpty();
 	rolloutOpen = TRUE;
@@ -513,6 +459,48 @@ RefTargetHandle FO4Shader::Clone(RemapDir &remap)
 	return pShader;
 }
 
+Animatable* FO4Shader::SubAnim(int i)
+{
+	switch (i) {
+	case 0: return pb_base;
+	case 1: return pb_mtl;
+	case 2: return pb_bgsm;
+	case 3: return pb_bgem;
+	}
+	return nullptr;
+}
+
+WStr FO4Shader::SubAnimName(int i)
+{
+	switch (i) {
+	case 0: return TSTR(GetString(IDS_FOS_BASENAME));
+	case 1: return TSTR(GetString(IDS_FOS_MTLNAME));
+	case 2: return TSTR(GetString(IDS_FOS_BGSMNAME));
+	case 3: return TSTR(GetString(IDS_FOS_BGEMNAME));
+	}
+	return TSTR(GetString(IDS_FOS_BASENAME));
+}
+
+IParamBlock2* FO4Shader::GetParamBlock(int i)
+{
+	switch (i) {
+	case 0: return pb_base;
+	case 1: return pb_mtl;
+	case 2: return pb_bgsm;
+	case 3: return pb_bgem;
+	}
+	return nullptr;
+}
+
+IParamBlock2* FO4Shader::GetParamBlockByID(BlockID id)
+{
+	if (pb_base->ID() == id) return pb_base;
+	if (pb_mtl->ID() == id) return pb_mtl;
+	if (pb_bgsm->ID() == id) return pb_bgsm;
+	if (pb_bgem->ID() == id) return pb_bgem;
+	return nullptr;
+}
+
 int FO4Shader::NumRefs() {
 	return MAX_REFERENCES-1;
 }
@@ -520,7 +508,10 @@ int FO4Shader::NumRefs() {
 RefTargetHandle FO4Shader::GetReference(int i)
 {
 	switch (i) {
-	case ref_params: return pb;
+	case ref_base: return pb_base;
+	case ref_mtl: return pb_mtl;
+	case ref_bgsm: return pb_bgsm;
+	case ref_bgem: return pb_bgem;
 	case ref_activemtl: return pMtlFileRef;
 	case ref_oldmtl: return pMtlFileRefOld;
 	}
@@ -530,7 +521,10 @@ RefTargetHandle FO4Shader::GetReference(int i)
 void FO4Shader::SetReference(int i, RefTargetHandle rtarg)
 {
 	switch (i) {
-	case ref_params: pb = static_cast<IParamBlock2*>(rtarg); return;
+	case ref_base: pb_base = static_cast<IParamBlock2*>(rtarg); return;
+	case ref_mtl: pb_mtl = static_cast<IParamBlock2*>(rtarg); return;
+	case ref_bgsm: pb_bgsm = static_cast<IParamBlock2*>(rtarg); return;
+	case ref_bgem: pb_bgem = static_cast<IParamBlock2*>(rtarg); return;
 	case ref_activemtl: pMtlFileRef = static_cast<MaterialReference*>(rtarg); return;
 	case ref_oldmtl: pMtlFileRefOld = static_cast<MaterialReference*>(rtarg); return;
 	}
@@ -2160,9 +2154,9 @@ RefResult FO4Shader::NotifyRefChanged(const Interval& changeInt, RefTargetHandle
 	switch (message) {
 	case REFMSG_CHANGE:
 		ivalid.SetEmpty();
-		if (hTarget == pb) {
+		if (hTarget == pb_base) {
 			// update UI if paramblock changed, possibly from scripter
-			ParamID changingParam = pb->LastNotifyParamID();
+			ParamID changingParam = pb_base->LastNotifyParamID();
 			// reload the dialog if present
 			if (pDlg) {
 				pDlg->UpdateDialog(changingParam);
@@ -2276,60 +2270,12 @@ void FO4ShaderMtlRollup::UpdateControls()
 	inUpdate = TRUE;
 
 	HWND hWnd = this->hRollup;
-	IParamBlock2 *pb = pShader->pb;
-	clrSpecular->SetColor(pb->GetColor(ns_mat_specular, 0, 0));
-	clrEmittance->SetColor(pb->GetColor(ns_mat_emittance, 0, 0));
+	IParamBlock2 *pb = pShader->pb_base;
 
 	UpdateColSwatches();
 	UpdateMapButtons();
 
-	CheckDlgButton(hWnd, IDC_CHK_SPECENABLE, pb->GetInt(ns_mat_specenable, 0, 0));
-	CheckDlgButton(hWnd, IDC_CHK_DITHER, pb->GetInt(ns_mat_dither, 0, 0));
-
-	CheckDlgButton(hWnd, IDC_CHK_DITHER, pb->GetInt(ns_mat_dither, 0, 0));
-
-	pShininessSpinner->SetValue(pb->GetFloat(ns_mat_glossiness, 0, 0), 0);
-	pAlphaSpinner->SetValue(pb->GetFloat(ns_mat_alpha, 0, 0), 0);
-
 	//////////////////////////////////////////////////////////////////////////
-
-	int alphaMode = pb->GetInt(ns_alpha_mode, 0, 0);
-	int rdoCtrl = IDC_RDO_TRANS_AUTO + alphaMode;
-	BOOL allowSrcDest = (rdoCtrl == IDC_RDO_TRANS_AUTO) || (rdoCtrl == IDC_RDO_TRANS_ADV);
-	CheckRadioButton(hWnd, IDC_RDO_TRANS_AUTO, IDC_RDO_TRANS_ADV, rdoCtrl);
-	EnableWindow(GetDlgItem(hWnd, IDC_CBO_TRANS_SRC), allowSrcDest);
-	EnableWindow(GetDlgItem(hWnd, IDC_CBO_TRANS_DEST), allowSrcDest);
-
-	int srcMode = pb->GetInt(ns_alpha_src, 0, 0);
-	SendDlgItemMessage(hWnd, IDC_CBO_TRANS_SRC, CB_SELECTSTRING, WPARAM(-1), LPARAM(EnumToString(srcMode, TransparencyModes).data()));
-
-	int dstMode = pb->GetInt(ns_alpha_dest, 0, 0);
-	SendDlgItemMessage(hWnd, IDC_CBO_TRANS_DEST, CB_SELECTSTRING, WPARAM(-1), LPARAM(EnumToString(dstMode, TransparencyModes).data()));
-
-	//////////////////////////////////////////////////////////////////////////
-
-	CheckDlgButton(hWnd, IDC_CHK_VERTEXENABLE, pb->GetInt(ns_vertex_colors_enable, 0, 0));
-
-	int vertSrc = pb->GetInt(ns_vertex_srcmode, 0, 0);
-	SendDlgItemMessage(hWnd, IDC_CBO_VERTEX_SRC, CB_SELECTSTRING, WPARAM(-1), LPARAM(EnumToString(vertSrc, VertexModes).data()));
-
-	int vertLight = pb->GetInt(ns_vertex_light, 0, 0);
-	SendDlgItemMessage(hWnd, IDC_CBO_VERTEX_LIGHT, CB_SELECTSTRING, WPARAM(-1), LPARAM(EnumToString(vertLight, LightModes).data()));
-
-	//////////////////////////////////////////////////////////////////////////
-
-	int applyMode = pb->GetInt(ns_apply_mode, 0, 0);
-	SendDlgItemMessage(hWnd, IDC_CBO_APPLY_MODE, CB_SELECTSTRING, WPARAM(-1), LPARAM(EnumToString(applyMode, ApplyModes).data()));
-
-	//////////////////////////////////////////////////////////////////////////
-
-	int testMode = pb->GetInt(ns_testmode, 0, 0);
-	SendDlgItemMessage(hWnd, IDC_CBO_TESTMODE, CB_SELECTSTRING, WPARAM(-1), LPARAM(EnumToString(testMode, TestModes).data()));
-
-	CheckDlgButton(hWnd, IDC_CHK_ALPHATESTENABLE, pb->GetInt(ns_alphatest_enable, 0, 0));
-	CheckDlgButton(hWnd, IDC_CHK_NOSORTER, pb->GetInt(ns_no_sorter, 0, 0));
-
-	pTestRefSpinner->SetValue(pb->GetInt(ns_test_ref, 0, 0), 0);
 
 	UpdateHilite();
 	UpdateVisible();
@@ -2351,51 +2297,6 @@ void FO4ShaderMtlRollup::CommitValues()
 
 
 	HWND hWnd = this->hRollup;
-	IParamBlock2 *pb = pShader->pb;
-
-	pShader->SetSpecularClr(Color(clrSpecular->GetColor()), 0);
-
-	Color cEmit(clrEmittance->GetColor());
-	pb->SetValue(ns_mat_emittance, 0, cEmit, 0);
-
-	pb->SetValue(ns_mat_specenable, 0, static_cast<int>(IsDlgButtonChecked(hWnd, IDC_CHK_SPECENABLE)), 0);
-	pb->SetValue(ns_mat_dither, 0, static_cast<int>(IsDlgButtonChecked(hWnd, IDC_CHK_DITHER)), 0);
-
-	pShader->SetGlossiness(pShininessSpinner->GetFVal(), 0);
-	pb->SetValue(ns_mat_alpha, 0, pAlphaSpinner->GetFVal(), 0);
-
-	//////////////////////////////////////////////////////////////////////////
-	for (int ctrl = IDC_RDO_TRANS_AUTO; ctrl <= IDC_RDO_TRANS_ADV; ++ctrl) {
-		if (IsDlgButtonChecked(hWnd, ctrl)) {
-			pb->SetValue(ns_alpha_mode, 0, ctrl - IDC_RDO_TRANS_AUTO, 0);
-			break;
-		}
-	}
-	int srcMode = static_cast<int>(SendDlgItemMessage(hWnd, IDC_CBO_TRANS_SRC, CB_GETCURSEL, 0, 0));
-	pb->SetValue(ns_alpha_src, 0, srcMode, 0);
-
-	int dstMode = static_cast<int>(SendDlgItemMessage(hWnd, IDC_CBO_TRANS_DEST, CB_GETCURSEL, 0, 0));
-	pb->SetValue(ns_alpha_dest, 0, dstMode, 0);
-
-	//////////////////////////////////////////////////////////////////////////
-
-	pb->SetValue(ns_vertex_colors_enable, 0, static_cast<int>(IsDlgButtonChecked(hWnd, IDC_CHK_VERTEXENABLE)), 0);
-
-	int vertSrc = static_cast<int>(SendDlgItemMessage(hWnd, IDC_CBO_VERTEX_SRC, CB_GETCURSEL, 0, 0));
-	pb->SetValue(ns_vertex_srcmode, 0, vertSrc, 0);
-
-	int vertLight = static_cast<int>(SendDlgItemMessage(hWnd, IDC_CBO_VERTEX_LIGHT, CB_GETCURSEL, 0, 0));
-	pb->SetValue(ns_vertex_light, 0, vertLight, 0);
-
-	//////////////////////////////////////////////////////////////////////////
-
-	int applyMode = static_cast<int>(SendDlgItemMessage(hWnd, IDC_CBO_APPLY_MODE, CB_GETCURSEL, 0, 0));
-	pb->SetValue(ns_apply_mode, 0, applyMode, 0);
-
-	pb->SetValue(ns_alphatest_enable, 0, static_cast<int>(IsDlgButtonChecked(hWnd, IDC_CHK_ALPHATESTENABLE)), 0);
-	pb->SetValue(ns_no_sorter, 0, static_cast<int>(IsDlgButtonChecked(hWnd, IDC_CHK_NOSORTER)), 0);
-
-	pb->SetValue(ns_test_ref, 0, pTestRefSpinner->GetIVal(), 0);
 
 	//////////////////////////////////////////////////////////////////////////
 

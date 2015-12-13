@@ -1625,6 +1625,16 @@ BEGIN
     IDS_DS_SCALE            "Render Scale"
     IDS_ENVMAP_SCALE        "Environmental Map Scale"
     IDS_REFRACTION_STR      "Refraction Strength"
+    IDS_FOS_TILEU           "Tile U"
+    IDS_FOS_TILEV           "Tile V"
+    IDS_FOS_UOFFSET         "U Offset"
+    IDS_FOS_VOFFSET         "V Offset"
+    IDS_FOS_USCALE          "U Scale"
+    IDS_FOS_VSCALE          "V Scale"
+    IDS_FOS_ALPHA           "Alpha"
+    IDS_FOS_ALPHABLENDMODE  "Alpha Blend Mode"
+    IDS_FOS_BLENDSTATE      "Blend State"
+    IDS_FOS_BLENDFUNC1      "Blend Func Src"
 END
 
 STRINGTABLE
@@ -1645,6 +1655,131 @@ BEGIN
     IDS_BGSM_FILE           "BGSM File"
     IDS_BGEM_FILE           "BGEM File"
     IDS_FO4_SHADER          "Fallout 4 Shader"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_FOS_BLENDFUNC2      "Blend Func Dst"
+    IDS_FOS_ALPHATESTREF    "Alpha Test Ref"
+    IDS_FOS_ALPHATEST       "Alpha Test"
+    IDS_FOS_ZBUFFERWRITE    "Z Buffer Write"
+    IDS_FOS_ZBUFFERTEST     "Z Buffer Test"
+    IDS_FOS_SCREENSPACEREFLECTIONS "Screen Space Reflections"
+    IDS_FOS_WETNESSCONTROLSCREENSPACEREFLECTIONS 
+                            "Wetness Control Screen Space Reflections"
+    IDS_FOS_DECAL           "Decal"
+    IDS_FOS_TWOSIDED        "Two Sided"
+    IDS_FOS_DECALNOFADE     "Decal No Fade"
+    IDS_FOS_NONOCCLUDER     "Non Occluder"
+    IDS_FOS_REFRACTION      "Refraction"
+    IDS_FOS_REFRACTIONFALLOFF "Refraction Falloff"
+    IDS_FOS_REFRACTIONPOWER "Refraction Power"
+    IDS_FOS_ENVIRONMENTMAPPING "Environment Mapping"
+    IDS_FOS_ENVIRONMENTMAPPINGMASKSCALE "Environment Mapping Mask Scale"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_FOS_GRAYSCALETOPALETTECOLOR "Grayscale To Palette Color"
+    IDS_FOS_DIFFUSETEXTURE  "Diffuse Texture"
+    IDS_FOS_NORMALTEXTURE   "Normal Texture"
+    IDS_FOS_SMOOTHSPECTEXTURE "Smooth Spec Texture"
+    IDS_FOS_GREYSCALETEXTURE "Greyscale Texture"
+    IDS_FOS_ENVMAPTEXTURE   "Envmap Texture"
+    IDS_FOS_GLOWTEXTURE     "Glow Texture"
+    IDS_FOS_INNERLAYERTEXTURE "Inner Layer Texture"
+    IDS_FOS_WRINKLESTEXTURE "Wrinkles Texture"
+    IDS_FOS_DISPLACEMENTTEXTURE "Displacement Texture"
+    IDS_FOS_ENABLEEDITORALPHAREF "Enable Editor Alpha Ref"
+    IDS_FOS_RIMLIGHTING     "Rim Lighting"
+    IDS_FOS_RIMPOWER        "Rim Power"
+    IDS_FOS_BACKLIGHTPOWER  "Back Light Power"
+    IDS_FOS_SUBSURFACELIGHTING "Subsurface Lighting"
+    IDS_FOS_SUBSURFACELIGHTINGROLLOFF "Subsurface Lighting Rolloff"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_FOS_SPECULARENABLED "Specular Enabled"
+    IDS_FOS_SPECULARCOLOR   "Specular Color"
+    IDS_FOS_SPECULARMULT    "Specular Mult"
+    IDS_FOS_SMOOTHNESS      "Smoothness"
+    IDS_FOS_FRESNELPOWER    "Fresnel Power"
+    IDS_FOS_WETNESSCONTROLSPECSCALE "Wetness Control Spec Scale"
+    IDS_FOS_WETNESSCONTROLSPECPOWERSCALE "WetnessControlSpecPowerScale"
+    IDS_FOS_WETNESSCONTROLSPECMINVAR "WetnessControlSpecMinvar"
+    IDS_FOS_WETNESSCONTROLENVMAPSCALE "WetnessControlEnvMapScale"
+    IDS_FOS_WETNESSCONTROLFRESNELPOWER "WetnessControlFresnelPower"
+    IDS_FOS_WETNESSCONTROLMETALNESS "WetnessControlMetalness"
+    IDS_FOS_ROOTMATERIALPATH "RootMaterialPath"
+    IDS_FOS_ANISOLIGHTING   "AnisoLighting"
+    IDS_FOS_EMITENABLED     "EmitEnabled"
+    IDS_FOS_EMITTANCECOLOR  "EmittanceColor"
+    IDS_FOS_EMITTANCEMULT   "EmittanceMult"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_FOS_MODELSPACENORMALS "ModelSpaceNormals"
+    IDS_FOS_EXTERNALEMITTANCE "ExternalEmittance"
+    IDS_FOS_BACKLIGHTING    "BackLighting"
+    IDS_FOS_RECEIVESHADOWS  "ReceiveShadows"
+    IDS_FOS_HIDESECRET      "HideSecret"
+    IDS_FOS_CASTSHADOWS     "CastShadows"
+    IDS_FOS_DISSOLVEFADE    "DissolveFade"
+    IDS_FOS_ASSUMESHADOWMASK "AssumeShadowmask"
+    IDS_FOS_GLOWMAP         "Glowmap"
+    IDS_FOS_ENVIRONMENTMAPPINGWINDOW "EnvironmentMappingWindow"
+    IDS_FOS_ENVIRONMENTMAPPINGEYE "EnvironmentMappingEye"
+    IDS_FOS_HAIR            "Hair"
+    IDS_FOS_HAIRTINTCOLOR   "HairTintColor"
+    IDS_FOS_TREE            "Tree"
+    IDS_FOS_FACEGEN         "Facegen"
+    IDS_FOS_SKINTINT        "SkinTint"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_FOS_TESSELLATE      "Tessellate"
+    IDS_FOS_DISPLACEMENTTEXTUREBIAS "DisplacementTextureBias"
+    IDS_FOS_DISPLACEMENTTEXTURESCALE "DisplacementTextureScale"
+    IDS_FOS_TESSELLATIONPNSCALE "TessellationPNScale"
+    IDS_FOS_TESSELLATIONBASEFACTOR "TessellationBaseFactor"
+    IDS_FOS_TESSELLATIONFADEDISTANCE "TessellationFadeDistance"
+    IDS_FOS_GRAYSCALETOPALETTESCALE "GrayscaleToPaletteScale"
+    IDS_FOS_SKEWSPECULARALPHA "SkewSpecularAlpha"
+    IDS_FOS_BASETEXTURE     "BaseTexture"
+    IDS_FOS_GRAYSCALETEXTURE "GrayscaleTexture"
+    IDS_FOS_ENVMAPTEXTURE2  "EnvmapTexture"
+    IDS_FOS_NORMALTEXTURE2  "NormalTexture"
+    IDS_FOS_ENVMAPMASKTEXTURE "EnvmapMaskTexture"
+    IDS_FOS_BLOODENABLED    "BloodEnabled"
+    IDS_FOS_EFFECTLIGHTINGENABLED "EffectLightingEnabled"
+    IDS_FOS_FALLOFFENABLED  "FalloffEnabled"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_FOS_FALLOFFCOLORENABLED "FalloffColorEnabled"
+    IDS_FOS_GRAYSCALETOPALETTEALPHA "GrayscaleToPaletteAlpha"
+    IDS_FOS_SOFTENABLED     "SoftEnabled"
+    IDS_FOS_BASECOLOR       "BaseColor"
+    IDS_FOS_BASECOLORSCALE  "BaseColorScale"
+    IDS_FOS_FALLOFFSTARTANGLE "FalloffStartAngle"
+    IDS_FOS_FALLOFFSTOPANGLE "FalloffStopAngle"
+    IDS_FOS_FALLOFFSTARTOPACITY "FalloffStartOpacity"
+    IDS_FOS_FALLOFFSTOPOPACITY "FalloffStopOpacity"
+    IDS_FOS_LIGHTINGINFLUENCE "LightingInfluence"
+    IDS_FOS_ENVMAPMINLOD    "EnvmapMinLOD"
+    IDS_FOS_SOFTDEPTH       "SoftDepth"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_FOS_BASENAME        "FO4 Base Parameters"
+    IDS_FOS_MTLNAME         "FO4 Material Parameters"
+    IDS_FOS_BGSMNAME        "FO4 Lighting Shader Parameters"
+    IDS_FOS_BGEMNAME        "FO4 Effect Shader Parameters"
 END
 
 #endif    // English (United States) resources
