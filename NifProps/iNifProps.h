@@ -1,8 +1,15 @@
 #pragma once
 
+class StdMat2;
+struct BGSMFile;
+struct BGEMFile;
 const Class_ID BSDSMODIFIER_CLASS_ID(0xe9a0a68e, 0xb091bd48);
+const Class_ID BSSIMODIFIER_CLASS_ID(0x32bee15a, 0xb60e422e);
 
 class IBSDismemberSkinModifierData;
+class IBSSubIndexModifierData;
+class IFO4ShaderData;
+struct IFileResolver;
 
 // Selection levels:
 #define IMESHSEL_OBJECT 0
@@ -131,6 +138,11 @@ public:
 const ULONG I_BSDISMEMBERSKINMODIFIER = I_USERINTERFACE + 0x0000E271;
 const ULONG I_BSDISMEMBERSKINMODIFIERDATA = I_USERINTERFACE + 0x0000E272;
 
+const ULONG I_BSSUBINDEXSKINMODIFIER = I_USERINTERFACE + 0x0000E281;
+const ULONG I_BSSUBINDEXMODIFIERDATA = I_USERINTERFACE + 0x0000E282;
+
+const ULONG I_BSSHADERDATA = I_USERINTERFACE + 0x0000E291;
+
 class IBSDismemberSkinModifier
 	   //: public MaxHeapOperators 
 {
@@ -176,3 +188,122 @@ public:
 
 extern Modifier *GetOrCreateBSDismemberSkin(INode *node);
 extern Modifier *GetBSDismemberSkin(INode *node);
+
+
+////////////////////////////////////////////////
+struct BSSubIndexMaterial
+{
+	uint32_t id; // unique id per each subindex
+	uint32_t materialHash;
+	bool visible; 
+	vector<float> data;
+};
+
+struct BSSubIndexData
+{
+	BSSubIndexData() : selLevel(0), id(0) {}
+	DWORD selLevel; // Current Selection Type
+	int id;
+	// DWORD subIndexCount;
+	vector<BSSubIndexMaterial> materials;
+};
+
+
+class IBSSubIndexModifier
+{
+public:
+	/*! \remarks This method must be called when the <b>LocalModData</b> of
+	the modifier is changed. Developers can use the methods of
+	<b>IMeshSelectData</b> to get and set the actual selection for vertex, face
+	and edge. When a developers does set any of these selection sets this
+	method must be called when done. */
+	virtual void LocalDataChanged() = 0;
+
+	/*! \remarks Gets all of the mod contexts related to this modifier. */
+	virtual Tab<IBSSubIndexModifierData*> GetModifierData() = 0;
+};
+
+class IBSSubIndexModifierData
+	//: public MaxHeapOperators 
+{
+public:
+	/*! \remarks Returns the number of partitions for the modifier. */
+	virtual DWORD GetNumPartitions() = 0;
+
+	/*! \remarks Adds the specified partition and returns its index. */
+	virtual DWORD AddPartition() = 0;
+
+	/*! \remarks Rempves the specified partition from the modifier. */
+	virtual void RemovePartition(DWORD partition) = 0;
+
+	/*! \remarks Returns the current level of selection for the modifier. */
+	virtual DWORD GetActivePartition() = 0;
+
+	/*! \remarks Sets the currently selected partition level of the modifier. */
+	virtual void SetActivePartition(DWORD partition) = 0;
+
+
+	/*! \remarks Returns the number of sub partitions for the modifier. */
+	virtual DWORD GetNumSubPartitions() = 0;
+
+	/*! \remarks Adds the specified sub partition and returns its index. */
+	virtual DWORD AddSubPartition() = 0;
+
+	/*! \remarks Rempves the specified sub partition from the modifier. */
+	virtual void RemoveSubPartition(DWORD partition) = 0;
+
+	/*! \remarks Returns the current level of selection for the modifier. */
+	virtual DWORD GetActiveSubPartition() = 0;
+
+	/*! \remarks Sets the currently selected partition level of the modifier. */
+	virtual void SetActiveSubPartition(DWORD partition) = 0;
+
+	/*! \remarks Get the number of subpartitions in active partition */
+	virtual DWORD GetActivePartitionSubCount() = 0;
+
+	virtual BOOL EnablePartitionEdit(BOOL value) = 0;
+	virtual BOOL GetPartitionEditEnabled() const = 0;
+
+	virtual BitArray& GetFaceSel(int index, int subIndex) = 0;
+	virtual void SetFaceSel(int index, int subIndex, BitArray &set, IBSSubIndexModifier *imod, TimeValue t) = 0;
+	
+	virtual BSSubIndexData& GetPartition(int index) = 0;
+	virtual GenericNamedSelSetList & GetFaceSelList() = 0;
+
+	virtual TSTR GetSSF() const = 0;
+	virtual void SetSSF(const TSTR& ssf_file) = 0;
+};
+
+class IBSShaderMaterialData
+	//: public MaxHeapOperators 
+{
+public:
+	virtual LPCTSTR GetName() const = 0;
+	virtual LPCTSTR GetFileName() const = 0;
+	virtual void SetFileName(const TSTR& name, const TSTR& path) = 0;
+
+	virtual BOOL HasBGSM() const = 0;
+	virtual BGSMFile* GetBGSMData() const = 0;
+	virtual BOOL LoadBGSM(BGSMFile&) = 0;
+
+	virtual BOOL HasBGEM() const = 0;
+	virtual BGEMFile* GetBGEMData() const = 0;
+	virtual BOOL LoadBGEM(BGEMFile&) = 0;
+
+	virtual BOOL UpdateMaterial(StdMat2* mtl) = 0;
+	virtual BOOL LoadMaterial(StdMat2* mtl, IFileResolver* resolver) = 0;
+};
+extern Modifier *GetOrCreateBSSubIndexModifier(INode *node);
+extern Modifier *GetBSSubIndexModifier(INode *node);
+
+
+// interface for resolving files
+struct IFileResolver
+{
+public:
+	enum FileType { FT_Unknown, FT_Texture, FT_Material, FT_Mesh };
+	virtual bool FindFile(const tstring& name, tstring& resolved_name) const = 0;
+	virtual bool FindFileByType(const tstring& name, FileType type, tstring& resolved_name) const = 0;
+protected:
+	~IFileResolver() {}
+};

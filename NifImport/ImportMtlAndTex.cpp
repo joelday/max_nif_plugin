@@ -34,6 +34,8 @@ HISTORY:
 #include "obj/NiImage.h"
 #include "objectParams.h"
 #include <obj/BSEffectShaderProperty.h>
+#include "../mtlutils/mtldefine.h"
+#include "../NifProps/iNifProps.h"
 using namespace Niflib;
 
 enum {
@@ -47,6 +49,7 @@ enum {
 static const Class_ID GNORMAL_CLASS_ID(0x243e22c6, 0x63f6a014);
 static const Class_ID NIFSHADER_CLASS_ID(0x566e8ccb, 0xb091bd48);
 static const Class_ID civ4Shader(0x670a77d0, 0x23ab5c7f);
+static const Class_ID FO4SHADER_CLASS_ID(0x7a6bc2e7, 0x71106f41);
 
 Texmap* NifImporter::CreateNormalBump(LPCTSTR name, Texmap* nmap)
 {
@@ -82,7 +85,7 @@ Texmap* NifImporter::MakeAlpha(Texmap* tex)
 		bmp_tex->SetAlphaAsMono(TRUE);
 		bmp_tex->SetAlphaSource(ALPHA_FILE);
 		bmp_tex->SetPremultAlpha(FALSE);
-		bmp_tex->SetOutputLevel(INFINITY, 0.0f);
+		bmp_tex->SetOutputLevel(INFINITE, 0.0f);
 	}
 	return tex;
 }
@@ -269,7 +272,10 @@ StdMat2 *NifImporter::ImportMaterialAndTextures(ImpNode *node, NiAVObjectRef avO
 		}
 
 		// try the civ4 shader first then default back to normal shaders
-		if (ImportNiftoolsShader(node, avObject, m)) {
+		if (IsFallout4() && ImportFO4Shader(node, avObject, m) ) {
+			return m;
+		}
+		else if (ImportNiftoolsShader(node, avObject, m)) {
 			return m;
 		}
 
@@ -430,7 +436,7 @@ StdMat2 *NifImporter::ImportMaterialAndTextures(ImpNode *node, NiAVObjectRef avO
 			offset = lightingShaderRef->GetUvOffset();
 			tiling = lightingShaderRef->GetUvScale();
 
-			m->SetOpacity(lightingShaderRef->GetAlpha(), INFINITY);
+			m->SetOpacity(lightingShaderRef->GetAlpha(), INFINITE);
 		}
 		if (effectShaderRef != nullptr) {
 			VertexColorsEnable = (effectShaderRef->GetShaderFlags2() & SLSF2_VERTEX_COLORS) != 0;
@@ -454,14 +460,14 @@ StdMat2 *NifImporter::ImportMaterialAndTextures(ImpNode *node, NiAVObjectRef avO
 				if (Texmap* mask = CreateTexture(A2TString(textureSet->GetTexture(5)), mode, offset, tiling))
 					tex = CreateMask(nullptr, tex, mask);
 				m->SetSubTexmap(ID_RL, tex);
-				m->SetTexmapAmt(ID_RL, 0, INFINITY);
-				tex->SetOutputLevel(INFINITY, 0);
+				m->SetTexmapAmt(ID_RL, 0, INFINITE);
+				tex->SetOutputLevel(INFINITE, 0);
 			}
 			if (alphaRef) {
 				// add opacity channel
 				if (Texmap* tex = CreateTexture(A2TString(textureSet->GetTexture(0)), mode, offset, tiling)) {
 					m->SetSubTexmap(ID_OP, MakeAlpha(tex));
-					m->SetTexmapAmt(ID_OP, 0.5f, INFINITY);
+					m->SetTexmapAmt(ID_OP, 0.5f, INFINITE);
 				}
 			}
 		}
@@ -534,11 +540,13 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 	if (!useNiftoolsShader || !mtl || !mtl->SupportsShaders())
 		return false;
 
+	if (!(useNiftoolsShader == 1 && mtl->SwitchShader(NIFSHADER_CLASS_ID)))
+		return false;
 
-	if ((useNiftoolsShader & 1) == 0 || !mtl->SwitchShader(NIFSHADER_CLASS_ID)) {
-		if ((useNiftoolsShader & 2) == 0 || !mtl->SwitchShader(civ4Shader))
-			return false;
-	}
+	//if (useNiftoolsShader != 1 || !mtl->SwitchShader(NIFSHADER_CLASS_ID)) {
+	//	if ((useNiftoolsShader & 2) == 0 || !mtl->SwitchShader(civ4Shader))
+	//		return false;
+	//}
 
 	TSTR shaderByName;
 	if (Shader *s = mtl->GetShader())
@@ -873,7 +881,7 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 				if (alphaRef) { // add opacity channel					
 					if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(0)), mode, offset, tiling)) {
 						mtl->SetSubTexmap(C_OPACITY, MakeAlpha(tex));
-						mtl->SetTexmapAmt(C_OPACITY, 0.5f, INFINITY);
+						mtl->SetTexmapAmt(C_OPACITY, 0.5f, INFINITE);
 					}
 				}
 				if (Texmap* tex = CreateTexture(A2TString(textures->GetTexture(1)), mode, offset, tiling))
@@ -972,15 +980,264 @@ bool NifImporter::ImportNiftoolsShader(ImpNode *node, NiAVObjectRef avObject, St
 	return true;
 }
 
+bool ReadMaterialFromNIF(BaseMaterial& mat, const vector<NiPropertyRef>& props)
+{
+	if (BSLightingShaderPropertyRef shaderRef = SelectFirstObjectOfType<BSLightingShaderProperty>(props))
+	{
+		switch (shaderRef->GetTextureClampMode())
+		{
+		case CLAMP_S_CLAMP_T:	mat.TileU = false, mat.TileV = false; break;
+		case CLAMP_S_WRAP_T:	mat.TileU = false, mat.TileV = true; break;
+		case WRAP_S_CLAMP_T:	mat.TileU = true, mat.TileV = false; break;
+		case WRAP_S_WRAP_T: 	mat.TileU = true, mat.TileV = true; break;
+		}
+		mat.UOffset = shaderRef->GetUvOffset().u;
+		mat.VOffset = shaderRef->GetUvOffset().v;
+		mat.UScale = shaderRef->GetUvScale().u;
+		mat.VScale = shaderRef->GetUvScale().v;
+		mat.Alpha = shaderRef->GetAlpha();
 
-tstring NifImporter::FindImage(const tstring& name)
+		auto flag1 = shaderRef->GetShaderFlags1();
+		auto flag2 = shaderRef->GetShaderFlags2();
+		mat.ZBufferWrite = (flag2 & SLSF2_ZBUFFER_WRITE) != 0;
+		mat.ZBufferTest = (flag1 & SLSF1_ZBUFFER_TEST) != 0;
+		mat.ScreenSpaceReflections;
+		mat.WetnessControlScreenSpaceReflections;
+		mat.Decal = (flag1 & SLSF1_DECAL) != 0;
+		mat.TwoSided = (flag2 & SLSF2_DOUBLE_SIDED) != 0;
+		mat.DecalNoFade = (flag2 & SLSF2_NO_FADE) != 0;
+		//mat.NonOccluder = (flag1 & SLSF1_PARALLAX_OCCLUSION) != 0;
+		mat.Refraction = (flag1 & SLSF1_REFRACTION) != 0;
+		mat.RefractionFalloff = (flag1 & SLSF1_USE_FALLOFF) != 0;
+		mat.RefractionPower = shaderRef->GetRefractionStrength();
+		mat.EnvironmentMapping = (flag1 & SLSF1_ENVIRONMENT_MAPPING) != 0;
+		mat.EnvironmentMappingMaskScale = shaderRef->GetEnvironmentMapScale();
+		mat.GrayscaleToPaletteColor = (flag1 & SLSF1_GREYSCALE_TO_PALETTECOLOR) != 0;
+	}
+	if (NiAlphaPropertyRef alphaProp = SelectFirstObjectOfType<NiAlphaProperty>(props))
+	{
+		mat.BlendState = alphaProp->GetBlendState();
+		mat.BlendFunc1 = AlphaBlendFunc(alphaProp->GetSourceBlendFunc());
+		mat.BlendFunc2 = AlphaBlendFunc(alphaProp->GetDestBlendFunc());
+		mat.AlphaTest = alphaProp->GetTestState();
+		mat.AlphaTestRef = alphaProp->GetTestThreshold();
+		mat.AlphaBlendMode = ConvertAlphaBlendMode(mat.BlendState, mat.BlendFunc1, mat.BlendFunc2);
+	}
+	return true;
+}
+
+bool ReadBGSMFromNIF(BGSMFile& bgsm, vector<NiPropertyRef>& props)
+{
+	ReadMaterialFromNIF(bgsm, props);
+
+	if (BSLightingShaderPropertyRef shaderRef = SelectFirstObjectOfType<BSLightingShaderProperty>(props))
+	{
+		if (BSShaderTextureSetRef textureSet = shaderRef->GetTextureSet()) {
+			bgsm.DiffuseTexture = A2TString(textureSet->GetTexture(0));
+			bgsm.NormalTexture = A2TString(textureSet->GetTexture(1));
+			bgsm.GlowTexture = A2TString(textureSet->GetTexture(2));
+			bgsm.GreyscaleTexture = A2TString(textureSet->GetTexture(3));
+			bgsm.EnvmapTexture = A2TString(textureSet->GetTexture(4));
+
+			bgsm.SmoothSpecTexture = A2TString(textureSet->GetTexture(7));
+			//tstring GlowTexture;
+			//tstring InnerLayerTexture;
+			//tstring WrinklesTexture;
+			//tstring DisplacementTexture;
+		}
+		auto flags1 = shaderRef->GetShaderFlags1();
+		auto flags2 = shaderRef->GetShaderFlags2();
+		
+		//bool EnableEditorAlphaRef;
+		bgsm.RimLighting = (flags2 & SLSF2_RIM_LIGHTING) != 0;
+		//bgsm.RimPower = shaderRef->GetRimPower();			
+		bgsm.BackLightPower = shaderRef->GetBacklightPower();
+		bgsm.SubsurfaceLighting =  (flags2 & SLSF2_SOFT_LIGHTING) != 0;
+		bgsm.SubsurfaceLightingRolloff = shaderRef->GetSubsurfaceRolloff();
+		bgsm.SpecularEnabled = (flags1 & SLSF1_SPECULAR) != 0;
+		bgsm.SpecularColor = shaderRef->GetSpecularColor();
+		bgsm.SpecularMult = shaderRef->GetSpecularStrength();
+		bgsm.Smoothness = shaderRef->GetSpecularPower_Glossiness();
+		bgsm.FresnelPower = shaderRef->GetFresnelPower();
+		bgsm.WetnessControlSpecScale = shaderRef->GetWetnessSpecScale();
+		bgsm.WetnessControlSpecPowerScale = shaderRef->GetWetnessSpecPower();
+		bgsm.WetnessControlSpecMinvar = shaderRef->GetWetnessMinVar();
+		bgsm.WetnessControlEnvMapScale = shaderRef->GetWetnessEnvMapScale();
+		bgsm.WetnessControlFresnelPower = shaderRef->GetWetnessFresnelPower();
+		bgsm.WetnessControlMetalness = shaderRef->GetWetnessMetalness();
+
+		bgsm.RootMaterialPath = A2TString(shaderRef->GetRootMaterial());
+		bgsm.AnisoLighting = (flags2 & SLSF2_ANISOTROPIC_LIGHTING) != 0;
+		bgsm.EmitEnabled = (flags1 & SLSF1_OWN_EMIT) != 0;  // ????
+		shaderRef->SetEmissiveColor(bgsm.EmittanceColor);
+		shaderRef->SetEmissiveMultiple(bgsm.EmittanceMult);
+		bgsm.ModelSpaceNormals = (flags1 & SLSF1_MODEL_SPACE_NORMALS) != 0;
+		bgsm.ExternalEmittance = (flags1 & SLSF1_EXTERNAL_EMITTANCE) != 0;
+		bgsm.BackLighting = (flags2 & SLSF2_BACK_LIGHTING) != 0;
+		bgsm.ReceiveShadows = (flags1 & SLSF1_RECIEVE_SHADOWS) != 0;
+		bgsm.HideSecret = (flags1 & SLSF1_LOCALMAP_HIDE_SECRET) != 0;
+		bgsm.CastShadows = (flags1 & SLSF1_CAST_SHADOWS) != 0;
+		bgsm.DissolveFade = (flags2 & SLSF2_NO_FADE) != 0; // ????
+		bgsm.AssumeShadowmask = (flags2 & SLSF2_ASSUME_SHADOWMASK) != 0;
+		bgsm.Glowmap = (flags2 & SLSF2_GLOW_MAP) != 0;
+		// bgsm.EnvironmentMappingWindow = (flags1 & SLSF1_EYE_ENVIRONMENT_MAPPING) != 0;
+		bgsm.EnvironmentMappingEye = (flags1 & SLSF1_EYE_ENVIRONMENT_MAPPING) != 0;
+		bgsm.Hair = (flags1 & SLSF1_HAIR_SOFT_LIGHTING) != 0;
+		shaderRef->SetHairTintColor(bgsm.HairTintColor);
+		bgsm.Tree = (flags2 & SLSF2_TREE_ANIM) != 0;
+		bgsm.Facegen = (flags1 & SLSF1_FACEGEN_DETAIL_MAP) != 0;
+		bgsm.SkinTint = (flags1 & SLSF1_FACEGEN_RGB_TINT) != 0;
+		//if (bgsm.Tessellate;
+		//float DisplacementTextureBias;
+		//float DisplacementTextureScale;
+		//float TessellationPNScale;
+		//float TessellationBaseFactor;
+		//float TessellationFadeDistance;
+		bgsm.GrayscaleToPaletteScale = shaderRef->GetGrayscaleToPaletteScale();
+		//bool SkewSpecularAlpha; // (header.Version >= 1)    
+
+	}
+	return true;
+}
+
+bool ReadBGEMFromNIF(BGEMFile& bgem, vector<NiPropertyRef>& props)
+{
+	ReadMaterialFromNIF(bgem, props);
+
+	if (BSEffectShaderPropertyRef shaderRef = SelectFirstObjectOfType<BSEffectShaderProperty>(props))
+	{
+		bgem.BaseTexture = A2TString(shaderRef->GetSourceTexture());
+		bgem.NormalTexture = A2TString(shaderRef->GetNormalTexture());
+		bgem.GrayscaleTexture = A2TString(shaderRef->GetGreyscaleTexture());
+		bgem.EnvmapTexture = A2TString(shaderRef->GetEnvMapTexture());
+		bgem.EnvmapTexture = A2TString(shaderRef->GetEnvMaskTexture());
+
+		auto flags1 = shaderRef->GetShaderFlags1();
+		auto flags2 = shaderRef->GetShaderFlags2();
+
+		bgem.ZBufferWrite = (flags2 | SLSF2_ZBUFFER_WRITE) != 0;
+		bgem.ZBufferTest = (flags1 | SLSF1_ZBUFFER_TEST) != 0;
+		//bgsm->ScreenSpaceReflections = (flags1 | SLSF21_reZBUFFER_TEST) != 0;
+		//bool WetnessControlScreenSpaceReflections;
+		bgem.Decal = (flags1 | SLSF1_DECAL) != 0;
+		bgem.TwoSided = (flags2 | SLSF2_DOUBLE_SIDED) != 0;
+		//bgem.Decal && !bgem.DecalNoFade = (flags1 | SLSF1_DYNAMIC_DECAL) != 0;// ????
+		//bgem.Decal && bgem.DecalNoFade = (flags2 | SLSF2_NO_FADE) != 0;
+		bgem.DecalNoFade = (flags2 | SLSF2_NO_FADE) != 0;
+
+		//bgsm->NonOccluder = (flags1 | SLSF1_PARALLAX_OCCLUSION) != 0; 
+		bgem.Refraction = (flags1 | SLSF1_REFRACTION) != 0;
+		bgem.RefractionFalloff = (flags1 | SLSF1_RECIEVE_SHADOWS) != 0;
+		//bgem.RefractionPower = shaderRef->GetRefractionStrength();
+		bgem.EnvironmentMapping = (flags1 | SLSF1_ENVIRONMENT_MAPPING) != 0;
+		bgem.EnvironmentMappingMaskScale = shaderRef->GetEnvironmentMapScale();
+		bgem.GrayscaleToPaletteColor = (flags1 | SLSF1_GREYSCALE_TO_PALETTECOLOR) != 0;
+
+		bgem.BaseTexture = A2TString(shaderRef->GetSourceTexture());
+		bgem.NormalTexture = A2TString(shaderRef->GetNormalTexture());
+		bgem.EnvmapTexture = A2TString(shaderRef->GetEnvMapTexture());
+		bgem.GrayscaleTexture = A2TString(shaderRef->GetGreyscaleTexture());
+		bgem.EnvmapMaskTexture = A2TString(shaderRef->GetEnvMaskTexture());
+
+		bgem.NonOccluder = (flags1 | SLSF1_EXTERNAL_EMITTANCE) != 0;
+		bgem.BloodEnabled = (flags1 | 0) != 0; // ???? never used
+		bgem.EffectLightingEnabled = (flags1 | SLSF2_EFFECT_LIGHTING) != 0;
+		bgem.FalloffEnabled = (flags1 | SLSF1_USE_FALLOFF) != 0;
+		//bgem.FalloffEnabled = (flags1 | SLSF1_VERTEX_ALPHA) != 0;
+		bgem.FalloffColorEnabled = (flags1 | SLSF1_FIRE_REFRACTION) != 0;
+		bgem.GrayscaleToPaletteAlpha = (flags1 | SLSF1_GREYSCALE_TO_PALETTEALPHA) != 0;
+		bgem.SoftEnabled = (flags1 | SLSF1_SOFT_EFFECT) != 0;
+
+		bgem.BaseColor = TOCOLOR3(shaderRef->GetEmissiveColor());
+		bgem.BaseColorScale = shaderRef->GetEmissiveMultiple();
+		bgem.FalloffStartAngle = shaderRef->GetFalloffStartAngle();
+		bgem.FalloffStopAngle = shaderRef->GetFalloffStopAngle();
+		bgem.FalloffStartOpacity = shaderRef->GetFalloffStartOpacity();
+		bgem.FalloffStopOpacity = shaderRef->GetFalloffStopOpacity();
+		bgem.SoftDepth = shaderRef->GetSoftFalloffDepth();
+		//bgem->LightingInfluence
+		//bgem->EnvmapMinLOD
+	}
+	return true;
+}
+
+
+bool NifImporter::ImportFO4Shader(ImpNode *node, NiAVObjectRef avObject, StdMat2 *mtl)
+{
+	USES_CONVERSION;
+	if (!useNiftoolsShader || !mtl || !mtl->SupportsShaders())
+		return false;
+
+	if (!(useNiftoolsShader == 1 && mtl->SwitchShader(FO4SHADER_CLASS_ID)))
+		return false;
+	
+	NiGeometryRef geom = DynamicCast<NiGeometry>(avObject);
+	vector<NiPropertyRef> props = avObject->GetProperties();
+
+	if ( Shader *s = mtl->GetShader() )
+	{
+		if ( IBSShaderMaterialData *data = static_cast<IBSShaderMaterialData*>(s->GetInterface(I_BSSHADERDATA)) )
+		{
+			if (BSLightingShaderPropertyRef lightingShaderRef = SelectFirstObjectOfType<BSLightingShaderProperty>(props))
+			{
+				BGSMFile materialData;
+				bool success = false;
+				string name = lightingShaderRef->GetName();
+				if (wildmatch("*.BGSM", name) )
+				{
+					tstring filename = FindMaterial(A2TString(name));
+					TSTR tsname = A2TString(name).c_str();
+					TSTR tsfile = filename.c_str();
+					data->SetFileName(tsname, tsfile);
+					success = ReadBGSMFile(filename, materialData);
+				}
+				if (!success)
+				{
+					InitialzeBGSM(materialData);
+					ReadBGSMFromNIF(materialData, props);
+				}
+				data->LoadBGSM(materialData);
+				data->LoadMaterial(mtl, this);
+			}
+			if (BSEffectShaderPropertyRef effectShaderRef = SelectFirstObjectOfType<BSEffectShaderProperty>(props))
+			{
+				BGEMFile materialData;
+				bool success = false;
+				TSTR tsfile;
+				string name = effectShaderRef->GetName();
+				TSTR tsname = A2TString(name).c_str();
+				if (wildmatch("*.BGEM", name))
+				{
+					tstring filename = FindMaterial(A2TString(name));
+					tsfile = filename.c_str();
+					data->SetFileName(tsname, tsfile);
+					success = ReadBGEMFile(filename, materialData);
+				} else {
+					tsfile = tsname;
+				}
+				if (!success)
+				{
+					InitialzeBGEM(materialData);
+					ReadBGEMFromNIF(materialData, props);
+				}
+				data->LoadBGEM(materialData);
+				data->LoadMaterial(mtl, this);
+				data->SetFileName(tsname, tsfile);
+			}
+			return true;
+		}
+	}
+	return false;
+}
+
+tstring NifImporter::FindImage(const tstring& name) const
 {
 	TCHAR buffer[MAX_PATH];
 
 	// Simply check for fully qualified path
 	if (!PathIsRelative(name.c_str())) {
 		if (-1 != _taccess(name.c_str(), 0))
-			return tstring(buffer);
+			return name;
 	}
 	if (!path.empty()) {
 		PathCombine(buffer, path.c_str(), name.c_str()); // try as-is
@@ -1023,4 +1280,41 @@ Texmap* NifImporter::GetMaterialTextureSubMap(Mtl* mat, int id)
 		return mat->GetSubTexmap(id);
 	}
 	return nullptr;
+}
+
+tstring NifImporter::FindMaterial(const tstring& name) const
+{
+	TCHAR buffer[MAX_PATH];
+
+	// Simply check for fully qualified path
+	if (!PathIsRelative(name.c_str())) {
+		if (-1 != _taccess(name.c_str(), 0))
+			return tstring(name);
+	}
+	if (!path.empty()) {
+		PathCombine(buffer, path.c_str(), name.c_str()); // try as-is
+		if (-1 != _taccess(buffer, 0))
+			return tstring(buffer);
+
+		// try only filename in nif directory
+		PathCombine(buffer, path.c_str(), PathFindFileName(name.c_str()));
+		if (-1 != _taccess(buffer, 0))
+			return tstring(buffer);
+	}
+	// basically try to find the materials part and then import
+	_tcscpy(buffer, name.c_str());
+	PathMakePretty(buffer);
+	for (LPCTSTR filepart = buffer; filepart != nullptr; filepart = PathFindNextComponent(filepart)) {
+		if (wildmatch(TEXT("materials\\*"), filepart)) {
+			if (appSettings != nullptr) {
+				return appSettings->FindMaterial(filepart);
+			}
+			break;
+		}
+	}
+
+	if (appSettings != nullptr) {
+		return appSettings->FindMaterial(name);
+	}
+	return name;
 }

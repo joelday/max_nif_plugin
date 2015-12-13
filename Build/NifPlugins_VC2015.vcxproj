@@ -700,7 +700,6 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(ProjectDir)Sheets\Max_Version_2016.props" />
     <Import Project="$(ProjectDir)Sheets\Max_System_$(Platform).props" />
-    <Import Project="Sheets\max_compat.props" />
     <Import Project="$(ProjectDir)Sheets\Debug_Settings.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - Max 2012|x64'" Label="PropertySheets">
@@ -1243,6 +1242,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\MtlUtils\MtlDefine.h" />
     <ClInclude Include="..\NifCommon\AnimKey.h" />
     <ClInclude Include="..\NifCommon\AppSettings.h" />
     <ClInclude Include="..\NifCommon\Hyperlinks.h" />
@@ -1509,12 +1509,14 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release - Max 9|x64'">true</ExcludedFromBuild>
     </CustomBuild>
     <ClInclude Include="..\NifProps\iNifProps.h" />
+    <ClInclude Include="..\NifProps\MaterialFile.h" />
     <ClInclude Include="..\NifProps\NifProps.h" />
     <ClInclude Include="..\NifProps\NifStrings.h" />
     <ClInclude Include="..\NifProps\resource.h" />
     <ClInclude Include="..\NifProps\Shader\shaderutil.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\MtlUtils\mtlutil.cpp" />
     <ClCompile Include="..\NifCommon\AnimKey.cpp" />
     <ClCompile Include="..\NifCommon\AppSettings.cpp" />
     <ClCompile Include="..\NifCommon\Hyperlinks.cpp" />
@@ -1745,8 +1747,11 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release - Max 9|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release - Max 9|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\NifProps\MaterialFile.cpp" />
     <ClCompile Include="..\NifProps\Modifier\BSDismemberSkin.cpp" />
+    <ClCompile Include="..\NifProps\Modifier\BSSubIndexModifier.cpp" />
     <ClCompile Include="..\NifProps\nifProps.cpp" />
+    <ClCompile Include="..\NifProps\Shader\FO4Shader.cpp" />
     <ClCompile Include="..\NifProps\Shader\NifShader.cpp" />
     <ClCompile Include="..\NifProps\Shader\shaderutil.cpp" />
   </ItemGroup>
@@ -1754,7 +1759,11 @@
     <Image Include="..\NifProps\Modifier\AddDel16.bmp" />
     <Image Include="..\NifProps\Modifier\AddDelMask16.bmp" />
     <Image Include="..\NifProps\Modifier\bmp00003.bmp" />
+    <Image Include="..\NifProps\Modifier\Lock16.bmp" />
+    <Image Include="..\NifProps\Modifier\LockMask16.bmp" />
     <Image Include="..\NifProps\Modifier\selmask.bmp" />
+    <Image Include="Modifier\Lock16.bmp" />
+    <Image Include="Modifier\LockMask16.bmp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\NifExport\NifExport.rc" />

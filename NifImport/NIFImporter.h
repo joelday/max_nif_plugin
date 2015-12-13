@@ -21,6 +21,7 @@ HISTORY:
 #include <obj/NiTimeController.h>
 #include <AnimKey.h>
 #include <obj/BSTriShape.h>
+#include "../NifProps/iNifProps.h"
 
 namespace Niflib
 {
@@ -28,7 +29,7 @@ namespace Niflib
 }
 
 // NIF Importer
-class NifImporter : public BaseImporter//, public IniFileSection
+class NifImporter : public BaseImporter, IFileResolver//, public IniFileSection
 {
 public:
 	// Ini settings
@@ -130,7 +131,11 @@ public:
 	void ImportBipeds(vector<Niflib::NiNodeRef>& blocks);
 	void AlignBiped(IBipMaster* master, Niflib::NiNodeRef block);
 	bool ImportMeshes(Niflib::NiNodeRef block);
-	tstring FindImage(const tstring& name);
+	tstring FindImage(const tstring& name) const;
+	tstring FindMaterial(const tstring& name) const;
+
+	bool FindFile(const tstring& name, tstring& resolved_name) const override;
+	bool FindFileByType(const tstring& name, FileType type, tstring& resolved_name) const override;
 
 	bool ImportUPB(INode *node, Niflib::NiNodeRef block);
 
@@ -143,6 +148,7 @@ public:
 	StdMat2 *ImportMaterialAndTextures(ImpNode *node, Niflib::NiAVObjectRef avObject);
 	bool ImportMaterialAndTextures(ImpNode *node, vector<Niflib::NiTriBasedGeomRef>& glist);
 	bool ImportNiftoolsShader(ImpNode *node, Niflib::NiAVObjectRef avObject, StdMat2 *m);
+	bool ImportFO4Shader(ImpNode* node, NiAVObjectRef avObject, StdMat2* mtl);
 	bool ImportTransform(ImpNode *node, Niflib::NiAVObjectRef avObject);
 	bool ImportMesh(ImpNode *node, TriObject *o, Niflib::NiTriBasedGeomRef triGeom, Niflib::NiTriBasedGeomDataRef triGeomData, vector<Niflib::Triangle>& tris);
 	bool ImportVertexColor(INode *tnode, TriObject *o, vector<Niflib::Triangle>& tris, vector<Niflib::Color4> cv, int cv_offset = 0);

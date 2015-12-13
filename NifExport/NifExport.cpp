@@ -430,6 +430,9 @@ int NifExport::DoExportInternal(const TCHAR *name, ExpInterface *ei, Interface *
 {
 	USES_CONVERSION;
 	TCHAR path[MAX_PATH];
+	TCHAR filename[MAX_PATH];
+	_tcscpy(filename, PathFindFileName(name));
+	PathRemoveExtension(filename);
 	GetFullPathName(name, MAX_PATH, path, nullptr);
 	PathRenameExtension(path, TEXT(".nif"));
 
@@ -502,13 +505,16 @@ int NifExport::DoExportInternal(const TCHAR *name, ExpInterface *ei, Interface *
 	Ref<NiNode> root = DynamicCast<NiNode>(Niflib::ObjectRegistry::CreateObject(T2AString(Exporter::mRootType)));
 	if (root == nullptr)
 		root = new NiNode();
-	if (exp.IsFallout3() || exp.IsSkyrim())
+	if (exp.IsFallout3() || exp.IsSkyrim() || exp.IsFallout4())
 		root->SetFlags(14);
 
 	Exporter::Result result = exp.doExport(root, i->GetRootNode());
 
 	if (result != Exporter::Ok && result != Exporter::Skip)
 		throw exception("Unknown error.");
+
+	if (exp.IsFallout4())
+		root->SetName(T2A(filename));
 
 	if (exportType == Exporter::NIF_WO_ANIM || exportType == Exporter::NIF_WITH_MGR)
 	{

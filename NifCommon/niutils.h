@@ -118,6 +118,10 @@ string W2AString(const wstring& str);
 #define W2T(lpa) static_cast<LPCWSTR>(lpa)
 #define T2A(lpa) W2A(lpa)
 #define T2W(lpa) static_cast<LPCWSTR>(lpa)
+#define A2T_EX(lpa,n) A2W(lpa,n)
+#define W2T_EX(lpa,n) static_cast<LPCWSTR>(lpa)
+#define T2A_EX(lpa,n) W2A(lpa,n)
+#define T2W_EX(lpa,n) static_cast<LPCWSTR>(lpa)
 #define T2AHelper W2AHelper
 #define T2WHelper(d,s,n) (s)
 #define A2THelper A2WHelper
@@ -288,14 +292,18 @@ typedef std::map<std::wstring, std::wstring, ltstr> NameValueCollectionW;
 typedef std::pair<std::wstring, std::wstring> KeyValuePairW;
 typedef std::vector<std::string> stringlist;
 typedef std::vector<std::wstring> wstringlist;
+typedef std::list<KeyValuePairA> NameValueListA;
+typedef std::list<KeyValuePairW> NameValueListW;
 #ifdef UNICODE
 typedef NameValueCollectionW NameValueCollection;
 typedef KeyValuePairW KeyValuePair;
 typedef wstringlist tstringlist;
+typedef NameValueListW NameValueList;
 #else
 typedef NameValueCollectionA NameValueCollection;
 typedef KeyValuePairA KeyValuePair;
 typedef stringlist tstringlist;
+typedef NameValueListA NameValueList;
 #endif
 extern int wildcmp(const char *wild, const char *string);
 extern int wildcmpi(const char *wild, const char *string);
@@ -471,6 +479,9 @@ extern string GetIndirectValue(LPCSTR path);
 extern wstring GetIndirectValue(LPCWSTR path);
 extern NameValueCollectionA ReadIniSection(LPCSTR Section, LPCSTR iniFileName );
 extern NameValueCollectionW ReadIniSection(LPCWSTR Section, LPCWSTR iniFileName);
+extern bool ReadIniSectionAsList(LPCSTR Section, LPCSTR iniFileName, NameValueListA& map);
+extern bool ReadIniSectionAsList(LPCWSTR Section, LPCWSTR iniFileName, NameValueListW& map);
+
 extern string ExpandQualifiers(const string& src, const NameValueCollectionA& map);
 extern wstring ExpandQualifiers(const wstring& src, const NameValueCollectionW& map);
 extern string ExpandEnvironment(const string& src);
@@ -549,12 +560,20 @@ static inline Niflib::Color3 TOCOLOR3(const Point3& c3) {
    return Niflib::Color3(c3.x, c3.y, c3.z);
 }
 
+static inline Niflib::Color3 TOCOLOR3(const Niflib::Color4& c4) {
+	return Niflib::Color3(c4.r, c4.g, c4.b);
+}
+
 static inline Color TOCOLOR(const Niflib::Color4& c3) {
 	return Color(c3.r, c3.g, c3.b);
 }
 
 static inline Niflib::Color4 TOCOLOR4(const Color& c3) {
 	return Niflib::Color4(c3.r, c3.g, c3.b);
+}
+
+static inline Niflib::Color4 TOCOLOR4(const Niflib::Color3& c3) {
+	return Niflib::Color4(c3.r, c3.g, c3.b, 1.0f);
 }
 
 static inline Point3 TOPOINT3(const Niflib::Color3& c3){

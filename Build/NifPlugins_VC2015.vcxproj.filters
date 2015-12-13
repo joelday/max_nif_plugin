@@ -76,6 +76,9 @@
     <Filter Include="NifImport\Resource Files">
       <UniqueIdentifier>{2fd033b1-38b9-4254-93b7-e866d370a32e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="MtlUtils">
+      <UniqueIdentifier>{c9ecfbd7-8249-4069-9706-4d03a80dba4f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\NifProps\iNifProps.h">
@@ -191,6 +194,12 @@
     </ClInclude>
     <ClInclude Include="..\NifImport\NIFImporter.h">
       <Filter>NifImport\Importer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MtlUtils\MtlDefine.h">
+      <Filter>MtlUtils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\NifProps\MaterialFile.h">
+      <Filter>NifProps\Core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -347,6 +356,18 @@
     <ClCompile Include="..\NifImport\ImportParticles.cpp">
       <Filter>NifImport\Importer</Filter>
     </ClCompile>
+    <ClCompile Include="..\NifProps\Modifier\BSSubIndexModifier.cpp">
+      <Filter>NifProps\Modifier</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MtlUtils\mtlutil.cpp">
+      <Filter>MtlUtils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\NifProps\Shader\FO4Shader.cpp">
+      <Filter>NifProps\Shader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\NifProps\MaterialFile.cpp">
+      <Filter>NifProps\Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\NifProps\Modifier\AddDel16.bmp">
@@ -359,6 +380,18 @@
       <Filter>NifProps\Resources</Filter>
     </Image>
     <Image Include="..\NifProps\Modifier\bmp00003.bmp">
+      <Filter>NifProps\Resources</Filter>
+    </Image>
+    <Image Include="..\NifProps\Modifier\LockMask16.bmp">
+      <Filter>NifProps\Resources</Filter>
+    </Image>
+    <Image Include="Modifier\Lock16.bmp">
+      <Filter>NifProps\Resources</Filter>
+    </Image>
+    <Image Include="..\NifProps\Modifier\Lock16.bmp">
+      <Filter>NifProps\Resources</Filter>
+    </Image>
+    <Image Include="Modifier\LockMask16.bmp">
       <Filter>NifProps\Resources</Filter>
     </Image>
   </ItemGroup>

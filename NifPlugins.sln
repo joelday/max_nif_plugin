@@ -117,6 +117,7 @@ Global
 		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Debug - Max 2015|x64.Build.0 = Debug - Static|x64
 		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Debug - Max 2016|Win32.ActiveCfg = Debug - DLL|Win32
 		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Debug - Max 2016|x64.ActiveCfg = Debug - Static|x64
+		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Debug - Max 2016|x64.Build.0 = Debug - Static|x64
 		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Debug - Max 4.2|Win32.ActiveCfg = Debug - Static|Win32
 		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Debug - Max 4.2|Win32.Build.0 = Debug - Static|Win32
 		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Debug - Max 4.2|x64.ActiveCfg = Debug - DLL|x64

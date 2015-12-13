@@ -31,7 +31,12 @@ extern ClassDesc* GetDDSLibClassDesc();
 extern ClassDesc2* GetbhkListObjDesc();
 extern ClassDesc2* GetbhkProxyObjDesc();
 extern ClassDesc2* GetBSDSModifierDesc();
+extern ClassDesc2* GetBSSIModifierDesc();
 extern ClassDesc2* GetNifShaderDesc();
+extern ClassDesc2* GetFO4ShaderDesc();
+extern ClassDesc2* GetBGSMFileClassDesc();
+extern ClassDesc2* GetBGEMFileClassDesc();
+
 
 enum ClassDescType
 {
@@ -52,7 +57,7 @@ static int controlsInit = FALSE;
 static int libVersion = VERSION_3DSMAX;
 static int foundOlderReleaseConflict = -1;
 static int nClasses = 0;
-static ClassDesc2* classDescriptions[20];
+static ClassDesc2* classDescriptions[30];
 static bool classDescEnabled[CD_Count];
 
 // This function is called by Windows when the DLL is loaded.  This 
@@ -107,6 +112,10 @@ void InitializeLibSettings()
       classDescriptions[nClasses++] = GetbhkBoxDesc();
       classDescriptions[nClasses++] = GetBSDSModifierDesc();
       classDescriptions[nClasses++] = GetNifShaderDesc();
+	  classDescriptions[nClasses++] = GetBSSIModifierDesc();
+	  classDescriptions[nClasses++] = GetFO4ShaderDesc();	  
+	  classDescriptions[nClasses++] = GetBGSMFileClassDesc();
+	  classDescriptions[nClasses++] = GetBGEMFileClassDesc();	  
    }
    if ( GetIniValue<bool>(TEXT("NifFurniture"), TEXT("Enable"), true, iniName) ) {
       classDescEnabled[CD_Furniture] = true;

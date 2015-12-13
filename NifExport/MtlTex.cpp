@@ -22,6 +22,9 @@
 #include "obj/BSLightingShaderProperty.h"
 #include "ObjectRegistry.h"
 #include <obj/BSEffectShaderProperty.h>
+#include "../NifProps/iNifProps.h"
+#include "../MtlUtils/mtldefine.h"
+#include <obj/BSTriShape.h>
 
 enum {
 	C_BASE, C_DARK, C_DETAIL, C_GLOSS, C_GLOW, C_BUMP, C_NORMAL,
@@ -63,7 +66,7 @@ void Exporter::makeTexture(NiAVObjectRef &parent, Mtl *mtl)
 
 	LPCTSTR sTexPrefix = mTexPrefix.c_str();
 
-	if (IsSkyrim())
+	if (IsSkyrim() || IsFallout4())
 	{
 		NiGeometryRef geom = DynamicCast<NiGeometry>(parent);
 
@@ -446,12 +449,15 @@ bool Exporter::makeTextureDesc(BitmapTex *bmTex, TexDesc& td, NiTriBasedGeomData
 void Exporter::makeMaterial(NiAVObjectRef &parent, Mtl *mtl)
 {
 	USES_CONVERSION;
+
+	if (IsFallout4() && exportFO4Shader(parent, mtl)) 
+		return;		
+
 	// Fill-in using the Civ4 Shader if available
-	bool done = exportNiftoolsShader(parent, mtl);
-	if (done)
+	if (exportNiftoolsShader(parent, mtl))
 		return;
 
-	if (!IsSkyrim())
+	if (!IsSkyrim() && !IsFallout4())
 	{
 		string name;
 		NiMaterialPropertyRef mtlProp(CreateNiObject<NiMaterialProperty>());
@@ -710,7 +716,7 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 
 	if (ok) // civ4 shader
 	{
-		if (!IsSkyrim()) // skyrim does not use material properties
+		if (!IsSkyrim() && !IsFallout4()) // skyrim does not use material properties
 		{
 			NiMaterialPropertyRef mtlProp = CreateNiObject<NiMaterialProperty>();
 			parent->AddProperty(mtlProp);
@@ -726,7 +732,7 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 		if (mtl->ClassID() == Class_ID(DMTL_CLASS_ID, 0))
 		{
 			StdMat2 * smtl = (StdMat2*)mtl;
-			if (smtl->SupportsShaders() && !IsSkyrim()) {
+			if (smtl->SupportsShaders() && !IsSkyrim() && !IsFallout4()) {
 				if (Shader *s = smtl->GetShader()) {
 					if (smtl->GetWire()) {
 						NiWireframePropertyRef wireProp = CreateNiObject<NiWireframeProperty>();
@@ -756,13 +762,13 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 			vertexColor->SetLightingMode(LightMode(LightingMode));
 			vertexColor->SetFlags((LightingMode << 3) + (SrcVertexMode << 4));
 		}
-		if (SpecularEnable && !IsSkyrim()) {
+		if (SpecularEnable && !IsSkyrim() && !IsFallout4()) {
 			NiSpecularPropertyRef prop = CreateNiObject<NiSpecularProperty>();
 			parent->AddProperty(prop);
 			prop->SetFlags(1);
 
 		}
-		if (Dither && !IsSkyrim()) {
+		if (Dither && !IsSkyrim() && !IsFallout4()) {
 			NiDitherPropertyRef prop = CreateNiObject<NiDitherProperty>();
 			parent->AddProperty(prop);
 			prop->SetFlags(1);
@@ -804,7 +810,7 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 		}
 
 		bool useDefaultShader = true;
-		if (IsSkyrim())
+		if (IsSkyrim() || IsFallout4())
 		{
 			if (BSLightingShaderPropertyRef texProp = new BSLightingShaderProperty())
 			{
@@ -1010,8 +1016,8 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 
 				// New code to fix parenting of BSLighting branches to the geometry, specific to skyrim only
 				// TODO: Add in checks for an existing shader or figure out what the other Bethesda specific node goes into this slot.
-				NiGeometryRef temp = DynamicCast<NiGeometry>(parent);
-				temp->SetBSProperty(0, prop);
+				//NiGeometryRef temp = DynamicCast<NiGeometry>(parent);
+				//temp->SetBSProperty(0, prop);
 			}
 			useDefaultShader = false;
 		}
@@ -1022,7 +1028,7 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 				root = Niflib::ObjectRegistry::CreateObject(T2A(CustomShader));
 
 			if (root == nullptr) {
-				if (IsSkyrim()) {
+				if (IsSkyrim() || IsFallout4()) {
 					root = new BSLightingShaderProperty();
 				}
 				else {
@@ -1261,7 +1267,7 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 
 					TexDesc td;
 					NiTriBasedGeomRef shape(DynamicCast<NiTriBasedGeom>(parent));
-					if (makeTextureDesc(bmTex, td, shape->GetData())) {
+					if (shape != nullptr && makeTextureDesc(bmTex, td, shape->GetData())) {
 						if (textype == BUMP_MAP) {
 							td.source->SetPixelLayout(PIX_LAY_BUMPMAP);
 							texProp->SetLumaOffset(LumaOffset);
@@ -1303,10 +1309,285 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 }
 
 
+bool Exporter::exportFO4Shader(NiAVObjectRef parent, Mtl* mtl)
+{
+	USES_CONVERSION;
+	if (!mtl) return false;
+	if (!IsFallout4()) return false;
+
+	LPCTSTR sTexPrefix = mTexPrefix.c_str();
+	RefTargetHandle ref = mtl->GetReference(2/*shader*/);
+	if (!ref) return false;
+
+	const Class_ID FO4SHADER_CLASS_ID(0x7a6bc2e7, 0x71106f41);
+
+	Shader *s = nullptr;
+	TSTR shaderByName; Class_ID shaderID = Class_ID(0, 0);
+	if (mtl->ClassID() == Class_ID(DMTL_CLASS_ID, 0))
+	{
+		StdMat2 * smtl = (StdMat2*)mtl;
+		if (smtl->SupportsShaders()) {
+			if (s = smtl->GetShader()) {
+				s->GetClassName(shaderByName);
+				shaderID = s->ClassID();
+			}
+		}
+	}
+	if (shaderID != FO4SHADER_CLASS_ID)
+		return false;
+
+	NiAVObjectRef geom = DynamicCast<NiAVObject>(parent);
+	BSTriShapeRef tri_shape = DynamicCast<BSTriShape>(parent);
+
+	if (IBSShaderMaterialData *data = static_cast<IBSShaderMaterialData*>(s->GetInterface(I_BSSHADERDATA)))
+	{
+		if (data->HasBGSM())
+		{
+			BGSMFile* bgsm = data->GetBGSMData();
+
+			BSLightingShaderPropertyRef texProp = new BSLightingShaderProperty();
+			texProp->SetName(T2A(data->GetName()));
+
+			TexClampMode clampMode = TexClampMode((bgsm->TileU ? 0x01 : 0) | (bgsm->TileV ? 0x02 : 0));
+			texProp->SetTextureClampMode(clampMode);
+
+			texProp->SetUvOffset(TexCoord(bgsm->UOffset, bgsm->VOffset));
+			texProp->SetUvScale(TexCoord(bgsm->UScale, bgsm->VScale));
+
+
+			if (bgsm->BlendState || bgsm->AlphaTest) {
+				NiAlphaPropertyRef alphaProp = new NiAlphaProperty();
+				alphaProp->SetBlendState(bgsm->BlendState);
+				alphaProp->SetSourceBlendFunc(NiAlphaProperty::BlendFunc(bgsm->BlendFunc1));
+				alphaProp->SetDestBlendFunc(NiAlphaProperty::BlendFunc(bgsm->BlendFunc2));
+				alphaProp->SetTestFunc(NiAlphaProperty::TF_GREATER);
+				//alphaProp->SetTriangleSortMode(NoSorter);
+				alphaProp->SetTestThreshold(bgsm->AlphaTestRef);
+				alphaProp->SetTestState(bgsm->AlphaTest);
+				parent->AddProperty(alphaProp);
+			}
+
+
+			BSShaderTextureSetRef texset = new BSShaderTextureSet();
+			texProp->SetTextureSet(texset);
+
+			vector<string> textures;
+			textures.resize(10);
+
+
+			SkyrimShaderPropertyFlags1 flags1 = SkyrimShaderPropertyFlags1(0);
+			SkyrimShaderPropertyFlags2 flags2 = SkyrimShaderPropertyFlags2(0);
+
+			if (geom && geom->IsSkin())
+				flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_SKINNED);
+
+			if (tri_shape && tri_shape->HasColors())
+				flags2 = SkyrimShaderPropertyFlags2(flags2 | SLSF2_VERTEX_COLORS);
+
+			if (bgsm->ZBufferWrite) flags2 = SkyrimShaderPropertyFlags2(flags2 | SLSF2_ZBUFFER_WRITE);
+			if (bgsm->ZBufferTest) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_ZBUFFER_TEST);
+			//if (bgsm->ScreenSpaceReflections)  = SkyrimShaderPropertyFlags1(flags1 | SLSF21_reZBUFFER_TEST);
+			//bool WetnessControlScreenSpaceReflections;
+			if (bgsm->Decal) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_DECAL);
+			if (bgsm->TwoSided) flags2 = SkyrimShaderPropertyFlags2(flags2 | SLSF2_DOUBLE_SIDED);
+			if (bgsm->Decal && !bgsm->DecalNoFade) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_DYNAMIC_DECAL);// ????
+			//if (bgsm->NonOccluder) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_PARALLAX_OCCLUSION); 
+			if (bgsm->Refraction)  flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_REFRACTION);
+			if (bgsm->RefractionFalloff) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_USE_FALLOFF);
+			texProp->SetRefractionStrength(bgsm->RefractionPower);
+			if (bgsm->EnvironmentMapping) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_ENVIRONMENT_MAPPING);
+			texProp->SetEnvironmentMapScale(bgsm->EnvironmentMappingMaskScale);
+			if (bgsm->GrayscaleToPaletteColor) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_GREYSCALE_TO_PALETTECOLOR);
+
+			textures[0] = T2AString(bgsm->DiffuseTexture);
+			textures[1] = T2AString(bgsm->NormalTexture);
+			textures[2] = T2AString(bgsm->GlowTexture);
+			textures[3] = T2AString(bgsm->GreyscaleTexture);
+			textures[4] = T2AString(bgsm->EnvmapTexture);
+			textures[7] = T2AString(bgsm->SmoothSpecTexture);
+			//textures[0] = T2AString(bgsm->InnerLayerTexture);
+			//textures[0] = T2AString(bgsm->WrinklesTexture);
+			//textures[0] = T2AString(bgsm->DisplacementTexture);
+
+			//bool EnableEditorAlphaRef;
+			if (bgsm->RimLighting) flags2 = SkyrimShaderPropertyFlags2(flags2 | SLSF2_RIM_LIGHTING);
+			//texProp->SetRimPower(bgsm->RimPower);			
+			texProp->SetBacklightPower(bgsm->BackLightPower);
+			if (bgsm->SubsurfaceLighting) flags2 = SkyrimShaderPropertyFlags2(flags2 | SLSF2_SOFT_LIGHTING);
+			texProp->SetSubsurfaceRolloff(bgsm->SubsurfaceLightingRolloff);
+			if (bgsm->SpecularEnabled) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_SPECULAR);
+			texProp->SetSpecularColor(bgsm->SpecularColor);
+			texProp->SetSpecularStrength(bgsm->SpecularMult);
+			texProp->SetSpecularPower_Glossiness(bgsm->Smoothness);
+			texProp->SetFresnelPower(bgsm->FresnelPower);
+			texProp->SetWetnessSpecScale(bgsm->WetnessControlSpecScale);
+			texProp->SetWetnessSpecPower(bgsm->WetnessControlSpecPowerScale);
+			texProp->SetWetnessMinVar(bgsm->WetnessControlSpecMinvar);
+			texProp->SetWetnessEnvMapScale(bgsm->WetnessControlEnvMapScale);
+			texProp->SetWetnessFresnelPower(bgsm->WetnessControlFresnelPower);
+			texProp->SetWetnessMetalness(bgsm->WetnessControlMetalness);
+
+			texProp->SetRootMaterial(T2AString(bgsm->RootMaterialPath));
+			if (bgsm->AnisoLighting) flags2 = SkyrimShaderPropertyFlags2(flags2 | SLSF2_ANISOTROPIC_LIGHTING);
+			if (!bgsm->EmitEnabled) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_OWN_EMIT);  // ????
+			texProp->SetEmissiveColor(bgsm->EmittanceColor);
+			texProp->SetEmissiveMultiple(bgsm->EmittanceMult);
+			if (bgsm->ModelSpaceNormals) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_MODEL_SPACE_NORMALS);
+			if (bgsm->ExternalEmittance) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_EXTERNAL_EMITTANCE);
+			if (bgsm->BackLighting) flags2 = SkyrimShaderPropertyFlags2(flags2 | SLSF2_BACK_LIGHTING);
+			if (bgsm->ReceiveShadows) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_RECIEVE_SHADOWS);
+			if (bgsm->HideSecret) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_LOCALMAP_HIDE_SECRET);
+			if (bgsm->CastShadows) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_CAST_SHADOWS);
+			if (bgsm->DissolveFade) flags2 = SkyrimShaderPropertyFlags2(flags2 | SLSF2_NO_FADE); // ????
+			if (bgsm->AssumeShadowmask) flags2 = SkyrimShaderPropertyFlags2(flags2 | SLSF2_ASSUME_SHADOWMASK);
+			if (bgsm->Glowmap) flags2 = SkyrimShaderPropertyFlags2(flags2 | SLSF2_GLOW_MAP);
+			//if (bgsm->EnvironmentMappingWindow) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_EYE_ENVIRONMENT_MAPPING);
+			if (bgsm->EnvironmentMappingEye) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_EYE_ENVIRONMENT_MAPPING);
+			if (bgsm->Hair) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_HAIR_SOFT_LIGHTING);
+			texProp->SetHairTintColor(bgsm->HairTintColor);
+			if (bgsm->Tree) flags2 = SkyrimShaderPropertyFlags2(flags2 | SLSF2_TREE_ANIM);
+			if (bgsm->Facegen) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_FACEGEN_DETAIL_MAP);
+			if (bgsm->SkinTint) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_FACEGEN_RGB_TINT);
+			//if (bgsm->Tessellate;
+			//float DisplacementTextureBias;
+			//float DisplacementTextureScale;
+			//float TessellationPNScale;
+			//float TessellationBaseFactor;
+			//float TessellationFadeDistance;
+			texProp->SetGrayscaleToPaletteScale(bgsm->GrayscaleToPaletteScale);
+			//bool SkewSpecularAlpha; // (header.Version >= 1)    
+			
+			texProp->SetShaderFlags1(flags1);
+			texProp->SetShaderFlags2(flags2);
+
+			//0=default 1=EnvMap, 2=Glow, 5=Skin, 6=Hair, 7=Unknown, 11=Ice/Parallax, 15=Eye.
+			BSLightingShaderPropertyShaderType shaderType = Niflib::LSPST_DEFAULT;
+			if (bgsm->EnvironmentMapping) shaderType = Niflib::LSPST_ENVIRONMENT_MAP;
+			if (bgsm->Glowmap) shaderType = Niflib::LSPST_GLOW_SHADER;
+			if (bgsm->SkinTint) shaderType = Niflib::LSPST_SKIN_TINT;
+			if (bgsm->Hair) shaderType = Niflib::LSPST_HAIR_TINT;
+
+			if (!bgsm->DisplacementTexture.empty()) shaderType = Niflib::LSPST_HEIGHTMAP; // ???
+			if (bgsm->Facegen) shaderType = Niflib::LSPST_FACE_TINT; // ???
+
+			texProp->SetSkyrimShaderType(shaderType);
+
+			texset->SetTextures(textures);
+
+			// shader must be first, alpha can be second
+			NiPropertyRef prop = DynamicCast<NiProperty>(texProp);
+			vector<NiPropertyRef> properties = parent->GetProperties();
+			parent->ClearProperties();
+			parent->AddProperty(prop);
+			if (properties.size() > 0)
+				parent->AddProperty(properties[0]);
+
+			return true;
+		}
+		else if (data->HasBGEM())
+		{
+
+			BGEMFile* bgem = data->GetBGEMData();
+
+			BSEffectShaderPropertyRef texProp = new BSEffectShaderProperty();
+			texProp->SetName(T2A(data->GetName()));
+
+			TexClampMode clampMode = TexClampMode((bgem->TileU ? 0x01 : 0) | (bgem->TileV ? 0x02 : 0));
+			texProp->SetTextureClampMode(clampMode);
+
+			texProp->SetUvOffset(TexCoord(bgem->UOffset, bgem->VOffset));
+			texProp->SetUvScale(TexCoord(bgem->UScale, bgem->VScale));
+
+
+			if (bgem->BlendState || bgem->AlphaTest) {
+				NiAlphaPropertyRef alphaProp = new NiAlphaProperty();
+				alphaProp->SetBlendState(bgem->BlendState);
+				alphaProp->SetSourceBlendFunc(NiAlphaProperty::BlendFunc(bgem->BlendFunc1));
+				alphaProp->SetDestBlendFunc(NiAlphaProperty::BlendFunc(bgem->BlendFunc2));
+				alphaProp->SetTestFunc(NiAlphaProperty::TF_GREATER);
+				//alphaProp->SetTriangleSortMode(NoSorter);
+				alphaProp->SetTestThreshold(bgem->AlphaTestRef);
+				alphaProp->SetTestState(bgem->AlphaTest);
+				parent->AddProperty(alphaProp);
+			}
+
+
+			vector<string> textures;
+			textures.resize(10);
+
+			SkyrimShaderPropertyFlags1 flags1 = SkyrimShaderPropertyFlags1(0);
+			SkyrimShaderPropertyFlags2 flags2 = SkyrimShaderPropertyFlags2(0);
+
+			if (geom && geom->IsSkin())
+				flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_SKINNED);
+
+			if (tri_shape && tri_shape->HasColors())
+				flags2 = SkyrimShaderPropertyFlags2(flags2 | SLSF2_VERTEX_COLORS);
+
+			if (bgem->ZBufferWrite) flags2 = SkyrimShaderPropertyFlags2(flags2 | SLSF2_ZBUFFER_WRITE);
+			if (bgem->ZBufferTest) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_ZBUFFER_TEST);
+			//if (bgsm->ScreenSpaceReflections)  = SkyrimShaderPropertyFlags1(flags1 | SLSF21_reZBUFFER_TEST);
+			//bool WetnessControlScreenSpaceReflections;
+			if (bgem->Decal) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_DECAL);
+			if (bgem->TwoSided) flags2 = SkyrimShaderPropertyFlags2(flags2 | SLSF2_DOUBLE_SIDED);
+			if (bgem->Decal && !bgem->DecalNoFade) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_DYNAMIC_DECAL);// ????
+			if (bgem->Decal && bgem->DecalNoFade) flags2 = SkyrimShaderPropertyFlags2(flags2 | SLSF2_NO_FADE);
+			
+			//if (bgsm->NonOccluder) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_PARALLAX_OCCLUSION); 
+			if (bgem->Refraction)  flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_REFRACTION);
+			if (bgem->RefractionFalloff) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_RECIEVE_SHADOWS);
+			//texProp->SetRefractionStrength(bgem->RefractionPower);
+			if (bgem->EnvironmentMapping) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_ENVIRONMENT_MAPPING);
+			texProp->SetEnvironmentMapScale(bgem->EnvironmentMappingMaskScale);
+			if (bgem->GrayscaleToPaletteColor) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_GREYSCALE_TO_PALETTECOLOR);
+
+			texProp->SetSourceTexture(T2AString(bgem->BaseTexture));
+			texProp->SetNormalTexture(T2AString(bgem->NormalTexture));
+			texProp->SetEnvMapTexture(T2AString(bgem->EnvmapTexture));
+			texProp->SetGreyscaleTexture(T2AString(bgem->GrayscaleTexture));
+			texProp->SetEnvMaskTexture(T2AString(bgem->EnvmapMaskTexture));
+
+			if (bgem->NonOccluder) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_EXTERNAL_EMITTANCE);
+
+			if (bgem->BloodEnabled) flags1 = SkyrimShaderPropertyFlags1(flags1 | 0); // ???? never used
+			if (bgem->EffectLightingEnabled) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF2_EFFECT_LIGHTING);
+			if (bgem->FalloffEnabled) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_USE_FALLOFF);
+			//if (bgem->FalloffEnabled) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_VERTEX_ALPHA);
+			if (bgem->FalloffColorEnabled) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_FIRE_REFRACTION);
+			if (bgem->GrayscaleToPaletteAlpha) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_GREYSCALE_TO_PALETTEALPHA);
+			if (bgem->SoftEnabled) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_SOFT_EFFECT);
+
+			texProp->SetEmissiveColor(TOCOLOR4(bgem->BaseColor));
+			texProp->SetEmissiveMultiple(bgem->BaseColorScale);
+			texProp->SetFalloffStartAngle(bgem->FalloffStartAngle);
+			texProp->SetFalloffStopAngle(bgem->FalloffStopAngle);
+			texProp->SetFalloffStartOpacity(bgem->FalloffStartOpacity);
+			texProp->SetFalloffStopOpacity(bgem->FalloffStopOpacity);
+			texProp->SetSoftFalloffDepth(bgem->SoftDepth);
+			//bgem->LightingInfluence
+			//bgem->EnvmapMinLOD
+
+			// shader must be first, alpha can be second
+			NiPropertyRef prop = DynamicCast<NiProperty>(texProp);
+			vector<NiPropertyRef> properties = parent->GetProperties();
+			parent->ClearProperties();
+			parent->AddProperty(prop);
+			if (properties.size() > 0)
+				parent->AddProperty(properties[0]);
+
+
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void Exporter::updateSkinnedMaterial(NiGeometryRef shape)
 {
 	if (!shape) return;
-	if (IsSkyrim()) {
+	if (IsSkyrim() || IsFallout4()) {
 		if ( BSEffectShaderPropertyRef effectShaderRef = shape->GetBSPropertyOfType<Niflib::BSEffectShaderProperty>() )
 		{
 			SkyrimShaderPropertyFlags1 flags1 = effectShaderRef->GetShaderFlags1();

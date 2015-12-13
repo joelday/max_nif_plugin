@@ -455,6 +455,119 @@ BEGIN
     CONTROL         "0,255,0",IDC_SPN_SPECULAR_STR,"SpinnerControl",WS_TABSTOP,193,164,11,10
 END
 
+IDD_BSSI_SELECT DIALOGEX 0, 0, 108, 260
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    CONTROL         "",IDC_MS_SELTYPE,"CustToolbar",WS_TABSTOP,12,141,83,14
+    CONTROL         "By Vertex",IDC_MS_SEL_BYVERT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,13,156,43,10
+    CONTROL         "Ignore Backfaces",IDC_MS_IGNORE_BACKFACES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,13,168,72,10
+    CONTROL         "Ignore Visible Edges",IDC_MS_IGNORE_VISEDGE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,13,180,80,10
+    RTEXT           "Planar Thresh:",IDC_MS_PLANAR_TEXT,9,192,49,8
+    CONTROL         "",IDC_MS_PLANAR,"CustEdit",WS_TABSTOP,60,191,30,10
+    CONTROL         "",IDC_MS_PLANARSPINNER,"SpinnerControl",0x0,91,175,7,10
+    LTEXT           "123456 Faces Selected",IDC_MS_NUMBER_SEL,5,249,98,8
+    CONTROL         "",IDC_MS_MATID,"CustEdit",WS_TABSTOP,21,213,30,10
+    CONTROL         "Select",IDC_MS_SELBYMAT,"CustButton",WS_TABSTOP,63,213,38,11
+    CONTROL         "",IDC_MS_MATIDSPIN,"SpinnerControl",0x0,51,213,7,10
+    RTEXT           "ID:",IDC_MS_SELBYMAT_TEXT,6,214,11,8
+    GROUPBOX        "Select by Material ID",IDC_MS_SELBYMAT_BOX,1,203,105,26
+    CONTROL         "",IDC_MS_PARTITION,"CustEdit",WS_TABSTOP,19,15,30,10
+    CONTROL         "X",IDC_MS_DELPART,"CustButton",WS_TABSTOP,78,14,11,11
+    CONTROL         "",IDC_MS_PARTSPIN,"SpinnerControl",0x0,50,15,7,10
+    RTEXT           "ID:",IDC_MS_SELBYMAT_TEXT2,6,16,11,8
+    GROUPBOX        "Partition",IDC_MS_SELBYMAT_BOX2,1,4,105,34
+    CONTROL         "+",IDC_MS_ADDPART,"CustButton",WS_TABSTOP,65,14,11,11
+    CONTROL         "Sel Unused",IDC_MS_SELUNUSED,"CustButton",WS_TABSTOP,11,232,38,11
+    CONTROL         "Fix Dupl",IDC_MS_FIXDUPL,"CustButton",WS_TABSTOP,58,232,38,11
+    GROUPBOX        "Sub Index Partition",IDC_MS_SELBYMAT_BOX3,1,38,105,72
+    CONTROL         "",IDC_MS_SIPARTITION,"CustEdit",WS_TABSTOP,19,50,30,10
+    CONTROL         "X",IDC_MS_SI_DELPART,"CustButton",WS_TABSTOP,90,49,11,11
+    CONTROL         "",IDC_MS_SIPARTSPIN,"SpinnerControl",0x0,50,50,7,10
+    RTEXT           "ID:",IDC_MS_SELBYMAT_TEXT3,6,51,11,8
+    CONTROL         "+",IDC_MS_SIADDPART,"CustButton",WS_TABSTOP,76,49,11,11
+    LTEXT           "123456 Partitions",IDC_MS_PART_COUNT,6,27,98,8
+    CONTROL         "X",IDC_MS_LOCKEDIT,"CustButton",WS_TABSTOP,93,14,11,11
+    COMBOBOX        IDC_CB_MATERIAL,4,66,100,157,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "123456 Sub Partitions",IDC_MS_SI_PART_COUNT,5,97,98,8
+    CONTROL         "Visible on Dismember",IDC_CBO_SI_VISIBLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,8,83,87,10
+    CONTROL         "",IDC_ED_SSF_FILE,"CustEdit",WS_DISABLED | WS_TABSTOP,16,113,80,12
+    RTEXT           "SSF:",IDC_MS_SELBYMAT_TEXT4,0,115,15,8
+    PUSHBUTTON      "...",IDC_BTN_SSF_LOAD,96,112,11,14
+    GROUPBOX        "Selection:",IDC_MS_SELBYMAT_BOX4,1,127,105,76
+END
+
+IDD_FO4SHADER_MTL DIALOGEX 0, 0, 216, 140
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    GROUPBOX        "Material",-1,2,2,105,78
+    RTEXT           "Specular:",-1,8,11,33,10
+    CONTROL         "User1",IDC_CLR_SPECULAR,"ColorSwatch",0x0,44,11,34,12
+    CONTROL         "On",IDC_CHK_SPECENABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,80,12,21,10
+    RTEXT           "Emittance:",-1,7,26,34,10
+    CONTROL         "User1",IDC_CLR_EMITTANCE,"ColorSwatch",0x0,44,25,34,12
+    RTEXT           "Glossiness:",-1,5,41,36,10
+    CONTROL         "",IDC_EDT_SHININESS,"CustEdit",WS_TABSTOP,44,41,23,10
+    CONTROL         "0,255,0",IDC_SPN_SHININESS,"SpinnerControl",WS_TABSTOP,66,41,11,10
+    RTEXT           "Alpha:",-1,8,53,33,10
+    CONTROL         "",IDC_EDT_ALPHA,"CustEdit",WS_TABSTOP,44,53,23,10
+    CONTROL         "0,255,0",IDC_SPN_ALPHA,"SpinnerControl",WS_TABSTOP,66,53,11,10
+    CONTROL         "Dither",IDC_CHK_DITHER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,44,64,44,10
+    GROUPBOX        "Transparency Modes",-1,110,2,102,85
+    CONTROL         "Automatic",IDC_RDO_TRANS_AUTO,"Button",BS_AUTORADIOBUTTON,114,12,47,10
+    CONTROL         "None",IDC_RDO_TRANS_NONE,"Button",BS_AUTORADIOBUTTON,161,12,33,10
+    CONTROL         "Standard",IDC_RDO_TRANS_STD,"Button",BS_AUTORADIOBUTTON,114,23,45,10
+    CONTROL         "Advanced",IDC_RDO_TRANS_ADV,"Button",BS_AUTORADIOBUTTON,161,22,49,10
+    CONTROL         "Additive",IDC_RDO_TRANS_ADD,"Button",BS_AUTORADIOBUTTON,114,33,41,10
+    CONTROL         "Multiplicative",IDC_RDO_TRANS_MULT,"Button",BS_AUTORADIOBUTTON,114,44,57,10
+    GROUPBOX        "Alpha Testing",-1,110,86,102,51
+    CONTROL         "On",IDC_CHK_ALPHATESTENABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,128,97,21,10
+    CONTROL         "NoSorter",IDC_CHK_NOSORTER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,162,97,44,10
+    RTEXT           "Test Ref:",-1,112,108,37,10
+    CONTROL         "",IDC_EDT_TESTREF,"CustEdit",WS_TABSTOP,156,108,23,10
+    CONTROL         "0,255,0",IDC_SPN_TESTREF,"SpinnerControl",WS_TABSTOP,180,108,11,10
+    RTEXT           "Test Mode:",-1,112,124,37,8
+    COMBOBOX        IDC_CBO_TESTMODE,150,121,58,75,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Src:",-1,112,57,18,10
+    COMBOBOX        IDC_CBO_TRANS_SRC,132,55,75,75,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Dest:",-1,112,72,17,10
+    COMBOBOX        IDC_CBO_TRANS_DEST,132,70,75,75,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_FO4SHADER_BGSM DIALOGEX 0, 0, 216, 157
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    GROUPBOX        "Vertex Colors",-1,2,103,105,51
+    CONTROL         "On",IDC_CHK_VERTEXENABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,50,112,21,10
+    RTEXT           "Src Mode:",-1,6,125,38,10
+    COMBOBOX        IDC_CBO_VERTEX_SRC,48,124,51,75,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Light Mode:",-1,6,140,38,10
+    COMBOBOX        IDC_CBO_VERTEX_LIGHT,48,138,51,75,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_FO4SHADER_BASE DIALOGEX 0, 0, 216, 73
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    CONTROL         "",IDC_ED_MTL_FILE,"CustEdit",WS_DISABLED | WS_TABSTOP,40,41,149,12
+    PUSHBUTTON      "Load",IDC_BTN_MTL_LOAD,189,40,22,14
+    GROUPBOX        "Material File:",-1,1,32,212,38
+    LTEXT           "Name:",-1,9,43,27,10
+    PUSHBUTTON      "Save",IDC_BTN_MTL_SAVE,189,54,22,13
+    CONTROL         "No Export",IDC_CHK_NOEXPORT,"Button",BS_AUTOCHECKBOX | NOT WS_VISIBLE | WS_TABSTOP,139,55,47,10
+    COMBOBOX        IDC_CUSTOM_SHADER,38,13,169,136,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Type:",-1,6,15,27,10
+    GROUPBOX        "Shader Type",-1,2,1,209,30
+END
+
+IDD_FO4SHADER_BGEM DIALOGEX 0, 0, 216, 64
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -542,7 +655,32 @@ BEGIN
     BEGIN
     END
 
+    IDD_MESH_SELECT, DIALOG
+    BEGIN
+    END
+
     IDD_NIFSHADER, DIALOG
+    BEGIN
+    END
+
+    IDD_BSSI_SELECT, DIALOG
+    BEGIN
+        BOTTOMMARGIN, 249
+    END
+
+    IDD_FO4SHADER_MTL, DIALOG
+    BEGIN
+    END
+
+    IDD_FO4SHADER_BGSM, DIALOG
+    BEGIN
+    END
+
+    IDD_FO4SHADER_BASE, DIALOG
+    BEGIN
+    END
+
+    IDD_FO4SHADER_BGEM, DIALOG
     BEGIN
     END
 END
@@ -1217,6 +1355,8 @@ IDB_EM_SELMASK          BITMAP                  "Modifier\\selmask.bmp"
 IDB_EM_SELTYPES         BITMAP                  "Modifier\\bmp00003.bmp"
 IDB_EM_ADDDELPART       BITMAP                  "Modifier\\AddDel16.bmp"
 IDB_EM_ADDDELMASK       BITMAP                  "Modifier\\AddDelMask16.bmp"
+IDB_EM_LOCK             BITMAP                  "Modifier\\Lock16.bmp"
+IDB_EM_LOCKMASK         BITMAP                  "Modifier\\LockMask16.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1234,6 +1374,31 @@ BEGIN
 END
 
 IDD_RB_MOD_PANEL5 AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_BSSI_SELECT AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_FO4SHADER_MTL AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_FO4SHADER_BGSM AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_FO4SHADER_BASE AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_FO4SHADER_BGEM AFX_DIALOG_LAYOUT
 BEGIN
     0
 END
@@ -1468,6 +1633,18 @@ BEGIN
     IDS_SPECULAR_STR        "Specular Strength"
     IDS_MAXCHAN_OPACITY     "opacityMap"
     IDS_CHAN_BACKLIGHT      "Back Light"
+    IDS_RB_BSSIMODIFIER     "BS SubIndex Modifier"
+    IDS_CHAN_DISPLACE       "Displacement"
+    IDS_CHAN_WRINKLES       "Wrinkles"
+    IDS_CHAN_INNER          "Inner Layer"
+    IDS_CHAN_GREYSCALE      "Grey Scale"
+    IDS_FO4_SHADER_BASIC    "Base Fallout 4 Shader Settings"
+    IDS_FO4_SHADER_MTL      "Fallout 4 Material Settings"
+    IDS_FO4_SHADER_BGSM     "Fallout 4 BGSM Settings"
+    IDS_FO4_SHADER_BGEM     "Fallout 4 BGEM Settings (Effects)"
+    IDS_BGSM_FILE           "BGSM File"
+    IDS_BGEM_FILE           "BGEM File"
+    IDS_FO4_SHADER          "Fallout 4 Shader"
 END
 
 #endif    // English (United States) resources

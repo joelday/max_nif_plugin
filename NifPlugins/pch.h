@@ -60,6 +60,8 @@
 #undef DECAY_NONE
 
 #include "niflib.h"
+#include "gen/BSVertexData.h"
+#include "gen/BSSkinBoneTrans.h"
 #include "obj/NiObject.h"
 #include "obj/NiNode.h"
 #include "obj/NiTriShape.h"

@@ -1,5 +1,8 @@
 #ifndef __EXPORTER_H__
 #define __EXPORTER_H__
+#include <gen/BSVertexData.h>
+#include <obj/BSTriShape.h>
+#include <obj/BSSubIndexTriShape.h>
 
 namespace Niflib
 {
@@ -252,7 +255,9 @@ public:
 	// creates face groups from faces with same sub material id
 	bool                 splitMesh(INode *node, Mesh &, FaceGroups &grps, TimeValue t, vector<Color4>& vertColors, bool noSplit);
 	// creates a NiTriStrips or NiTriShape hierarchy from a face group
-        NiTriBasedGeomRef    makeMesh(NiNodeRef &parent, INode*node, Mtl *mtl, FaceGroup &grp, bool exportStrips);
+    NiAVObjectRef        makeMesh(NiNodeRef &parent, INode*node, Mtl *mtl, FaceGroup &grp, bool exportStrips);
+	// creates a BSTriShape hierarchy from a face group
+	NiAVObjectRef        makeBSTriShape(NiNodeRef &parent, INode*node, Mtl *mtl, FaceGroup &grp);
 	// splits mesh and converts it into nif blocks
 	Result               exportMesh(NiNodeRef &parent, INode *node, TimeValue t);
 
@@ -263,6 +268,7 @@ public:
 	// creates a NiMaterialProperty
 	void                 makeMaterial(NiAVObjectRef &parent, Mtl *mtl);
 	bool                 exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl);
+	bool                 exportFO4Shader(NiAVObjectRef parent, Mtl* mtl);
 	void                 updateSkinnedMaterial(NiGeometryRef shape);
 
 	/* havok & collision */
@@ -317,7 +323,9 @@ public:
 	bhkShapeRef          makeModCMSD(INodeTab &map, Matrix3& tm, int mtlDefault);
 
 	/* skin export */
-	bool                 makeSkin(NiTriBasedGeomRef shape, INode *node, FaceGroup &grp, TimeValue t);
+	bool                 makeSkin(NiAVObjectRef shape, INode *node, FaceGroup &grp, TimeValue t);
+	bool                 UpdateBoneWeights(INode* node, Exporter::FaceGroup& grp, vector<NiNodeRef>& boneList, vector<BSVertexData>& vertData, vector<BSSkinBoneTrans>& boneTrans);
+	bool                 CreateSegmentation(INode* node, BSSubIndexTriShapeRef ref, FaceGroup& grp);
 	bool                 exportSkin();
 
 	/* animation export */
@@ -347,6 +355,7 @@ public:
 	void                 sortVector4(vector<Vector4>& vector);
 
 	/* specific versions */
+	bool IsFallout4() const;
 	bool IsFallout3() const;
 	bool IsOblivion() const;
 	bool IsMorrowind() const;

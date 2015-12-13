@@ -476,7 +476,7 @@ public:
 	}
 };
 
-class SelectRestore : public RestoreObj {
+class BSDSSelectRestore : public RestoreObj {
 public:
 	BitArray usel, rsel;
 	BitArray *sel;
@@ -484,13 +484,13 @@ public:
 	BSDSData *d;
 	int level;
 
-	SelectRestore(BSDSModifier *m, BSDSData *d);
-	SelectRestore(BSDSModifier *m, BSDSData *d, int level);
+	BSDSSelectRestore(BSDSModifier *m, BSDSData *d);
+	BSDSSelectRestore(BSDSModifier *m, BSDSData *d, int level);
 	void Restore(int isUndo);
 	void Redo();
 	int Size() { return 1; }
 	void EndHold() { d->held = FALSE; }
-	TSTR Description() { return TSTR(TEXT("SelectRestore")); }
+	TSTR Description() { return TSTR(TEXT("BSDSSelectRestore")); }
 };
 
 //--- ClassDescriptor and class vars ---------------------------------
@@ -1261,7 +1261,7 @@ void BSDSModifier::ClearSelection(int selLevel) {
 			else break;
 		}
 
-		if (theHold.Holding() && !d->held) theHold.Put(new SelectRestore(this, d));
+		if (theHold.Holding() && !d->held) theHold.Put(new BSDSSelectRestore(this, d));
 		d->SynchBitArrays();
 		switch (d->GetSelectionLevel()) {
 		case SEL_FACE:
@@ -1284,7 +1284,7 @@ void BSDSModifier::SelectAll(int selLevel) {
 	for (int i = 0; i < list.Count(); i++) {
 		d = (BSDSData *)list[i];
 		if (!d) continue;
-		if (theHold.Holding() && !d->held) theHold.Put(new SelectRestore(this, d));
+		if (theHold.Holding() && !d->held) theHold.Put(new BSDSSelectRestore(this, d));
 		d->SynchBitArrays();
 		switch (selLevel) {
 		case SEL_FACE:
@@ -1308,7 +1308,7 @@ void BSDSModifier::InvertSelection(int selLevel) {
 	for (int i = 0; i < list.Count(); i++) {
 		d = (BSDSData *)list[i];
 		if (!d) continue;
-		if (theHold.Holding() && !d->held) theHold.Put(new SelectRestore(this, d));
+		if (theHold.Holding() && !d->held) theHold.Put(new BSDSSelectRestore(this, d));
 		d->SynchBitArrays();
 		switch (selLevel) {
 		case SEL_FACE:
@@ -1335,7 +1335,7 @@ void BSDSModifier::SelectByMatID(int id) {
 	for (int i = 0; i < list.Count(); i++) {
 		d = (BSDSData *)list[i];
 		if (!d) continue;
-		if (!d->held) theHold.Put(new SelectRestore(this, d));
+		if (!d->held) theHold.Put(new BSDSSelectRestore(this, d));
 		d->SynchBitArrays();
 		if (!add && !sub) d->GetFaceSel().ClearAll();
 		Mesh *mesh = d->GetMesh();
@@ -1371,7 +1371,7 @@ void BSDSModifier::SelectFrom(int from) {
 		d = (BSDSData *)list[i];
 		if (!d) continue;
 
-		if (!d->held) theHold.Put(new SelectRestore(this, d));
+		if (!d->held) theHold.Put(new BSDSSelectRestore(this, d));
 		d->SynchBitArrays();
 	}
 	theHold.Accept(GetString(IDS_DS_SELECT));
@@ -1858,7 +1858,7 @@ void BSDSData::FreeCache() {
 
 void BSDSData::SetFaceSel(int index, BitArray &set, IBSDismemberSkinModifier *imod, TimeValue t) {
 	BSDSModifier *mod = (BSDSModifier *)imod;
-	if (theHold.Holding()) theHold.Put(new SelectRestore(mod, this, SEL_FACE));
+	if (theHold.Holding()) theHold.Put(new BSDSSelectRestore(mod, this, SEL_FACE));
 	GetFaceSel(index) = set;
 	if (mesh) mesh->faceSel = set;
 }
@@ -1938,9 +1938,9 @@ void BSDSData::FixDuplicates()
 		if (add) activeFSel.Set(i, active);
 	}
 }
-// SelectRestore --------------------------------------------------
+// BSDSSelectRestore --------------------------------------------------
 
-SelectRestore::SelectRestore(BSDSModifier *m, BSDSData *data) {
+BSDSSelectRestore::BSDSSelectRestore(BSDSModifier *m, BSDSData *data) {
 	mod = m;
 	level = data->GetSelectionLevel();
 	d = data;
@@ -1948,7 +1948,7 @@ SelectRestore::SelectRestore(BSDSModifier *m, BSDSData *data) {
 	usel = d->GetFaceSel();
 }
 
-SelectRestore::SelectRestore(BSDSModifier *m, BSDSData *data, int sLevel) {
+BSDSSelectRestore::BSDSSelectRestore(BSDSModifier *m, BSDSData *data, int sLevel) {
 	mod = m;
 	level = sLevel;
 	d = data;
@@ -1956,7 +1956,7 @@ SelectRestore::SelectRestore(BSDSModifier *m, BSDSData *data, int sLevel) {
 	usel = d->GetFaceSel();
 }
 
-void SelectRestore::Restore(int isUndo) {
+void BSDSSelectRestore::Restore(int isUndo) {
 	if (isUndo) {
 		switch (level) {
 		case SEL_FACE:
@@ -1974,7 +1974,7 @@ void SelectRestore::Restore(int isUndo) {
 	mod->LocalDataChanged();
 }
 
-void SelectRestore::Redo() {
+void BSDSSelectRestore::Redo() {
 	switch (level) {
 	case SEL_FACE:
 	case SEL_POLY:
@@ -2000,7 +2000,7 @@ void BSDSModifier::ActivateSubSelSet(int index) {
 	for (int i = 0; i < list.Count(); i++) {
 		BSDSData *meshData = (BSDSData *)list[i];
 		if (!meshData) continue;
-		if (theHold.Holding() && !meshData->held) theHold.Put(new SelectRestore(this, meshData));
+		if (theHold.Holding() && !meshData->held) theHold.Put(new BSDSSelectRestore(this, meshData));
 		meshData->SetActivePartition(index);
 	}
 
@@ -2107,7 +2107,7 @@ void BSDSModifier::FixDuplicates()
 	for (int i = 0; i < list.Count(); i++) {
 		d = (BSDSData *)list[i];
 		if (!d) continue;
-		if (!d->held) theHold.Put(new SelectRestore(this, d));
+		if (!d->held) theHold.Put(new BSDSSelectRestore(this, d));
 		d->FixDuplicates();
 	}
 	theHold.Accept(GetString(IDS_RB_FIXDUPL));
@@ -2125,7 +2125,7 @@ void BSDSModifier::SelectUnused()
 	for (int i = 0; i < list.Count(); i++) {
 		d = (BSDSData *)list[i];
 		if (!d) continue;
-		if (!d->held) theHold.Put(new SelectRestore(this, d));
+		if (!d->held) theHold.Put(new BSDSSelectRestore(this, d));
 		d->SelectUnused();
 	}
 	theHold.Accept(GetString(IDS_RB_SELUNUSED));

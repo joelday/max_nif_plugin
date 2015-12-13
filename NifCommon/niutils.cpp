@@ -50,7 +50,7 @@ TSTR FormatText(const char* format, ...)
 	va_start(args, format);
 #ifdef UNICODE
 	size_t Size = _vscprintf(format, args)+1;
-	text.Resize(Size);
+	text.Resize(int(Size));
 	LPSTR buffer = static_cast<LPSTR>(alloca(Size*sizeof(char)));
 	_vsnprintf(buffer, Size, format, args);
 	mbstowcs(DataForWrite(text), buffer, Size);
@@ -86,7 +86,7 @@ TSTR FormatText(const wchar_t* format, ...)
 		return TSTR(W2T(buffer));
 	}
 	size_t Size = _vscwprintf(format, args);
-	text.Resize(Size);
+	text.Resize(int(Size));
 	nChars = _vsnwprintf(DataForWrite(text), Size, format, args);
 #endif
 	va_end(args);
@@ -356,6 +356,61 @@ NameValueCollectionW ReadIniSection(LPCWSTR Section, LPCWSTR iniFileName)
 	}
 	return map;
 }
+
+
+// Parse and ini file section and return the results as s NameValueCollection.
+bool ReadIniSectionAsList(LPCSTR Section, LPCSTR iniFileName, NameValueListA& map)
+{
+	
+	DWORD len = 2048 * sizeof(char);
+	LPSTR buf = (LPSTR)calloc(len + 2, 1);
+	while (nullptr != buf) {
+		DWORD rlen = GetPrivateProfileSectionA(Section, buf, len, iniFileName);
+		if (rlen != (len - 2)) break;
+		len += 2;
+		buf = (LPSTR)realloc(buf, len);
+	}
+	if (nullptr == buf) 
+		return false;
+
+	for (LPSTR line = buf, next = line + strlen(line) + 1; *line; line = next, next = line + strlen(line) + 1) {
+		Trim(line);
+		if (line[0] == ';' || line[0] == 0)
+			continue;
+		if (LPSTR equals = strchr(line, '=')) {
+			*equals++ = 0;
+			Trim(line), Trim(equals);
+			map.push_back(KeyValuePairA(line, equals));
+		}
+	}
+	return true;
+}
+
+bool ReadIniSectionAsList(LPCWSTR Section, LPCWSTR iniFileName, NameValueListW& map)
+{
+	DWORD len = 2048 * sizeof(wchar_t);
+	LPWSTR buf = (LPWSTR)calloc(len + 2, 1);
+	while (nullptr != buf) {
+		DWORD rlen = GetPrivateProfileSectionW(Section, buf, len, iniFileName);
+		if (rlen != (len - 2)) break;
+		len += 2;
+		buf = (LPWSTR)realloc(buf, len*sizeof(wchar_t));
+	}
+	if (nullptr == buf)
+		return false;
+	for (LPWSTR line = buf, next = line + wcslen(line) + 1; *line; line = next, next = line + wcslen(line) + 1) {
+		Trim(line);
+		if (line[0] == ';' || line[0] == 0)
+			continue;
+		if (LPWSTR equals = wcschr(line, L'=')) {
+			*equals++ = 0;
+			Trim(line), Trim(equals);
+			map.push_back(KeyValuePairW(line,equals));
+		}
+	}
+	return true;
+}
+
 // Expand Qualifiers in string using a ${Name} syntax.  Name will be looked up in the
 //    NameValueCollection and expand in place.  Missing names will expand to empty.
 //    - Please dont give self-referential strings
@@ -684,8 +739,8 @@ int wildcmpi(const char *wild, const char *string) {
 	const char *cp, *mp;
 	int f, l;
 	while ((*string) && (*wild != '*')) {
-		f = _tolower(*string);
-		l = _tolower(*wild);
+		f = tolower(*string);
+		l = tolower(*wild);
 		if ((f != l) && (l != '?')) {
 			return 0;
 		}
@@ -697,8 +752,8 @@ int wildcmpi(const char *wild, const char *string) {
 			mp = wild, cp = string + 1;
 		}
 		else {
-			f = _totlower(*string);
-			l = _totlower(*wild);
+			f = tolower(*string);
+			l = tolower(*wild);
 			if ((f == l) || (l == '?')) {
 				wild++, string++;
 			}
@@ -1462,8 +1517,8 @@ void FixNormals(vector<Triangle>& tris, vector<Vector3>& verts, vector<Vector3>&
 	if (tris.size() != norms.size())
 		return;
 
-	int n = tris.size();
-	for (int i = 0; i < n; ++i)
+	size_t n = tris.size();
+	for (size_t i = 0; i < n; ++i)
 	{
 		Triangle& tri = tris[i];
 		Vector3 v1 = verts[tri.v1];
@@ -1731,8 +1786,9 @@ int StringToFlags(TSTR value, const EnumLookupType *table) {
 	LPCTSTR end = value.data() + value.Length();
 	while (start < end) {
 		LPCTSTR bar = _tcschr(start, '|');
-		int len = (bar != nullptr) ? bar - start : end - start;
-		TSTR subval = value.Substr(start - value.data(), len);
+		int offset = int(start - value.data());
+		int len = int((bar != nullptr) ? bar - start : end - start);
+		TSTR subval = value.Substr(offset, len);
 		retval |= StringToEnum(subval, table);
 		start += (len + 1);
 	}

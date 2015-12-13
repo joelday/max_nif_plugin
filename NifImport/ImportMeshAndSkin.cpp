@@ -22,6 +22,7 @@ HISTORY:
 #include <obj/BSTriShape.h>
 #include <obj/BSSkin__Instance.h>
 #include <obj/BSSkin__BoneData.h>
+#include <obj/BSSubIndexTriShape.h>
 
 using namespace Niflib;
 
@@ -916,6 +917,7 @@ bool NifImporter::ImportSkin(ImpNode *node, NiTriBasedGeomRef triGeom, int v_sta
 
 bool NifImporter::ImportSkin(ImpNode *node, Niflib::BSTriShapeRef shape, int v_start)
 {
+	USES_CONVERSION;
 	bool ok = true;
 	
 	if (!shape->HasSkin())
@@ -1021,15 +1023,14 @@ bool NifImporter::ImportSkin(ImpNode *node, Niflib::BSTriShapeRef shape, int v_s
 		//   There is still an outstanding issue with skeleton and GetObjectTMBeforeWSM.
 		skinMod->DisableModInViews();
 		skinMod->EnableModInViews();
-
-#if 0
+#if 1
 		// If Fallout 3 BSDismembermentSkinInstance, ...
 		if (!disableBSDismemberSkinModifier)
 		{
-			if (BSDismemberSkinInstanceRef bsdsi = DynamicCast<BSDismemberSkinInstance>(nifSkin))
+			if (BSSubIndexTriShapeRef siTriShape = DynamicCast<BSSubIndexTriShape>(shape))
 			{
-				Modifier *dismemberSkinMod = GetOrCreateBSDismemberSkin(tnode);
-				if (IBSDismemberSkinModifier *disSkin = (IBSDismemberSkinModifier *)dismemberSkinMod->GetInterface(I_BSDISMEMBERSKINMODIFIER)) {
+				Modifier *subIndexModifier = GetOrCreateBSSubIndexModifier(tnode);
+				if (IBSSubIndexModifier *si_skin = static_cast<IBSSubIndexModifier *>(subIndexModifier->GetInterface(I_BSSUBINDEXSKINMODIFIER))) {
 					// Evaluate node ensure the modifier data is created
 					ObjectState os = tnode->EvalWorldState(0);
 
@@ -1040,48 +1041,85 @@ bool NifImporter::ImportSkin(ImpNode *node, Niflib::BSTriShapeRef shape, int v_s
 						faceMap[rotate(f)] = i;
 					}
 
-					Tab<IBSDismemberSkinModifierData*> modData = disSkin->GetModifierData();
+					Tab<IBSSubIndexModifierData*> modData = si_skin->GetModifierData();
 					for (int i = 0; i < modData.Count(); ++i) {
-						IBSDismemberSkinModifierData* bsdsmd = modData[i];
+						IBSSubIndexModifierData* bssimod = modData[i];
 
-						Tab<BSDSPartitionData> &flags = bsdsmd->GetPartitionFlags();
-						vector<BodyPartList> partitions = bsdsi->GetPartitions();
-						if (partitions.empty())
+						const vector<BSSITSSegment>& segments = siTriShape->GetSegments();
+						if (segments.empty())
 							continue;
+						const BSSIMaterialSection& matSection = siTriShape->GetMaterialSections();
 
-						bsdsmd->SetActivePartition(partitions.size() - 1);
-						for (int j = 0; j < partitions.size(); ++j) {
-							flags[j].bodyPart = (DismemberBodyPartType)partitions[j].bodyPart;
-							flags[j].partFlag = partitions[j].partFlag;
-						}
+						TSTR ssf_file = A2T(siTriShape->GetSSF().c_str());
+						bssimod->SetSSF(ssf_file);
 
-						for (int j = 0; j < part->GetNumPartitions(); ++j) {
-							bsdsmd->SetActivePartition(j);
-							dismemberSkinMod->SelectAll(0); // ensures bitarrays are properly synced to mesh
-							dismemberSkinMod->ClearSelection(0);
-							vector<Triangle> triangles = part->GetTriangles(j);
-							vector<unsigned short> map = part->GetVertexMap(j);
-							GenericNamedSelSetList& fselSet = bsdsmd->GetFaceSelList();
-							if (BitArray* pfsel = fselSet.GetSetByIndex(j))
+						int materialIndex = 0;
+						bssimod->SetActivePartition(segments.size() - 1);
+						for (int j = 0; j < segments.size(); ++j) {
+							const BSSITSSegment& segment = segments[j];
+
+							++materialIndex; // skip seperators
+
+							BSSubIndexData& partition = bssimod->GetPartition(j);
+							bssimod->SetActivePartition(j);
+							subIndexModifier->SelectAll(0); // ensures bitarrays are properly synced to mesh
+							subIndexModifier->ClearSelection(0);
+
+							if (segment.numRecords == 0)
 							{
-								BitArray& fsel = *pfsel;
+								bssimod->SetActiveSubPartition(0);
+								vector<Triangle> triangles = siTriShape->GetTriangles(j);
+								BitArray& fsel = bssimod->GetFaceSel(j, 0);
 								int size = fsel.GetSize();
 								if (size < nfaces)
 									fsel.SetSize(nfaces);
-
 								for (vector<Triangle>::iterator itrtri = triangles.begin(); itrtri != triangles.end(); ++itrtri) {
-									Face f; f.setVerts(map[(*itrtri).v1], map[(*itrtri).v2], map[(*itrtri).v3]);
+									Face f; f.setVerts((*itrtri).v1, (*itrtri).v2, (*itrtri).v3);
 									FaceMap::iterator fitr = faceMap.find(rotate(f));
 									if (fitr != faceMap.end())
 										fsel.Set((*fitr).second);
 								}
 							}
+							else
+							{
+								bssimod->SetActiveSubPartition(segment.numRecords - 1); // reserve space
+								for (int k = 0; k < segment.numRecords; ++k)
+								{
+									vector<Triangle> triangles = siTriShape->GetTriangles(j, k);
+									const BSSITSSubSegment& subsegment = segment.subIndexRecord[k];
+									const Niflib::BSSIMaterial& material = matSection.materials[materialIndex++];
+
+									BSSubIndexMaterial& mat = partition.materials[k];
+									mat.id = material.bodyPartIndex;
+									mat.visible = material.bodyPartIndex >= 100;
+									mat.materialHash = material.materialHash;
+									mat.data.resize(material.numData);
+									for (int l = 0; l < material.numData; ++l) {
+										auto value = material.extraData[l];
+										mat.data.push_back(value);
+									}
+									//GenericNamedSelSetList& fselSet = bssimod->GetFaceSelList();
+									{
+										BitArray& fsel = bssimod->GetFaceSel(j, k);
+										int size = fsel.GetSize();
+										if (size < nfaces)
+											fsel.SetSize(nfaces);
+
+										for (vector<Triangle>::iterator itrtri = triangles.begin(); itrtri != triangles.end(); ++itrtri) {
+											Face f; f.setVerts((*itrtri).v1, (*itrtri).v2, (*itrtri).v3);
+											FaceMap::iterator fitr = faceMap.find(rotate(f));
+											if (fitr != faceMap.end())
+												fsel.Set((*fitr).second);
+										}
+									}
+								}
+							}
 						}
-						bsdsmd->SetActivePartition(0);
+						bssimod->SetActivePartition(0);
 					}
-					disSkin->LocalDataChanged();
-					dismemberSkinMod->DisableModInViews();
-					dismemberSkinMod->EnableModInViews();
+					si_skin->LocalDataChanged();
+					subIndexModifier->DisableModInViews();
+					subIndexModifier->EnableModInViews();
 				}
 			}
 		}

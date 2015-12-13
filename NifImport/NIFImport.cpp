@@ -122,13 +122,17 @@ void NifImporter::Initialize()
 		hasSkeleton = HasSkeleton();
 		isBiped = IsBiped();
 		skeleton = GetSkeleton(appSettings);
-		importSkeleton = (appSettings != nullptr) ? appSettings->useSkeleton : false;
+		importSkeleton = hasSkeleton;
 		importSkeleton &= !isBiped;
 		bool skeletonExists = (-1 != _taccess(skeleton.c_str(), 0));
 
 		// Guess that the skeleton is the same one in the current directory
 		if (importSkeleton && !defaultSkeletonName.empty()) {
 			TCHAR buffer[MAX_PATH], fullname[MAX_PATH];
+
+			// preserve last selected setting if file not found
+			importSkeleton = ((appSettings != nullptr) ? appSettings->useSkeleton : false);
+
 			for (tstringlist::iterator itr = appSettings->skeletonSearchPaths.begin(),
 				end = appSettings->skeletonSearchPaths.end(); itr != end; ++itr) {
 
@@ -148,7 +152,7 @@ void NifImporter::Initialize()
 				GetFullPathName(buffer, _countof(fullname), fullname, nullptr);
 				bool defaultSkeletonExists = (-1 != _taccess(fullname, 0));
 				if (defaultSkeletonExists) {
-					importSkeleton &= (hasSkeleton || defaultSkeletonExists || skeletonExists);
+					importSkeleton = (defaultSkeletonExists || skeletonExists);
 					skeleton = fullname;
 					break;
 				}
@@ -417,6 +421,49 @@ INode *NifImporter::GetNode(const TSTR& name) {
 	return GetNode(tstring(name.data()));
 }
 
+
+bool NifImporter::FindFile(const tstring& name, tstring& resolved_name) const
+{
+	TCHAR buffer[MAX_PATH];
+
+	// Simply check for fully qualified path
+	if (!PathIsRelative(name.c_str())) {
+		if (-1 != _taccess(name.c_str(), 0)) {
+			resolved_name = tstring(name);
+			return true;
+		}
+	}
+	if (!path.empty()) {
+		PathCombine(buffer, path.c_str(), name.c_str()); // try as-is
+		if (-1 != _taccess(buffer, 0)) {
+			resolved_name = tstring(buffer);
+			return true;
+		}
+
+		// try only filename in nif directory
+		PathCombine(buffer, path.c_str(), PathFindFileName(name.c_str()));
+		if (-1 != _taccess(buffer, 0)) {
+			resolved_name = tstring(buffer);
+			return true;
+		}
+	}
+	if (appSettings != nullptr) {
+		return appSettings->FindFile(name, resolved_name);
+	}
+	resolved_name = name;
+	return false;
+}
+
+bool NifImporter::FindFileByType(const tstring& name, FileType type, tstring& resolved_name) const
+{
+	switch(type)
+	{
+	case FT_Texture: resolved_name = FindImage(name); return true;
+	case FT_Material: resolved_name = FindMaterial(name); return true;
+	}
+	return FindFile(name, resolved_name);
+}
+
 bool NifImporter::DoImport()
 {
 	bool ok = true;
@@ -452,7 +499,7 @@ bool NifImporter::DoImport()
 						importedBones = GetNamesOfNodes(skelImport.nodes);
 				}
 			}
-			catch (RuntimeError &error)
+			catch (RuntimeError &)
 			{
 				// ignore import errors and continue
 			}
@@ -535,3 +582,5 @@ bool NifImporter::IsOblivion() const {
 bool NifImporter::IsMorrowind() const {
 	return ((nifVersion == 0x04000002) && (userVersion == 11 || userVersion == 10));
 }
+
+

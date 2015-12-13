@@ -56,6 +56,7 @@ void AppSettings::ReadSettings(tstring iniFile)
 	searchPaths = TokenizeString(GetSetting<tstring>(TEXT("TextureSearchPaths")).c_str(), TEXT(";"));
 	extensions = TokenizeString(GetSetting<tstring>(TEXT("TextureExtensions")).c_str(), TEXT(";"));
 	textureRootPaths = TokenizeString(GetSetting<tstring>(TEXT("TextureRootPaths")).c_str(), TEXT(";"));
+	materialRootPaths = TokenizeString(GetSetting<tstring>(TEXT("MaterialPaths")).c_str(), TEXT(";"));
 
 	Skeleton = GetSetting<tstring>(TEXT("Skeleton"));
 	useSkeleton = GetSetting<bool>(TEXT("UseSkeleton"), useSkeleton);
@@ -87,7 +88,15 @@ void AppSettings::WriteSettings(Interface *gi)
 }
 
 
-tstring AppSettings::FindImage(const tstring& fname) {
+void AppSettings::CacheImages()
+{
+	if (!parsedImages) {
+		FindImages(imgTable, rootPath, searchPaths, extensions);
+		parsedImages = true;
+	}
+}
+
+tstring AppSettings::FindImage(const tstring& fname) const {
 	TCHAR buffer[MAX_PATH];
 
 	// Simply check for fully qualified path
@@ -97,7 +106,7 @@ tstring AppSettings::FindImage(const tstring& fname) {
 	}
 
 	// Test if its relative and in one of the specified root paths
-	for (tstringlist::iterator itr = textureRootPaths.begin(), end = textureRootPaths.end(); itr != end; ++itr) {
+	for (tstringlist::const_iterator itr = textureRootPaths.begin(), end = textureRootPaths.end(); itr != end; ++itr) {
 		PathCombine(buffer, itr->c_str(), fname.c_str());
 		if (-1 != _taccess(buffer, 0)) {
 			return tstring(buffer);
@@ -105,15 +114,12 @@ tstring AppSettings::FindImage(const tstring& fname) {
 	}
 
 	// Hit the directories to find out whats out there
-	if (!parsedImages) {
-		FindImages(imgTable, rootPath, searchPaths, extensions);
-		parsedImages = true;
-	}
+	const_cast<AppSettings*>(this)->CacheImages();
 
 	// Search my filename for our texture
 	_tcscpy(buffer, PathFindFileName(fname.c_str()));
 	PathRemoveExtension(buffer);
-	NameValueCollection::iterator nmitr = imgTable.find(buffer);
+	NameValueCollection::const_iterator nmitr = imgTable.find(buffer);
 	if (nmitr != imgTable.end()) {
 		if (!rootPath.empty()) {
 			_tcscpy(buffer, rootPath.c_str());
@@ -127,16 +133,58 @@ tstring AppSettings::FindImage(const tstring& fname) {
 	return fname;
 }
 
+tstring AppSettings::FindMaterial(const tstring& fname) const {
+	TCHAR buffer[MAX_PATH];
+
+	// Simply check for fully qualified path
+	if (!PathIsRelative(fname.c_str())) {
+		if (-1 != _taccess(fname.c_str(), 0))
+			return fname;
+	}
+
+	// Test if its relative and in one of the specified root paths
+	for (tstringlist::const_iterator itr = materialRootPaths.begin(), end = materialRootPaths.end(); itr != end; ++itr) {
+		PathCombine(buffer, itr->c_str(), fname.c_str());
+		if (-1 != _taccess(buffer, 0)) {
+			return tstring(buffer);
+		}
+	}
+	return fname;
+}
+
+bool AppSettings::FindFile(const tstring& fname, tstring& resolved_name) const
+{
+	TCHAR buffer[MAX_PATH];
+
+	// Simply check for fully qualified path
+	if (!PathIsRelative(fname.c_str())) {
+		if (-1 != _taccess(fname.c_str(), 0)) {
+			resolved_name = fname;
+			return true;
+		}
+	}
+
+	// Test if its relative and in one of the specified root paths
+	for (tstringlist::const_iterator itr = rootPaths.begin(), end = rootPaths.end(); itr != end; ++itr) {
+		PathCombine(buffer, itr->c_str(), fname.c_str());
+		if (-1 != _taccess(buffer, 0)) {
+			resolved_name = tstring(buffer);
+			return true;
+		}
+	}
+	resolved_name = fname;
+	return false;
+}
 
 // Check whether the given file is a child of the root paths
-bool AppSettings::IsFileInRootPaths(const tstring& fname)
+bool AppSettings::IsFileInRootPaths(const tstring& fname) const
 {
 	TCHAR root[MAX_PATH];
 	TCHAR file[MAX_PATH];
 	GetFullPathName(fname.c_str(), _countof(file), file, nullptr);
 	PathMakePretty(file);
 
-	for (tstringlist::iterator itr = rootPaths.begin(), end = rootPaths.end(); itr != end; ++itr) {
+	for (tstringlist::const_iterator itr = rootPaths.begin(), end = rootPaths.end(); itr != end; ++itr) {
 		GetFullPathName((*itr).c_str(), _countof(root), root, nullptr);
 		PathAddBackslash(root);
 		PathMakePretty(root);
@@ -150,12 +198,12 @@ bool AppSettings::IsFileInRootPaths(const tstring& fname)
 }
 
 // Return the Relative Texture Path for filename or empty
-tstring AppSettings::GetRelativeTexPath(const tstring& fname, const tstring& prefix)
+tstring AppSettings::GetRelativeTexPath(const tstring& fname, const tstring& prefix) const
 {
 	return GetRelativeTexPath(fname.c_str(), prefix.c_str());
 }
 
-tstring AppSettings::GetRelativeTexPath(LPCTSTR fname, LPCTSTR prefix)
+tstring AppSettings::GetRelativeTexPath(LPCTSTR fname, LPCTSTR prefix) const
 {
 	TCHAR buffer[MAX_PATH];
 	if (textureUseFullPath == 1) // full path name
@@ -174,7 +222,7 @@ tstring AppSettings::GetRelativeTexPath(LPCTSTR fname, LPCTSTR prefix)
 		GetFullPathName(fname, _countof(file), file, nullptr);
 		PathMakePretty(file);
 
-		for (tstringlist::iterator itr = textureRootPaths.begin(), end = textureRootPaths.end(); itr != end; ++itr) {
+		for (tstringlist::const_iterator itr = textureRootPaths.begin(), end = textureRootPaths.end(); itr != end; ++itr) {
 			GetFullPathName((*itr).c_str(), _countof(root), root, nullptr);
 			PathAddBackslash(root);
 			PathMakePretty(root);
@@ -187,7 +235,7 @@ tstring AppSettings::GetRelativeTexPath(LPCTSTR fname, LPCTSTR prefix)
 	}
 	else // Test if its relative to one of the specified root paths just return the texture 
 	{
-		for (tstringlist::iterator itr = textureRootPaths.begin(), end = textureRootPaths.end(); itr != end; ++itr) {
+		for (tstringlist::const_iterator itr = textureRootPaths.begin(), end = textureRootPaths.end(); itr != end; ++itr) {
 			PathCombine(buffer, itr->c_str(), fname);
 			if (-1 != _taccess(buffer, 0)) {
 				return fname;

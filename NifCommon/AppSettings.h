@@ -37,6 +37,7 @@ public:
    tstringlist textureRootPaths;
    tstringlist rootPaths;
    tstringlist extensions;
+   tstringlist materialRootPaths;
    tstring Skeleton;
    bool useSkeleton;
    tstringlist skeletonSearchPaths;
@@ -58,14 +59,17 @@ public:
    static void Initialize(Interface *gi);
    void ReadSettings(tstring iniFile);
    void WriteSettings(Interface *gi);
-   tstring FindImage(const tstring& fname);
+   bool FindFile(const tstring& fname, tstring& resolved_name) const;
+   void CacheImages();
+   tstring FindImage(const tstring& fname) const;
+   tstring FindMaterial(const tstring& fname) const;
 
    // Check whether the given file is a child of the root paths
-   bool IsFileInRootPaths(const tstring& fname);
+   bool IsFileInRootPaths(const tstring& fname) const;
 
    // Return the Relative Texture Path for filename or empty
-   tstring GetRelativeTexPath(const tstring& fname, const tstring& prefix);
-   tstring GetRelativeTexPath(LPCTSTR fname, LPCTSTR prefix);
+   tstring GetRelativeTexPath(const tstring& fname, const tstring& prefix) const;
+   tstring GetRelativeTexPath(LPCTSTR fname, LPCTSTR prefix) const;
 
    template<typename T>
    inline T GetSetting(tstring setting){

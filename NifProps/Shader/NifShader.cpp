@@ -1156,7 +1156,7 @@ INT_PTR CALLBACK  NifShaderDlg::DlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, L
 			return FALSE;
 	}
 	theDlg->isActive = 1;
-	BOOL res = theDlg->PanelProc(hwndDlg, msg, wParam, lParam);
+	INT_PTR res = theDlg->PanelProc(hwndDlg, msg, wParam, lParam);
 	theDlg->isActive = 0;
 	return res;
 }

@@ -7,6 +7,7 @@
 #ifdef USE_BIPED
 #  include <cs/BipedApi.h>
 #endif
+#include <float.h>
 #include "../NifProps/iNifProps.h"
 #include "obj/NiBSBoneLODController.h"
 #include "obj/NiTransformController.h"
@@ -16,6 +17,11 @@
 #include "obj/bhkCapsuleShape.h"
 #include "obj/BSDismemberSkinInstance.h"
 #include "ObjectRegistry.h"
+#include <obj/BSTriShape.h>
+#include <obj/BSSkin__Instance.h>
+#include <obj/BSSkin__BoneData.h>
+#include <obj/BSSubIndexTriShape.h>
+#include <gen/SphereBV.h>
 
 #pragma region Comparison Utilities
 inline bool equals(float a, float b, float thresh) {
@@ -180,6 +186,8 @@ inline Triangle& rotate(Triangle &t)
 	return t;
 }
 typedef std::map<Triangle, int> FaceMap;
+
+
 #pragma endregion
 
 Exporter::Result Exporter::exportMesh(NiNodeRef &ninode, INode *node, TimeValue t)
@@ -311,7 +319,7 @@ Exporter::Result Exporter::exportMesh(NiNodeRef &ninode, INode *node, TimeValue 
 		for (grp = grps.begin(); grp != grps.end(); ++grp, ++i)
 		{
 			string name = FormatString(format, basename.data(), i);
-			NiTriBasedGeomRef shape = makeMesh(ninode, node, getMaterial(node, grp->first), grp->second, exportStrips);
+			NiAVObjectRef shape = makeMesh(ninode, node, getMaterial(node, grp->first), grp->second, exportStrips);
 			if (shape == nullptr)
 			{
 				result = Error;
@@ -324,24 +332,27 @@ Exporter::Result Exporter::exportMesh(NiNodeRef &ninode, INode *node, TimeValue 
 			shape->SetName(name);
 			shape->SetLocalTransform(tm);
 
-			if (Exporter::mZeroTransforms) {
-				shape->ApplyTransforms();
-			}
-
-			if ( makeSkin(shape, node, grp->second, t) )
+			NiTriBasedGeomRef triShape = DynamicCast<NiTriBasedGeom>(shape);
+			if (triShape != nullptr)
 			{
-				// fix material flags know that its known this has a skin
-				if (IsSkyrim()) {
-					updateSkinnedMaterial(shape);
+				if (Exporter::mZeroTransforms) {
+					triShape->ApplyTransforms();
+				}
+
+				if (makeSkin(shape, node, grp->second, t))
+				{
+					// fix material flags know that its known this has a skin
+					if (IsSkyrim()) {
+						updateSkinnedMaterial(shape);
+					}
+				}
+
+				if (geomMorpherMod && triShape != nullptr) {
+					vector<Vector3> verts = triShape->GetData()->GetVertices();
+					exportGeomMorpherControl(geomMorpherMod, verts, triShape->GetData()->GetVertexIndices(), shape);
+					triShape->GetData()->SetConsistencyFlags(CT_VOLATILE);
 				}
 			}
-
-			if (geomMorpherMod) {
-				vector<Vector3> verts = shape->GetData()->GetVertices();
-				exportGeomMorpherControl(geomMorpherMod, verts, shape->GetData()->GetVertexIndices(), shape);
-				shape->GetData()->SetConsistencyFlags(CT_VOLATILE);
-			}
-
 		}
 
 		break;
@@ -356,8 +367,12 @@ Exporter::Result Exporter::exportMesh(NiNodeRef &ninode, INode *node, TimeValue 
 	return result;
 }
 
-NiTriBasedGeomRef Exporter::makeMesh(NiNodeRef &parent, INode* node, Mtl *mtl, FaceGroup &grp, bool exportStrips)
+NiAVObjectRef Exporter::makeMesh(NiNodeRef &parent, INode* node, Mtl *mtl, FaceGroup &grp, bool exportStrips)
 {
+	if (IsFallout4()) {
+		return makeBSTriShape(parent, node, mtl, grp);
+	}
+
 	USES_CONVERSION;
 	NiTriBasedGeomRef shape;
 	NiTriBasedGeomDataRef data;
@@ -428,6 +443,487 @@ NiTriBasedGeomRef Exporter::makeMesh(NiNodeRef &parent, INode* node, Mtl *mtl, F
 	NiAVObjectRef av(DynamicCast<NiAVObject>(shape));
 	makeMaterial(av, mtl);
 	shape->SetActiveMaterial(0);
+
+	return shape;
+}
+
+
+static bool CalcTangentSpace(const Exporter::Triangles& tris, const vector<Vector3>& verts, const vector<Vector3>& norms, 
+	const vector<TexCoord>& uvs, vector<Vector3>& tangents, vector<Vector3>& binormals)
+{
+	const int method = 0;
+	if (verts.empty() || uvs.empty() || norms.empty()) return false;
+
+	tangents.resize(verts.size());
+	binormals.resize(verts.size());
+	if (method == 0) // Nifskope algorithm
+	{
+		for (int t = 0; t < (int)tris.size(); t++) {
+			const Triangle & tri = tris[t];
+
+			int i1 = tri[0];
+			int i2 = tri[1];
+			int i3 = tri[2];
+
+			const Vector3 v1 = verts[i1];
+			const Vector3 v2 = verts[i2];
+			const Vector3 v3 = verts[i3];
+
+			const TexCoord w1 = uvs[i1];
+			const TexCoord w2 = uvs[i2];
+			const TexCoord w3 = uvs[i3];
+
+			Vector3 v2v1 = v2 - v1;
+			Vector3 v3v1 = v3 - v1;
+
+			TexCoord w2w1(w2.u - w1.u, w2.v - w1.v);
+			TexCoord w3w1(w3.u - w1.u, w3.v - w1.v);
+
+			float r = w2w1.u * w3w1.v - w3w1.u * w2w1.v;
+
+			r = (r >= 0.0f ? +1.0f : -1.0f);
+
+			Vector3 sdir(
+				(w3w1.v * v2v1.x - w2w1.v * v3v1.x) * r,
+				(w3w1.v * v2v1.y - w2w1.v * v3v1.y) * r,
+				(w3w1.v * v2v1.z - w2w1.v * v3v1.z) * r
+				);
+
+			Vector3 tdir(
+				(w2w1.u * v3v1.x - w3w1.u * v2v1.x) * r,
+				(w2w1.u * v3v1.y - w3w1.u * v2v1.y) * r,
+				(w2w1.u * v3v1.z - w3w1.u * v2v1.z) * r
+				);
+			sdir = sdir.Normalized();
+			tdir = tdir.Normalized();
+
+			// no duplication, just smoothing
+			for (int j = 0; j < 3; j++) {
+				int i = tri[j];
+				tangents[i] += tdir;
+				binormals[i] += sdir;
+			}
+		}
+
+		// for each vertex calculate tangent and binormal
+		for (unsigned i = 0; i < verts.size(); i++) {
+			const Vector3 & n = norms[i];
+
+			Vector3 & t = tangents[i];
+			Vector3 & b = binormals[i];
+
+			if (t == Vector3() || b == Vector3()) {
+				t.x = n.y;
+				t.y = n.z;
+				t.z = n.x;
+				b = n.CrossProduct(t);
+			}
+			else {
+				t = t.Normalized();
+				t = (t - n * n.DotProduct(t));
+				t = t.Normalized();
+
+				b = b.Normalized();
+				b = (b - n * n.DotProduct(b));
+				b = (b - t * t.DotProduct(b));
+				b = b.Normalized();
+			}
+		}
+	}
+	else if (method == 1) // Obsidian Algorithm
+	{
+		for (unsigned int faceNo = 0; faceNo < tris.size(); ++faceNo)   // for each face
+		{
+			const Triangle & t = tris[faceNo];  // get face
+			int i0 = t[0], i1 = t[1], i2 = t[2];		// get vertex numbers
+			Vector3 side_0 = verts[i0] - verts[i1];
+			Vector3 side_1 = verts[i2] - verts[i1];
+
+			float delta_U_0 = uvs[i0].u - uvs[i1].u;
+			float delta_U_1 = uvs[i2].u - uvs[i1].u;
+			float delta_V_0 = uvs[i0].v - uvs[i1].v;
+			float delta_V_1 = uvs[i2].v - uvs[i1].v;
+
+			Vector3 face_tangent = (side_0 * delta_V_1 - side_1 * delta_V_0).Normalized();
+			Vector3 face_bi_tangent = (side_0 * delta_U_1 - side_1 * delta_U_0).Normalized();
+			Vector3 face_normal = (side_0 ^ side_1).Normalized();
+
+			// no duplication, just smoothing
+			for (int j = 0; j <= 2; j++) {
+				int i = t[j];
+				tangents[i] += face_tangent;
+				binormals[i] += face_bi_tangent;
+			}
+		}
+
+		// for each.getPosition(), normalize the Tangent and Binormal
+		for (unsigned int i = 0; i < verts.size(); i++) {
+			binormals[i] = binormals[i].Normalized();
+			tangents[i] = tangents[i].Normalized();
+		}
+	}
+	return true;
+}
+
+static void UpdateAABBBox(const Vector3& v, Vector3& lows, Vector3& highs)
+{
+	if (v.x > highs.x) highs.x = v.x;
+	else if (v.x < lows.x) lows.x = v.x;
+	if (v.y > highs.y) highs.y = v.y;
+	else if (v.y < lows.y) lows.y = v.y;
+	if (v.z > highs.z) highs.z = v.z;
+	else if (v.z < lows.z) lows.z = v.z;
+}
+
+static void CalcAxisAlignedBox(const vector<Vector3>& vertices, SphereBV& bounds)
+{
+	//--Calculate center & radius--//
+
+	//Set lows and highs to first vertex
+	Vector3 lows = vertices[0];
+	Vector3 highs = vertices[0];
+
+	//Iterate through the vertices, adjusting the stored values
+	//if a vertex with lower or higher values is found
+	for (unsigned int i = 0; i < vertices.size(); ++i) {
+		UpdateAABBBox(vertices[i], lows, highs);
+	}
+
+	//Now we know the extent of the shape, so the center will be the average
+	//of the lows and highs
+	bounds.center = (highs + lows) / 2.0f;
+
+	//The radius will be the largest distance from the center
+	Vector3 diff;
+	float dist2(0.0f), maxdist2(0.0f);
+	for (unsigned int i = 0; i < vertices.size(); ++i) {
+		const Vector3 & v = vertices[i];
+
+		diff = bounds.center - v;
+		dist2 = diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
+		if (dist2 > maxdist2) maxdist2 = dist2;
+	};
+	bounds.radius = sqrt(maxdist2);
+}
+
+typedef std::pair<float, int> bone_weight;
+struct bone_weight_sort : std::less<bone_weight>
+{
+	bool operator()(const bone_weight& _Left, const bone_weight& _Right) const {
+		return std::less<bone_weight>()(_Right, _Left);
+	}
+};
+struct sum_weights {
+	float operator()(float total, bone_weight& w) const {
+		return total + w.first;
+	}
+};
+
+bool Exporter::UpdateBoneWeights(INode* node, Exporter::FaceGroup& grp, 
+	vector<NiNodeRef>& boneList, vector<BSVertexData>& vertData, vector<BSSkinBoneTrans>& boneTrans)
+{
+	//get the skin modifier
+	Modifier *mod = GetSkin(node);
+	if (!mod) return false;
+
+	ISkin *skin = (ISkin *)mod->GetInterface(I_SKIN);
+	if (!skin) return false;
+
+	ISkinContextData *skinData = skin->GetContextInterface(node);
+	if (!skinData) return false;
+	std::vector<Triangle> tris = grp.faces;
+	// Get bone references (may not actually exist in proper structure at this time)
+	//vector<bool> boneUsed;
+	vector<int> boneVertCount;
+	int totalBones = skin->GetNumBones();
+	boneList.resize(totalBones);
+	boneTrans.resize(totalBones);
+	boneVertCount.resize(totalBones);
+	//boneUsed.resize(totalBones);
+	for (int i = 0; i < totalBones; ++i) {
+		INode *bone = skin->GetBone(i);
+		boneList[i] = getNode(bone);
+
+		BSSkinBoneTrans& bt = boneTrans[i];
+		Matrix44 tm = TOMATRIX4(bone->GetNodeTM(0));
+		bt.SetTransform(tm);
+	}
+
+	vector<Vector3> lows(totalBones, Vector3(FLT_MAX, FLT_MAX, FLT_MAX));
+	vector<Vector3> highs(totalBones, Vector3(-FLT_MAX,-FLT_MAX,-FLT_MAX));
+
+	vector<Vector3>& verts = grp.verts;
+	vector<int>& vidx = grp.vidx;
+	vector<int>& vmap = grp.vmap;
+	int nv = vidx.size();
+	for (int i = 0; i < nv; ++i)
+	{
+		BSVertexData& vd = vertData[i];
+		int vm_i = vmap[i];
+		int vi = vidx[i];
+		int nbones = skinData->GetNumAssignedBones(vi);
+		if (nbones == 0) {
+			vd.SetBoneWeight(0, 0, 1.0f);// assume first bone is most important bone
+		} else  {
+			vector<bone_weight> weights;
+			for (int j = 0; j < nbones; ++j) {
+				int boneIndex = skinData->GetAssignedBone(vi, j);
+				float weight = skinData->GetBoneWeight(vi, j);
+				weights.push_back(bone_weight(weight, boneIndex));
+			}
+			std::sort(weights.begin(), weights.end(), bone_weight_sort());
+			nbones = std::min(4, nbones);
+			vector<bone_weight>::iterator bwend = weights.begin();
+			std::advance(bwend, nbones);
+			float total = std::accumulate(weights.begin(), bwend, 0.0f, sum_weights());
+			for (int j = 0; j < nbones; ++j) {
+				int bi = weights[j].second;
+				vd.SetBoneWeight(j, bi, weights[j].first / total);
+
+				UpdateAABBBox(verts[vm_i], lows[bi], highs[bi]);
+				//BSSkinBoneTrans& bt = boneTrans[bi];
+				//bt.bsCenter += verts[vmap[i]]; // intermediate bounding sphere calc
+				boneVertCount[bi]++;
+			}
+		}
+	}
+	for (int i = 0; i < totalBones; ++i) {
+		BSSkinBoneTrans& bt = boneTrans[i];
+		Vector3& btlows = lows[i];
+		Vector3& bthighs = highs[i];
+		int vc = boneVertCount[i];
+		if (vc){
+			bt.bounds.center = ((bthighs + btlows) / 2.0f);
+			bt.bounds.radius = 0.0f;
+		}else{
+			bt.bounds.center = Vector3(0.0f,0.0f,0.0f);
+			bt.bounds.radius = 0.0f;
+		}
+	}
+	float radsq = 0.0f;
+	for (int i = 0; i<nv; ++i) {
+		BSVertexData& vd = vertData[i];
+		
+		for (int j = 0; j < 4; ++j) {
+			int bi = vd.boneIndices[j];
+			float bw = vd.boneWeights[j];
+			if (bi == 0 && bw == 0.0f) break;
+
+			BSSkinBoneTrans& bt = boneTrans[bi];
+			float mag = (bt.bounds.center - verts[vmap[i]]).Magnitude();
+			bt.bounds.radius = max(bt.bounds.radius, mag);
+		}
+	}
+	Matrix3 wm = node->GetNodeTM(0);
+	for (int i = 0; i < totalBones; ++i) {
+		INode *bone = skin->GetBone(i);
+		BSSkinBoneTrans& bt = boneTrans[i];
+		Matrix44 btm(bt.GetTranslation(), bt.GetRotation(), bt.GetScale());
+		bt.bounds.center = btm.Inverse() * bt.bounds.center;
+
+		Matrix3 bm = bone->GetNodeTM(0);
+		bm.Invert();
+		Matrix44 tm = TOMATRIX4(wm * bm);
+		
+		bt.SetTransform(tm);
+	}	// TODO: remove unused bones
+	return true;
+}
+
+bool Exporter::CreateSegmentation(INode* node, BSSubIndexTriShapeRef shape, FaceGroup& grp)
+{
+	USES_CONVERSION;
+	int ntris = grp.faces.size();
+	std::vector<Triangle> tris;
+	tris.reserve(ntris);
+	BitArray used_array;
+	used_array.SetSize(ntris);
+
+	
+	Modifier *subIndexModifier = GetBSSubIndexModifier(node);
+	if (subIndexModifier == nullptr) return false;
+	
+	IBSSubIndexModifier *si_skin = static_cast<IBSSubIndexModifier *>(subIndexModifier->GetInterface(I_BSSUBINDEXSKINMODIFIER));
+	if (si_skin == nullptr) return false;
+
+	IBSSubIndexModifierData* bssimod = nullptr;
+	Tab<IBSSubIndexModifierData*> modData = si_skin->GetModifierData();
+	for (int i = 0; i < modData.Count(); ++i) {
+		bssimod = modData[i];
+		break;
+	}
+	if (bssimod == nullptr) return false;
+
+	DWORD numSegments = bssimod->GetNumPartitions();
+	vector<BSSITSSegment> segments(numSegments);
+	BSSIMaterialSection section;
+	section.materials.reserve(numSegments + numSegments*5); // just approximation
+	int triangleOffset = 0;
+	int segmentOffset = 0;
+	for (int i = 0; i < numSegments; ++i)
+	{
+		auto& segment = segments[i];
+		auto& partition = bssimod->GetPartition(i);
+		auto& materials = partition.materials;
+
+		segment.triangleOffset = triangleOffset;
+		segment.triangleCount = 0;
+		segment.materialHash = 0xFFFFFFFF;
+		
+		BSSIMaterial seperator;
+		seperator.materialHash = 0xFFFFFFFF;
+		seperator.bodyPartIndex = segmentOffset++;
+		section.materials.push_back(seperator);
+		section.emptyMaterials.push_back(i);
+
+		partition.id = i;
+
+		// skip the empty materials
+		bool emptyMaterial = (materials.size() == 1 && materials[0].materialHash == 0xFFFFFFFF);
+
+		if (!emptyMaterial)
+			segment.subIndexRecord.resize(materials.size());
+
+		for (int j = 0; j < materials.size(); ++j)
+		{
+			auto& material = materials[j];
+
+			BSSITSSubSegment *si_record = nullptr;
+			if (!emptyMaterial)
+			{
+				si_record = &segment.subIndexRecord[j];
+				si_record->triangleOffset = triangleOffset;
+				si_record->segmentOffset = seperator.bodyPartIndex;
+				
+				BSSIMaterial mat;
+				mat.materialHash = material.materialHash;
+				mat.bodyPartIndex = j + 1 + (material.visible ? 100 : 0);
+				for (int k = 0; k < material.data.size(); ++k)
+					mat.extraData.push_back(material.data[k]);
+				section.materials.push_back(mat);
+				++segmentOffset;
+			}
+
+			auto& facesel = bssimod->GetFaceSel(i, j);
+			if (facesel.AnyBitSet()) {
+				for (int k = 0; k < ntris; ++k) {
+					if (facesel[k]) {
+						int fi = grp.fidx[k];
+						used_array.Set(fi);
+						tris.push_back(grp.faces[fi]);
+						triangleOffset+=3;
+						++segment.triangleCount;
+						if(si_record) ++si_record->triangleCount;
+					}
+				}
+			}
+		}	
+	}
+	section.numSegments = numSegments;
+	section.numMaterials = section.materials.size();
+
+	shape->SetMaterialSections(section);
+	shape->SetSegments(segments);
+
+	TSTR ssf_file = bssimod->GetSSF();
+	shape->SetSSF(T2A(ssf_file));
+
+	int diff = (grp.faces.size() - tris.size());
+	if (diff != 0)
+	{
+		for (int i = 0; i < ntris; ++i)
+		{
+			if (!used_array[i])
+				tris.push_back(grp.faces[i]);
+		}
+		diff = (grp.faces.size() - tris.size());
+		if (diff != 0)
+		{
+			tstringstream error;
+			error << "Skin Segmentation Error: Not all faces selected on '" << node->GetName() << "' there are " << diff << " unselected faces out of " << grp.faces.size() << "." << ends;
+			throw runtime_error(T2AString(error.str()));
+		}
+	}
+	grp.faces = tris;
+
+	return true;
+}
+
+NiAVObjectRef Exporter::makeBSTriShape(NiNodeRef &parent, INode* node, Mtl *mtl, FaceGroup &grp)
+{
+	USES_CONVERSION;
+	BSTriShapeRef shape;
+	static TexCoords empty_uvs;
+
+	//if (Exporter::mFixNormals) {
+	//   FixNormals(grp.faces, grp.verts, grp.vnorms);
+	//}
+
+	TSTR shapeType, shapeDataType;
+	if (node->GetUserPropString(TEXT("ShapeType"), shapeType))
+		shape = DynamicCast<BSTriShape>(Niflib::ObjectRegistry::CreateObject(T2A(shapeType)));
+
+	const Triangles& tris = grp.faces;
+	const vector<Vector3>& verts = grp.verts;
+	const vector<Vector3>& norms = grp.vnorms;
+	const vector<Color4>& vcs = grp.vcolors;
+	const vector<TexCoord>& uvs = grp.uvs.empty() ? empty_uvs : grp.uvs[0];
+	bool has_uv, has_vc, has_normal, has_tangent, has_skin;
+	has_uv = !uvs.empty();
+	has_vc = !vcs.empty();
+	has_normal = !norms.empty();
+	
+	vector<Vector3> tangents, binormals;
+	has_tangent = CalcTangentSpace(tris, verts, norms, uvs, tangents, binormals);
+	
+	vector<BSVertexData> vertexData;
+	int nverts = verts.size();
+	vertexData.resize(nverts);
+	for (int i = 0; i < nverts; ++i)
+	{
+		BSVertexData& vd = vertexData[i];
+		vd.SetVertex(verts[i]);
+		if (has_normal) vd.SetNormal(norms[i]);
+		if (has_uv) vd.SetUV(uvs[i]);
+		if (has_vc) vd.SetVertexColor(vcs[i]);
+		if (has_tangent) vd.SetTangent(tangents[i]);
+		if (has_tangent) vd.SetBitangent(binormals[i]);
+	}
+	vector<NiNodeRef> boneList;
+	vector<BSSkinBoneTrans> boneTrans;
+	has_skin = UpdateBoneWeights(node, grp, boneList, vertexData, boneTrans);
+	if (has_skin) {
+		BSSkin__InstanceRef skin_instance = new BSSkin__Instance();
+		skin_instance->SetBones(boneList);
+
+		BSSkin__BoneDataRef skin_data = new BSSkin__BoneData();
+		skin_data->SetBoneTransforms(boneTrans);
+		skin_instance->SetBoneData(skin_data);
+		
+		shape = new BSSubIndexTriShape;
+		shape->SetSkin(skin_instance);
+
+		// reorder triangles
+		CreateSegmentation(node, shape, grp);
+	}
+	if (shape == nullptr) {
+		shape = new BSTriShape;
+	}
+
+	SphereBV bounds;
+	CalcAxisAlignedBox(grp.verts, bounds);
+	shape->SetBounds(bounds);
+
+	shape->SetFlags(14);
+	shape->SetVertexFlags(has_uv, has_vc, has_normal, has_tangent, has_skin);
+	shape->SetVertexData(vertexData);
+	shape->SetTriangles(tris);
+	parent->AddChild(DynamicCast<NiAVObject>(shape));
+
+
+	NiAVObjectRef av(DynamicCast<NiAVObject>(shape));
+	makeMaterial(av, mtl);
+	//shape->SetActiveMaterial(0);
 
 	return shape;
 }
@@ -675,7 +1171,7 @@ struct SkinInstance : public Exporter::NiCallback
 	virtual Exporter::Result execute();
 };
 
-bool Exporter::makeSkin(NiTriBasedGeomRef shape, INode *node, FaceGroup &grp, TimeValue t)
+bool Exporter::makeSkin(NiAVObjectRef shape, INode *node, FaceGroup &grp, TimeValue t)
 {
 	if (!mExportSkin)
 		return false;
@@ -755,6 +1251,7 @@ bool Exporter::makeSkin(NiTriBasedGeomRef shape, INode *node, FaceGroup &grp, Ti
 		Modifier *dismemberSkinMod = GetBSDismemberSkin(node);
 		if (dismemberSkinMod)
 		{
+			NiTriBasedGeomRef triShape = DynamicCast<NiTriBasedGeom>(shape);
 			if (IBSDismemberSkinModifier *disSkin = (IBSDismemberSkinModifier *)dismemberSkinMod->GetInterface(I_BSDISMEMBERSKINMODIFIER)) {
 				Tab<IBSDismemberSkinModifierData*> modData = disSkin->GetModifierData();
 				if (modData.Count() >= 1) {
@@ -764,7 +1261,7 @@ bool Exporter::makeSkin(NiTriBasedGeomRef shape, INode *node, FaceGroup &grp, Ti
 					GenericNamedSelSetList &fselSet = bsdsmd->GetFaceSelList();
 
 					FaceMap fmap;
-					NiTriBasedGeomDataRef data = DynamicCast<NiTriBasedGeomData>(shape->GetData());
+					NiTriBasedGeomDataRef data = DynamicCast<NiTriBasedGeomData>(triShape->GetData());
 					vector<Triangle> tris = data->GetTriangles();
 					for (int i = 0; i < tris.size(); ++i) {
 						Triangle tri = tris[i];

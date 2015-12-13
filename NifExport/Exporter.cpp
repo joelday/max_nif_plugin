@@ -92,6 +92,7 @@ Exporter::Exporter(Interface *i, AppSettings *appSettings)
 Exporter::Result Exporter::doExport(NiNodeRef &root, INode *node)
 {
 	USES_CONVERSION;
+
 	root->SetName("Scene Root");
 
 	int nifVersion = ParseVersionString(T2A(Exporter::mNifVersion.c_str()));
@@ -102,7 +103,7 @@ Exporter::Result Exporter::doExport(NiNodeRef &root, INode *node)
 
 	if (!Exporter::mSelectedOnly)
 	{
-		if (IsOblivion() || IsFallout3() || IsSkyrim())
+		if (IsOblivion() || IsFallout3() || IsSkyrim() || IsFallout4())
 		{
 			if (mSkeletonOnly)
 			{
@@ -380,10 +381,13 @@ void Exporter::ProgressUpdate(ProgressSection section, const TCHAR *s)
 
 
 bool Exporter::IsSkyrim() const {
-	return (mNifVersionInt == 0x14020007 && mNifUserVersion == 12);
+	return (mNifVersionInt == 0x14020007 && mNifUserVersion == 12 && mNifUserVersion2 < 130);
 }
 bool Exporter::IsFallout3() const {
 	return (mNifVersionInt == 0x14020007 && mNifUserVersion == 11);
+}
+bool Exporter::IsFallout4() const {
+	return (mNifVersionInt == 0x14020007 && mNifUserVersion == 12 && mNifUserVersion2 == 130);
 }
 bool Exporter::IsOblivion() const {
 	return ((mNifVersionInt == 0x14000004 || mNifVersionInt == 0x14000005) && (mNifUserVersion == 11 || mNifUserVersion == 10));

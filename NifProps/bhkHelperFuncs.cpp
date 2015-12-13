@@ -145,8 +145,6 @@ void CalcCenteredSphere(Mesh& mesh, Point3& center, float& radius)
 	radius = Sqrt(radsq);
 }
 
-
-
 #define MAKE_QUAD(na,nb,nc,nd,sm,b) {MakeQuad(nverts,&(mesh.faces[nf]),na, nb, nc, nd, sm, b);nf+=2;}
 
 void BuildBox(Mesh&mesh, float l, float w, float h)

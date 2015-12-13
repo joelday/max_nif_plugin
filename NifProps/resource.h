@@ -7,6 +7,8 @@
 #define IDB_EM_ADDDELMASK               117
 #define IDB_EM_SELTYPES                 123
 #define IDB_EM_SELMASK                  124
+#define IDB_EM_LOCK                     125
+#define IDB_EM_LOCKMASK                 126
 #define IDD_MESH_SELECT                 421
 #define IDC_RADIUS                      1000
 #define IDC_SEGMENTS                    1001
@@ -56,6 +58,7 @@
 #define IDC_MS_PLANAR_TEXT              1364
 #define IDC_MS_PLANAR                   1365
 #define IDC_MS_PLANARSPINNER            1366
+#define IDC_CBO_SI_VISIBLE              1367
 #define IDC_MS_NUMBER_SEL               1372
 #define IDC_MS_SELTYPE                  1373
 #define IDC_MS_MATID                    1374
@@ -71,6 +74,17 @@
 #define IDC_MS_ADDPART                  1384
 #define IDC_MS_SELUNUSED                1385
 #define IDC_MS_FIXDUPL                  1386
+#define IDC_MS_SELBYMAT_BOX3            1387
+#define IDC_MS_SIPARTITION              1388
+#define IDC_MS_SI_DELPART               1389
+#define IDC_MS_SIPARTSPIN               1390
+#define IDC_MS_SELBYMAT_TEXT3           1391
+#define IDC_MS_SIADDPART                1392
+#define IDC_MS_PART_COUNT               1393
+#define IDC_MS_LOCKEDIT                 1394
+#define IDC_MS_SI_PART_COUNT            1395
+#define IDC_MS_SELBYMAT_TEXT4           1396
+#define IDC_MS_SELBYMAT_BOX4            1397
 #define IDC_ED_POS1_X                   1700
 #define IDC_SP_POS1_X                   1701
 #define IDC_ED_POS1_Y                   1702
@@ -97,9 +111,12 @@
 #define IDC_LBL_BODYPART                1723
 #define IDC_CHK_VERTEXENABLE            1724
 #define IDC_CHK_SPECENABLE              1725
+#define IDC_BTN_SSF_LOAD                1725
+#define IDC_ED_SSF_FILE                 1726
 #define IDC_CHK_ALPHATESTENABLE         1727
 #define IDC_CHK_NOSORTER                1728
 #define IDC_CHK_DITHER                  1729
+#define IDC_CHK_NOEXPORT                1731
 #define IDC_EDT_SHININESS               1807
 #define IDC_SPN_SHININESS               1808
 #define IDC_EDT_ALPHA                   1809
@@ -151,6 +168,10 @@
 #define IDC_OPT_BIASSPIN                6008
 #define IDC_OPT_MAXEDGESPIN             6010
 #define IDC_OPT_MAXEDGE                 7009
+#define IDC_BTN_MTL_LOAD                10002
+#define IDC_BTN_MTL_SAVE                10003
+#define IDC_ED_SKELETON                 10006
+#define IDC_ED_MTL_FILE                 10006
 #define IDD_PANEL                       11001
 #define IDS_LIBDESCRIPTION              11001
 #define IDC_LBL_BSXFLAGS                11001
@@ -196,10 +217,19 @@
 #define IDS_DS_RESTITUTION              11014
 #define IDD_RB_MOD_PANEL5               11014
 #define IDS_DS_LINEAR_DAMPING           11015
+#define IDD_BSSI_SELECT                 11015
 #define IDS_DS_ANGULAR_DAMPING          11016
+#define IDD_FO4SHADER                   11016
+#define IDD_FO4SHADER_1                 11016
+#define IDD_FO4SHADER_MTL               11016
 #define IDS_DS_MAX_LINEAR_VELOCITY      11017
+#define IDD_FO4SHADER_2                 11017
+#define IDD_FO4SHADER_BGSM              11017
 #define IDS_DS_MAX_ANGULAR_VELOCITY     11018
+#define IDD_FO4SHADER_0                 11018
+#define IDD_FO4SHADER_BASE              11018
 #define IDS_DS_PENETRATION_DEPTH        11019
+#define IDD_FO4SHADER_BGEM              11019
 #define IDS_DS_MOTION_SYSTEM            11020
 #define IDS_DS_QUALITY_TYPE             11021
 #define IDS_RB_PARAMETERS               11022
@@ -352,6 +382,18 @@
 #define IDS_SPECULAR_STR                11169
 #define IDS_MAXCHAN_OPACITY             11170
 #define IDS_CHAN_BACKLIGHT              11171
+#define IDS_RB_BSSIMODIFIER             11172
+#define IDS_CHAN_DISPLACE               11173
+#define IDS_CHAN_WRINKLES               11174
+#define IDS_CHAN_INNER                  11175
+#define IDS_CHAN_GREYSCALE              11176
+#define IDS_FO4_SHADER_BASIC            11177
+#define IDS_FO4_SHADER_MTL              11178
+#define IDS_FO4_SHADER_BGSM             11179
+#define IDS_FO4_SHADER_BGEM             11180
+#define IDS_BGSM_FILE                   11181
+#define IDS_BGEM_FILE                   11182
+#define IDS_FO4_SHADER                  11183
 #define IDC_ED_CENTER_X                 11490
 #define IDC_SP_CENTER_X                 11491
 #define IDC_ED_CENTER_Y                 11492
@@ -400,9 +442,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        122
+#define _APS_NEXT_RESOURCE_VALUE        127
 #define _APS_NEXT_COMMAND_VALUE         40005
-#define _APS_NEXT_CONTROL_VALUE         1725
+#define _APS_NEXT_CONTROL_VALUE         1727
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
