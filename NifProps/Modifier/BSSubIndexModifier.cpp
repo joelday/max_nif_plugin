@@ -135,6 +135,7 @@ public:
 	static SelectModBoxCMode *selectMode;
 	static BOOL updateCachePosted;
 	Tab<PartSubObjType> segments;
+	BOOL inLocalDataChanged;
 
 	BSSIModifier();
 
@@ -604,6 +605,7 @@ BSSIClassDesc::BSSIClassDesc() {
 BSSIModifier::BSSIModifier() {
 	SetAFlag(A_PLUGIN1);
 	pblock = NULL;
+	inLocalDataChanged = FALSE;
 	BSSIDesc.MakeAutoParamBlocks(this);
 	assert(pblock);
 }
@@ -1086,43 +1088,52 @@ void BSSIModifier::ActivateSubobjSel(int level, XFormModes& modes) {
 }
 
 void BSSIModifier::LocalDataChanged() {
-	NotifyDependents(FOREVER, PART_SELECT, REFMSG_CHANGE);
-	if (ip && editMod == this) {
-		SetNumSelLabel();
-
-		// Setup subobjects
-		if (IBSSubIndexModifierData* p = GetFirstModifierData())
-		{
-			bool changed = false;
-			changed = (segments.Count() != p->GetNumPartitions());
-			segments.Resize(p->GetNumPartitions());
-			for (int i = 0; i < p->GetNumPartitions(); ++i) {
-				TSTR name = FormatText(TEXT("%d"), i);
-				if ( i <= segments.Count())
-				{
-					PartSubObjType subobj; subobj.SetName(name);
-					segments.Append(1, &subobj);
-					changed = true;
-				}
-				else
-				{
-					changed |= !strmatch(name, segments[i].GetName());
-				}
-			}
-
-			SetEnableStates();
-			UpdateSelLevelDisplay();
+	if (inLocalDataChanged)
+		return;
+	inLocalDataChanged = TRUE;
+	try
+	{
+		NotifyDependents(FOREVER, PART_SELECT, REFMSG_CHANGE);
+		if (ip && editMod == this) {
 			SetNumSelLabel();
 
-			NotifyDependents(FOREVER, PART_SUBSEL_TYPE | PART_DISPLAY, REFMSG_CHANGE);
-			ip->PipeSelLevelChanged();
-			NotifyDependents(FOREVER, SELECT_CHANNEL | DISP_ATTRIB_CHANNEL | SUBSEL_TYPE_CHANNEL, REFMSG_CHANGE);
+			// Setup subobjects
+			if (IBSSubIndexModifierData* p = GetFirstModifierData())
+			{
+				bool changed = false;
+				changed = (segments.Count() != p->GetNumPartitions());
+				segments.Resize(p->GetNumPartitions());
+				for (int i = 0; i < p->GetNumPartitions(); ++i) {
+					TSTR name = FormatText(TEXT("%d"), i);
+					if (i <= segments.Count())
+					{
+						PartSubObjType subobj; subobj.SetName(name);
+						segments.Append(1, &subobj);
+						changed = true;
+					}
+					else
+					{
+						changed |= !strmatch(name, segments[i].GetName());
+					}
+				}
 
-			if (changed)
-				NotifyDependents(FOREVER, PART_ALL, REFMSG_NUM_SUBOBJECTTYPES_CHANGED);
-			CHECKHEAP();
+				SetEnableStates();
+				UpdateSelLevelDisplay();
+				SetNumSelLabel();
+
+				NotifyDependents(FOREVER, PART_SUBSEL_TYPE | PART_DISPLAY, REFMSG_CHANGE);
+				ip->PipeSelLevelChanged();
+				NotifyDependents(FOREVER, SELECT_CHANNEL | DISP_ATTRIB_CHANNEL | SUBSEL_TYPE_CHANNEL, REFMSG_CHANGE);
+
+				if (changed)
+					NotifyDependents(FOREVER, PART_ALL, REFMSG_NUM_SUBOBJECTTYPES_CHANGED);
+				CHECKHEAP();
+			}
 		}
 	}
+	catch(...)
+	{}
+	inLocalDataChanged = FALSE;
 }
 
 void BSSIModifier::SelectSubComponent(HitRecord *hitRec, BOOL selected, BOOL all, BOOL invert) {
@@ -1797,7 +1808,7 @@ INT_PTR BSSIModifierMainDlgProc::DlgProc(TimeValue t, IParamMap2 *map,
 			mCbMaterial.select(EnumToIndex(si_mat.materialHash, BodyPartFlags));
 			CheckDlgButton(hWnd, IDC_CBO_SI_VISIBLE, si_mat.visible ? BST_CHECKED : BST_UNCHECKED);
 		} else {
-			mCbMaterial.select(-1);
+			mCbMaterial.select(0);
 			CheckDlgButton(hWnd, IDC_CBO_SI_VISIBLE, BST_UNCHECKED);
 		}
 
