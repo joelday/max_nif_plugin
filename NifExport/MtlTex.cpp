@@ -33,27 +33,6 @@ enum {
 	C_BACKLIGHT,
 };
 
-static bool GetTexFullName(Texmap *texMap, TSTR& fName)
-{
-	if (texMap && texMap->ClassID() == Class_ID(BMTEX_CLASS_ID, 0)) {
-		TSTR fileName = ((BitmapTex*)texMap)->GetMapName();
-		if (fileName.isNull()) {
-			fileName = ((BitmapTex*)texMap)->GetFullName();
-			int idx = fileName.last('(');
-			if (idx >= 0) {
-				fileName.remove(idx, fileName.length() - idx + 1);
-				while (--idx > 0) {
-					if (isspace(fileName[idx]))
-						fileName.remove(idx);
-				}
-			}
-		}
-		fName = fileName;
-		return true;
-	}
-	return false;
-}
-
 #undef GNORMAL_CLASS_ID
 static const Class_ID GNORMAL_CLASS_ID(0x243e22c6, 0x63f6a014);
 
@@ -1346,7 +1325,7 @@ bool Exporter::exportFO4Shader(NiAVObjectRef parent, Mtl* mtl)
 			BGSMFile* bgsm = data->GetBGSMData();
 
 			BSLightingShaderPropertyRef texProp = new BSLightingShaderProperty();
-			texProp->SetName(T2A(data->GetName()));
+			texProp->SetName(T2A(data->GetMaterialName()));
 
 			TexClampMode clampMode = TexClampMode((bgsm->TileU ? 0x01 : 0) | (bgsm->TileV ? 0x02 : 0));
 			texProp->SetTextureClampMode(clampMode);
@@ -1490,7 +1469,7 @@ bool Exporter::exportFO4Shader(NiAVObjectRef parent, Mtl* mtl)
 			BGEMFile* bgem = data->GetBGEMData();
 
 			BSEffectShaderPropertyRef texProp = new BSEffectShaderProperty();
-			texProp->SetName(T2A(data->GetName()));
+			texProp->SetName(T2A(data->GetMaterialName()));
 
 			TexClampMode clampMode = TexClampMode((bgem->TileU ? 0x01 : 0) | (bgem->TileV ? 0x02 : 0));
 			texProp->SetTextureClampMode(clampMode);

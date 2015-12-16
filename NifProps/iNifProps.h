@@ -278,9 +278,10 @@ class IBSShaderMaterialData
 	//: public MaxHeapOperators 
 {
 public:
-	virtual LPCTSTR GetName() const = 0;
+	virtual LPCTSTR GetMaterialName() const = 0;
 	virtual LPCTSTR GetFileName() const = 0;
-	virtual void SetFileName(const TSTR& name, const TSTR& path) = 0;
+	virtual void SetMaterialName(LPCTSTR name) = 0;
+	virtual void SetFileName(LPCTSTR path) = 0;
 
 	virtual BOOL HasBGSM() const = 0;
 	virtual BGSMFile* GetBGSMData() const = 0;
@@ -304,6 +305,7 @@ public:
 	enum FileType { FT_Unknown, FT_Texture, FT_Material, FT_Mesh };
 	virtual bool FindFile(const tstring& name, tstring& resolved_name) const = 0;
 	virtual bool FindFileByType(const tstring& name, FileType type, tstring& resolved_name) const = 0;
+	virtual bool GetRelativePath(tstring& name, FileType type) const = 0;
 protected:
 	~IFileResolver() {}
 };

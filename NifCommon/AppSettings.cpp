@@ -5,6 +5,11 @@
 #include "IniSection.h"
 
 AppSettingsMap TheAppSettings;
+static bool TheAppSettingsInitialized = false;
+bool AppSettings::Initialized()
+{
+	return TheAppSettingsInitialized;
+}
 
 void AppSettings::Initialize(Interface *gi)
 {
@@ -15,6 +20,7 @@ void AppSettings::Initialize(Interface *gi)
 		if (reparse || TheAppSettings.empty()) {
 			TheAppSettings.clear();
 		}
+		TheAppSettingsInitialized = true;
 
 		tstring Applications = GetIniValue<tstring>(TEXT("System"), TEXT("KnownApplications"), TEXT(""), iniName);
 		tstringlist apps = TokenizeString(Applications.c_str(), TEXT(";"));
@@ -147,6 +153,12 @@ tstring AppSettings::FindMaterial(const tstring& fname) const {
 		PathCombine(buffer, itr->c_str(), fname.c_str());
 		if (-1 != _taccess(buffer, 0)) {
 			return tstring(buffer);
+		}
+	}
+
+	for (LPCTSTR filepart = PathFindNextComponent(fname.c_str()); filepart != nullptr; filepart = PathFindNextComponent(filepart)) {
+		if (wildmatch(TEXT("materials\\*"), filepart)) {
+			return FindMaterial(fname);
 		}
 	}
 	return fname;

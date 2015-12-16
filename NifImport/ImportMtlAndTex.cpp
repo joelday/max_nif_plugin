@@ -1188,7 +1188,8 @@ bool NifImporter::ImportFO4Shader(ImpNode *node, NiAVObjectRef avObject, StdMat2
 					tstring filename = FindMaterial(A2TString(name));
 					TSTR tsname = A2TString(name).c_str();
 					TSTR tsfile = filename.c_str();
-					data->SetFileName(tsname, tsfile);
+					data->SetMaterialName(tsname);
+					data->SetFileName(tsfile);
 					success = ReadBGSMFile(filename, materialData);
 				}
 				if (!success)
@@ -1210,7 +1211,8 @@ bool NifImporter::ImportFO4Shader(ImpNode *node, NiAVObjectRef avObject, StdMat2
 				{
 					tstring filename = FindMaterial(A2TString(name));
 					tsfile = filename.c_str();
-					data->SetFileName(tsname, tsfile);
+					data->SetMaterialName(tsname);
+					data->SetFileName(tsfile);
 					success = ReadBGEMFile(filename, materialData);
 				} else {
 					tsfile = tsname;
@@ -1222,7 +1224,8 @@ bool NifImporter::ImportFO4Shader(ImpNode *node, NiAVObjectRef avObject, StdMat2
 				}
 				data->LoadBGEM(materialData);
 				data->LoadMaterial(mtl, this);
-				data->SetFileName(tsname, tsfile);
+				data->SetMaterialName(tsname);
+				data->SetFileName(tsfile);
 			}
 			return true;
 		}

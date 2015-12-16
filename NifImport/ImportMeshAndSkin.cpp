@@ -926,7 +926,11 @@ bool NifImporter::ImportSkin(ImpNode *node, Niflib::BSTriShapeRef shape, int v_s
 	INode *tnode = node->GetINode();
 
 	BSSkin__InstanceRef nifSkin = DynamicCast<BSSkin__Instance>(shape->GetSkin());
+	if (nifSkin == nullptr)
+		return false;
 	BSSkin__BoneDataRef data = nifSkin->GetBoneData();
+	if (data == nullptr)
+		return false;
 	vector<NiNodeRef> nifBones = nifSkin->GetBones();
 
 	//create a skin modifier and add it

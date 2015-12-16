@@ -805,16 +805,14 @@ bool Exporter::CreateSegmentation(INode* node, BSSubIndexTriShapeRef shape, Face
 			}
 
 			auto& facesel = bssimod->GetFaceSel(i, j);
-			if (facesel.AnyBitSet()) {
-				for (int k = 0; k < ntris; ++k) {
-					if (facesel[k]) {
-						int fi = grp.fidx[k];
-						used_array.Set(fi);
-						tris.push_back(grp.faces[fi]);
-						triangleOffset+=3;
-						++segment.triangleCount;
-						if(si_record) ++si_record->triangleCount;
-					}
+			for (int k = 0; k < ntris; ++k) {
+				if (facesel[k]) {
+					int fi = grp.fidx[k];
+					used_array.Set(fi);
+					tris.push_back(grp.faces[fi]);
+					triangleOffset+=3;
+					++segment.triangleCount;
+					if(si_record) ++si_record->triangleCount;
 				}
 			}
 		}	
@@ -915,7 +913,7 @@ NiAVObjectRef Exporter::makeBSTriShape(NiNodeRef &parent, INode* node, Mtl *mtl,
 	shape->SetBounds(bounds);
 
 	shape->SetFlags(14);
-	shape->SetVertexFlags(has_uv, has_vc, has_normal, has_tangent, has_skin);
+	shape->SetVertexFlags(has_uv, has_vc, has_normal, has_tangent, has_skin, false);
 	shape->SetVertexData(vertexData);
 	shape->SetTriangles(tris);
 	parent->AddChild(DynamicCast<NiAVObject>(shape));

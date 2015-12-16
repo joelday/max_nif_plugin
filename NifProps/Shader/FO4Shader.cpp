@@ -12,14 +12,20 @@
 #include "3dsmaxport.h"
 #include "../iNifProps.h"
 #include "../materialfile.h"
+#include <notify.h>
 
 extern TCHAR *GetString(int id);
 extern TSTR shortDescription;
 
 // Class Ids
+#undef GNORMAL_CLASS_ID
+static const Class_ID GNORMAL_CLASS_ID(0x243e22c6, 0x63f6a014);
 const Class_ID FO4SHADER_CLASS_ID(0x7a6bc2e7, 0x71106f41);
 
-enum { ref_base, ref_mtl, ref_bgsm, ref_bgem, ref_activemtl, ref_oldmtl, MAX_REFERENCES };
+enum {
+	ref_base, ref_mtl, ref_bgsm, ref_bgem,
+	ref_activemtl, ref_oldmtl, MAX_REFERENCES
+};
 
 // Paramblock2 name
 enum { shader_params, };
@@ -73,6 +79,11 @@ const EnumLookupType MaterialFileTypes[] = {
    { MFT_BGSM, TEXT("BGSM - Lighting Shader")},
    { MFT_BGEM, TEXT("BGEM - Effect Shader")},
    {-1, nullptr},
+};
+const EnumLookupType MaterialFileTypesShort[] = {
+	{ MFT_BGSM, TEXT("BGSM") },
+	{ MFT_BGEM, TEXT("BGEM") },
+	{ -1, nullptr },
 };
 
 
@@ -128,18 +139,18 @@ enum
 
 // map from custom channel to standard map
 static const int FO4ShaderStdIDToChannel[] = {
-   -1,           // 0 - ambient
-   C_DIFFUSE,    // 1 - diffuse           
-   C_SMOOTHSPEC, // 2 - specular
-   -1,           // 3 - Glossiness (Shininess in 3ds Max release 2.0 and earlier)
-   -1,           // 4 - Specular Level (Shininess strength in 3ds Max release 2.0 and earlier)
-   -1,       // 5 - self-illumination 
-   -1,           // 6 - opacity
-   -1,           // 7 - filter color
-	-1,    // 8 - bump              
-   -1,           // 9 - reflection        
-   -1,           // 10 - refraction 
-	-1,          // 11 - displacement
+	-1,           // 0 - ambient
+	C_DIFFUSE,    // 1 - diffuse           
+	-1, // 2 - specular
+	-1,           // 3 - Glossiness (Shininess in 3ds Max release 2.0 and earlier)
+	-1,           // 4 - Specular Level (Shininess strength in 3ds Max release 2.0 and earlier)
+	-1,       // 5 - self-illumination 
+	-1,    // 6 - opacity
+	-1,           // 7 - filter color
+	-1,     // 8 - bump              
+	-1,           // 9 - reflection        
+	-1,           // 10 - refraction 
+	-1,   // 11 - displacement
 	-1,           // 12 - 
 	-1,           // 13 -  
 	-1,           // 14 -  
@@ -153,23 +164,71 @@ static const int FO4ShaderStdIDToChannel[] = {
 	-1,           // 23 -  
 };
 
-const ULONG SHADER_PARAMS = (STD_PARAM_SELFILLUM | STD_PARAM_SELFILLUM_CLR
-	| STD_PARAM_SPECULAR_CLR | STD_PARAM_GLOSSINESS
-	| STD_PARAM_SELFILLUM_CLR_ON
-	);
+//const ULONG SHADER_PARAMS = (STD_PARAM_SELFILLUM | STD_PARAM_SELFILLUM_CLR
+//	| STD_PARAM_GLOSSINESS // || STD_PARAM_SPECULAR_CLR
+//	| STD_PARAM_SELFILLUM_CLR_ON // | STD_PARAM_SPECULAR_LEV 
+//	);
+const ULONG SHADER_PARAMS = 0;
 
-class FO4ShaderDlg;
+class Fallout4FileResolver : public IFileResolver
+{
+	mutable AppSettings* pSettings;
+public:
+	Fallout4FileResolver() { pSettings = nullptr; }
+	void ResolveSettings() const
+	{
+		if (pSettings == nullptr) {
+			if (!AppSettings::Initialized())
+				AppSettings::Initialize(GetCOREInterface());
+			pSettings = FindAppSetting(TEXT("Fallout 4"));
+		}
+	}
+	bool FindFile(const tstring& name, tstring& resolved_name) const override
+	{
+		ResolveSettings();
+		if (pSettings == nullptr) {
+			resolved_name = name;
+			return false;
+		}
+		return pSettings->FindFile(name, resolved_name);
+	}
+	bool FindFileByType(const tstring& name, FileType type, tstring& resolved_name) const override
+	{
+		ResolveSettings();
+		if (pSettings == nullptr) {
+			resolved_name = name;
+			return false;
+		}
+		if (type == FT_Material) { resolved_name = pSettings->FindMaterial(name); return true; }
+		if (type == FT_Texture) { resolved_name = pSettings->FindImage(name); return true; }
+		return FindFile(name, resolved_name);
+	}
+	bool GetRelativePath(tstring& name, FileType type) const override
+	{
+		ResolveSettings();
+		if (pSettings == nullptr) {
+			return false;
+		}
+		if (type == FT_Texture) {
+			name = pSettings->GetRelativeTexPath(name, TEXT("textures"));
+			return true;
+		}
+		return false;
+	}
+};
+static Fallout4FileResolver fo4Resolver;
+
 class FO4ShaderDlg;
 
 class FO4Shader : public Shader, IBSShaderMaterialData {
 	friend class FO4ShaderCB;
-	friend class FO4ShaderDlg;
 	friend class FO4ShaderDlg;
 	friend class FO4ShaderBaseRollup;
 	friend class FO4ShaderMtlRollup;
 	friend class FO4ShaderBGSMRollup;
 	friend class FO4ShaderBGEMRollup;
 	BOOL rolloutOpen;
+	BOOL inSync;
 public:
 	IParamBlock2      *pb_base;     // ref 0
 	IParamBlock2      *pb_mtl;      // ref 1
@@ -179,6 +238,11 @@ public:
 	MaterialReference *pMtlFileRefOld; // ref 5
 	Interval    ivalid;
 	FO4ShaderDlg* pDlg;
+
+	BOOL bSelfIllumClrOn;
+	Color cSelfIllumClr, cAmbientClr, cDiffuseClr, cSpecularClr;
+	float fGlossiness, fSelfIllum, fSpecularLevel, fSoftenLevel;
+
 
 public:
 	FO4Shader();
@@ -196,7 +260,7 @@ public:
 	long StdIDToChannel(long stdID) override { return FO4ShaderStdIDToChannel[stdID]; }
 
 	//BOOL KeyAtTime(int id,TimeValue t) { return pb->KeyFrameAtTime(id,t); }
-	ULONG GetRequirements(int subMtlNum) override  { return MTLREQ_TRANSP|MTLREQ_PHONG; }
+	ULONG GetRequirements(int subMtlNum) override { return MTLREQ_TRANSP | MTLREQ_PHONG; }
 
 	int NParamDlgs() override;
 	ShaderParamDlg* GetParamDlg(int n) override;
@@ -224,7 +288,8 @@ public:
 
 	RefTargetHandle GetReference(int i) override;
 	void SetReference(int i, RefTargetHandle rtarg) override;
-	void NotifyChanged() { NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE); }
+	void NotifyChanged();
+	void ReloadDialog();
 
 	void* GetInterface(ULONG id) override {
 		return (id == I_BSSHADERDATA) ? static_cast<IBSShaderMaterialData*>(this) : Shader::GetInterface(id);
@@ -255,44 +320,75 @@ public:
 	void SetLockADTex(BOOL lock)  override { }
 	BOOL GetLockADTex()  override { return FALSE; }
 
-	virtual void SetSelfIllum(float v, TimeValue t)  override { }
-	virtual void SetSelfIllumClrOn(BOOL on)  override { }
-	virtual void SetSelfIllumClr(Color c, TimeValue t) override { }
-	virtual void SetAmbientClr(Color c, TimeValue t)  override { }
-	virtual void SetDiffuseClr(Color c, TimeValue t)  override { }
-	virtual void SetSpecularClr(Color c, TimeValue t)  override { }
-	virtual void SetGlossiness(float v, TimeValue t)  override { }
-	virtual void SetSpecularLevel(float v, TimeValue t)  override { }
-	virtual void SetSoftenLevel(float v, TimeValue t)  override { }
+	//virtual void SetSelfIllum(float v, TimeValue t)  override { }
+	//virtual void SetSelfIllumClrOn(BOOL on)  override { }
+	//virtual void SetSelfIllumClr(Color c, TimeValue t) override { }
+	//virtual void SetAmbientClr(Color c, TimeValue t)  override { }
+	//virtual void SetDiffuseClr(Color c, TimeValue t)  override { }
+	//virtual void SetSpecularClr(Color c, TimeValue t)  override { }
+	//virtual void SetGlossiness(float v, TimeValue t)  override { }
+	//virtual void SetSpecularLevel(float v, TimeValue t)  override { }
+	//virtual void SetSoftenLevel(float v, TimeValue t)  override { }
 
-	virtual BOOL IsSelfIllumClrOn(int mtlNum, BOOL backFace)  override { return FALSE; }
-	virtual Color GetAmbientClr(int mtlNum = 0, BOOL backFace = 0)  override { return Color(0.5f, 0.5f, 0.5f);; }
-	virtual Color GetDiffuseClr(int mtlNum = 0, BOOL backFace = 0)  override { return Color(0.5f, 0.5f, 0.5f);; }
-	virtual Color GetSpecularClr(int mtlNum = 0, BOOL backFace = 0)  override { return Color(0.5f, 0.5f, 0.5f);; }
-	virtual Color GetSelfIllumClr(int mtlNum = 0, BOOL backFace = 0)  override { return Color(0.5f, 0.5f, 0.5f);; }
-	virtual float GetSelfIllum(int mtlNum = 0, BOOL backFace = 0)  override { return 0.0f; }
-	virtual float GetGlossiness(int mtlNum = 0, BOOL backFace = 0)  override { return 0.0f; }
-	virtual float GetSpecularLevel(int mtlNum = 0, BOOL backFace = 0)  override { return 0.0f; }
-	virtual float GetSoftenLevel(int mtlNum = 0, BOOL backFace = 0)  override { return 0.0f; }
+	//virtual BOOL IsSelfIllumClrOn(int mtlNum, BOOL backFace)  override { return IsSelfIllumClrOn(); }
+	//virtual Color GetAmbientClr(int mtlNum, BOOL backFace)  override { return GetAmbientClr(0); }
+	//virtual Color GetDiffuseClr(int mtlNum, BOOL backFace)  override { return GetDiffuseClr(0); }
+	//virtual Color GetSpecularClr(int mtlNum, BOOL backFace)  override { return GetSpecularClr(0); }
+	//virtual Color GetSelfIllumClr(int mtlNum, BOOL backFace)  override { return GetSelfIllumClr(0); }
+	//virtual float GetSelfIllum(int mtlNum, BOOL backFace)  override { return GetSelfIllum(0); }
+	//virtual float GetGlossiness(int mtlNum, BOOL backFace)  override { return GetGlossiness(0); }
+	//virtual float GetSpecularLevel(int mtlNum, BOOL backFace)  override { return GetSpecularLevel(0); }
+	//virtual float GetSoftenLevel(int mtlNum, BOOL backFace)  override { return GetSoftenLevel(0); }
 
-	virtual BOOL IsSelfIllumClrOn()  override { return FALSE; }
-	virtual Color GetAmbientClr(TimeValue t)  override { return Color(0.5f, 0.5f, 0.5f); }
-	virtual Color GetDiffuseClr(TimeValue t)  override { return Color(0.5f, 0.5f, 0.5f); }
-	virtual Color GetSpecularClr(TimeValue t)  override { return Color(0.5f, 0.5f, 0.5f); }
-	virtual float GetGlossiness(TimeValue t)  override { return 0.0f; }
-	virtual float GetSpecularLevel(TimeValue t)  override { return 0.0f; }
-	virtual float GetSoftenLevel(TimeValue t)  override { return 0.0f; }
-	virtual float GetSelfIllum(TimeValue t)  override { return 0.0f; }
-	virtual Color GetSelfIllumClr(TimeValue t)  override { return Color(0.5f, 0.5f, 0.5f); }
-	virtual float EvalHiliteCurve2(float x, float y, int level = 0)  override { return 0.0f; }
+	//virtual Color GetAmbientClr(TimeValue t)  override { return Color(0.588f, 0.588f, 0.588f); }
+	//virtual Color GetDiffuseClr(TimeValue t)  override { return Color(0.588f, 0.588f, 0.588f); }
+	//virtual Color GetSpecularClr(TimeValue t)  override { return Color(0.9f, 0.9f, 0.9f); }// { return pb_bgsm ? pb_bgsm->GetColor(fos_specularcolor) : Color(0.9f, 0.9f, 0.9f); }
+	//virtual float GetGlossiness(TimeValue t)  override { return 1.0f; }//{ return pb_bgsm ? pb_bgsm->GetFloat(fos_smoothness) : 0.0f; }
+	//virtual float GetSpecularLevel(TimeValue t)  override { return 0.0f; } //{ return pb_bgsm ? pb_bgsm->GetFloat(fos_specularmult) : 0.0f; }
+	//virtual float GetSoftenLevel(TimeValue t)  override { return 0.1f; }
+	//virtual BOOL IsSelfIllumClrOn()  override { return FALSE; } // return pb_bgsm && pb_bgsm->GetInt(fos_emitenabled) ? TRUE : FALSE; }
+	//virtual float GetSelfIllum(TimeValue t)  override { return pb_bgsm ? pb_bgsm->GetFloat(fos_emittancemult) : 0.0f; }
+	//virtual Color GetSelfIllumClr(TimeValue t)  override { return pb_bgsm ? pb_bgsm->GetColor(fos_emittancecolor) : Color(0.9f, 0.9f, 0.9f); }
+	//virtual float EvalHiliteCurve2(float x, float y, int level = 0)  override { return 0.0f; }
+
+	virtual void SetSelfIllum(float v, TimeValue t) { fSelfIllum = v; }
+	virtual void SetSelfIllumClrOn(BOOL on) { bSelfIllumClrOn = on; }
+	virtual void SetSelfIllumClr(Color c, TimeValue t) { cSelfIllumClr = c;}
+	virtual void SetAmbientClr(Color c, TimeValue t) { cAmbientClr = c; }
+	virtual void SetDiffuseClr(Color c, TimeValue t) { cDiffuseClr = c; }
+	virtual void SetSpecularClr(Color c, TimeValue t) { cSpecularClr = c;}
+	virtual void SetGlossiness(float v, TimeValue t) { fGlossiness = v;  }
+	virtual void SetSpecularLevel(float v, TimeValue t) { fSpecularLevel = v;}
+	virtual void SetSoftenLevel(float v, TimeValue t) { fSoftenLevel = v; }
+
+	virtual BOOL IsSelfIllumClrOn(int mtlNum, BOOL backFace) { return bSelfIllumClrOn; }
+	virtual Color GetAmbientClr(int mtlNum, BOOL backFace) { return cAmbientClr; }
+	virtual Color GetDiffuseClr(int mtlNum, BOOL backFace) { return cDiffuseClr; }
+	virtual Color GetSpecularClr(int mtlNum, BOOL backFace) { return cSpecularClr; }
+	virtual Color GetSelfIllumClr(int mtlNum, BOOL backFace) { return cSelfIllumClr; }
+	virtual float GetSelfIllum(int mtlNum, BOOL backFace) { return fSelfIllum; }
+	virtual float GetGlossiness(int mtlNum, BOOL backFace) { return fGlossiness; }
+	virtual float GetSpecularLevel(int mtlNum, BOOL backFace) { return fSpecularLevel; }
+	virtual float GetSoftenLevel(int mtlNum, BOOL backFace) { return fSoftenLevel; }
+
+	virtual BOOL IsSelfIllumClrOn() { return bSelfIllumClrOn; }
+	virtual Color GetAmbientClr(TimeValue t) { return cAmbientClr; }
+	virtual Color GetDiffuseClr(TimeValue t) { return cDiffuseClr; }
+	virtual Color GetSpecularClr(TimeValue t) { return cSpecularClr; }
+	virtual float GetGlossiness(TimeValue t) { return fGlossiness; }
+	virtual float GetSpecularLevel(TimeValue t) { return fSpecularLevel; }
+	virtual float GetSoftenLevel(TimeValue t) { return fSoftenLevel; }
+	virtual float GetSelfIllum(TimeValue t) { return fSelfIllum; }
+	virtual Color GetSelfIllumClr(TimeValue t) { return cSelfIllumClr; }
+	virtual float EvalHiliteCurve2(float x, float y, int level = 0) { return 0.0f; }
 
 	void SetPanelOpen(BOOL open) { rolloutOpen = open; }
 
 	void AffectReflection(ShadeContext &sc, IllumParams &ip, Color &rClr) override;
 
 	float EvalHiliteCurve(float x)  override {
-		double phExp = pow(2.0, 1.0f * 10.0); // expensive.!! TBD
-		return 1.0f*static_cast<float>(pow(static_cast<double>(cos(x*PI)), phExp));
+		double phExp = pow(2.0, GetGlossiness(0) * 10.0); // expensive.!! TBD
+		return GetSpecularLevel(0)*static_cast<float>(pow(static_cast<double>(cos(x*PI)), phExp));
 	}
 
 
@@ -313,18 +409,22 @@ public:
 	BOOL ChangeShader(const Class_ID& clsid);
 
 	//getName
-	LPCTSTR GetName() const override { return pMtlFileRef ? pMtlFileRef->materialName : TEXT(""); }
+	LPCTSTR GetMaterialName() const override { return pMtlFileRef ? pMtlFileRef->materialName : TEXT(""); }
 	LPCTSTR GetFileName() const override { return pMtlFileRef ? pMtlFileRef->materialFileName : TEXT(""); }
-	void SetName(const TSTR& name) const { pMtlFileRef->SetName(name); }
-	void SetFileName(const TSTR& name, const TSTR& path) override { pMtlFileRef->SetFileName(name, path); }
+	void SetMaterialName(LPCTSTR name) override { pMtlFileRef->SetName(name); }
+	void SetFileName(LPCTSTR path) override { pMtlFileRef->SetFileName(path); }
+	void SetFileName(LPCTSTR name, LPCTSTR path) const { pMtlFileRef->SetName(name), pMtlFileRef->SetFileName(path); }
 	BOOL UpdateMaterial(StdMat2* mtl) override;
-
+	void ClearDialogRollup(int rollup);
 	typedef Texmap* (*pfCreateWrapper)(LPCTSTR name, Texmap* nmap);
 	Texmap * GetOrCreateTexture(StdMat2* mtl, BaseMaterial* base_mtl, int map, tstring texture, IFileResolver* resolver, pfCreateWrapper wrapper = nullptr);
 	BOOL LoadMaterial(StdMat2* mtl, IFileResolver* resolver) override;
 
 	BOOL LoadMaterial(BaseMaterial&);
 	Texmap* CreateTexture(const tstring& name, BaseMaterial* base_material, IFileResolver* resolver);
+	bool UpdateTextureName(StdMat2* mtl, int map, tstring& texture, IFileResolver* resolver);
+	bool UpdateTextureName(Texmap* tex, tstring& texture, IFileResolver* resolver);
+	void SyncTexMapsToFilenames(StdMat2* mtl, IFileResolver* resolver);
 
 };
 
@@ -346,21 +446,58 @@ extern ClassDesc2 * GetFO4ShaderDesc() { return &FO4ShaderDesc; }
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Base Rollout
 
-
-////////////////////////
-// Extended Rollout
-#if 0
 class BasePBAccessor : public PBAccessor
 {
 public:
 	void Set(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t)    // set from v
 	{
-		auto* m = static_cast<FO4Shader*>(owner);
-		IParamMap2* map = m->pb_base ? m->pb_base->GetMap() : NULL;
+		auto* pShader = static_cast<FO4Shader*>(owner);
+		IParamMap2* map = pShader->pb_base ? pShader->pb_base->GetMap() : NULL;
 
 		switch (id)
 		{
+		case fos_shader_type:
+		{
+			int idx = StringToEnum(v.s, MaterialFileTypesShort);
+			if (idx == 0) pShader->ChangeShader(BGSMFILE_CLASS_ID);
+			if (idx == 1) pShader->ChangeShader(BGEMFILE_CLASS_ID);
+		}	break;
+		case fos_name:
+			pShader->SetMaterialName(v.s);
+			break;
+		case fos_filename:
+			pShader->SetFileName(v.s);
+			break;
+		}
+	}
+
+	virtual void Get(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t, Interval &valid)
+	{
+		auto* pShader = static_cast<FO4Shader*>(owner);
+		IParamMap2* map = pShader->pb_base ? pShader->pb_base->GetMap() : NULL;
+
+		switch (id)
+		{
+		case fos_shader_type:
+		{
+			static TSTR name;
+			name = EnumToStringRaw(pShader->HasBGEM() ? 1 : 0, MaterialFileTypesShort);
+			v.s = const_cast<LPTSTR>(name.data());
+		}	break;
+		case fos_name:
+		{ //Set v.s to the assetid so we are not loosing the source file name.
+			static TSTR name;
+			name = pShader->GetMaterialName();
+			v.s = const_cast<LPTSTR>(name.data());
+		}	break;
+		case fos_filename:
+		{ //Set v.s to the assetid so we are not loosing the source file name.
+			static TSTR filename;
+			filename = pShader->GetFileName();
+			v.s = const_cast<LPTSTR>(filename.data());
+		}	break;
 		}
 	}
 };
@@ -368,10 +505,10 @@ public:
 static BasePBAccessor base_pb_accessor;
 
 // extra rollout dialog proc
-class ExtraDlgProc : public ParamMap2UserDlgProc
+class BaseDlgProc : public ParamMap2UserDlgProc
 {
 public:
-	INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+	INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (msg)
 		{
@@ -383,29 +520,1056 @@ public:
 		}
 		return FALSE;
 	}
-	void DeleteThis() { }
+	void DeleteThis() override { }
 };
 
-static ExtraDlgProc extraDlgProc;
+static BaseDlgProc baseDlgProc;
 
-// extended parameters
-static ParamBlockDesc2 std2_extended_blk(fos_shader, _T("extendedParameters"), 0, &stdmtl2CD, P_AUTO_CONSTRUCT + P_AUTO_UI, EXTENDED_PB_REF,
+// base parameters
+static ParamBlockDesc2 fos_base_blk(fos_shader, _T("baseShader"), 0, &FO4ShaderDesc, P_AUTO_CONSTRUCT /*+ P_AUTO_UI*/, ref_base,
 	//rollout
-	IDD_DMTL_EXTRA6, IDS_DS_EXTRA, 0, APPENDROLL_CLOSED, &extraDlgProc,
+	//IDD_FO4SHADER_BASE, IDS_FOS_BASENAME, 0, APPENDROLL_CLOSED, &baseDlgProc,
 	// params
 
-	std2_opacity, _T("opacity"), TYPE_PCNT_FRAC, P_ANIMATABLE, IDS_DS_OPACITY,
-	p_default, 0.0,
-	p_range, 0.0, 100.0,   // UI us in the shader rollout
+	fos_shader_type, _T("shaderType"), TYPE_STRING, P_TRANSIENT, IDS_FOS_SHADERTYPE,
+	p_accessor, &base_pb_accessor,
+	p_end,
+
+	fos_name, _T("name"), TYPE_STRING, P_TRANSIENT, IDS_FOS_NAME,
+	p_accessor, &base_pb_accessor,
+	p_end,
+
+	fos_filename, _T("fileName"), TYPE_STRING, P_TRANSIENT, IDS_FOS_FILENAME,
 	p_accessor, &base_pb_accessor,
 	p_end,
 
 	p_end
 	);
 
-#endif
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Material Rollout
+
+class MaterialPBAccessor : public PBAccessor
+{
+public:
+	void Set(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t)    // set from v
+	{
+		auto* pShader = static_cast<FO4Shader*>(owner);
+		auto* pValue = pShader->pMtlFileRef->GetBaseMaterial();
+		if (pValue == nullptr)
+			return;
+
+		IParamMap2* map = pShader->pb_base ? pShader->pb_base->GetMap() : NULL;
+		switch (id)
+		{
+		case fos_tileu: pValue->TileU = v.i ? true : false; break;
+		case fos_tilev: pValue->TileV = v.i ? true : false; break;
+		case fos_uoffset: pValue->UOffset = v.f; break;
+		case fos_voffset: pValue->VOffset = v.f; break;
+		case fos_uscale: pValue->UScale = v.f; break;
+		case fos_vscale: pValue->VScale = v.f; break;
+		case fos_alpha: pValue->Alpha = v.f; break;
+		case fos_alphablendmode: pValue->AlphaBlendMode = AlphaBlendModeType(v.i); break;
+		case fos_blendstate: pValue->BlendState = v.i ? true : false; break;
+		case fos_blendfunc1: pValue->BlendFunc1 = AlphaBlendFunc(v.i); break;
+		case fos_blendfunc2: pValue->BlendFunc2 = AlphaBlendFunc(v.i); break;
+		case fos_alphatestref: pValue->AlphaTestRef = v.i; break;
+		case fos_alphatest: pValue->AlphaTest = v.i ? true : false; break;
+		case fos_zbufferwrite: pValue->ZBufferWrite = v.i ? true : false; break;
+		case fos_zbuffertest: pValue->ZBufferTest = v.i ? true : false; break;
+		case fos_screenspacereflections: pValue->ScreenSpaceReflections = v.i ? true : false; break;
+		case fos_wetnesscontrolscreenspacereflections: pValue->WetnessControlScreenSpaceReflections = v.i ? true : false; break;
+		case fos_decal: pValue->Decal = v.i ? true : false; break;
+		case fos_twosided: pValue->TwoSided = v.i ? true : false; break;
+		case fos_decalnofade: pValue->DecalNoFade = v.i ? true : false; break;
+		case fos_nonoccluder: pValue->NonOccluder = v.i ? true : false; break;
+		case fos_refraction: pValue->Refraction = v.i ? true : false; break;
+		case fos_refractionfalloff: pValue->RefractionFalloff = v.i ? true : false; break;
+		case fos_refractionpower: pValue->RefractionPower = v.f; break;
+		case fos_environmentmapping: pValue->EnvironmentMapping = v.i ? true : false; break;
+		case fos_environmentmappingmaskscale: pValue->EnvironmentMappingMaskScale = v.f; break;
+		case fos_grayscaletopalettecolor: pValue->GrayscaleToPaletteColor = v.i ? true : false; break;
+		}
+	}
+
+	virtual void Get(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t, Interval &valid)
+	{
+		auto* pShader = static_cast<FO4Shader*>(owner);
+		IParamMap2* map = pShader->pb_base ? pShader->pb_base->GetMap() : NULL;
+		auto* pValue = pShader->pMtlFileRef->GetBaseMaterial();
+		if (pValue == nullptr)
+			return;
+
+		switch (id)
+		{
+		case fos_tileu: v.i = pValue->TileU ? TRUE : FALSE; break;
+		case fos_tilev: v.i = pValue->TileV ? TRUE : FALSE; break;
+		case fos_uoffset: v.f = pValue->UOffset; break;
+		case fos_voffset: v.f = pValue->VOffset; break;
+		case fos_uscale: v.f = pValue->UScale; break;
+		case fos_vscale: v.f = pValue->VScale; break;
+		case fos_alpha: v.f = pValue->Alpha; break;
+		case fos_alphablendmode: v.i = pValue->AlphaBlendMode; break;
+		case fos_blendstate: v.i = pValue->BlendState ? TRUE : FALSE; break;
+		case fos_blendfunc1: v.i = pValue->BlendFunc1; break;
+		case fos_blendfunc2: v.i = pValue->BlendFunc2; break;
+		case fos_alphatestref: v.i = pValue->AlphaTestRef; break;
+		case fos_alphatest: v.i = pValue->AlphaTest ? TRUE : FALSE; break;
+		case fos_zbufferwrite: v.i = pValue->ZBufferWrite ? TRUE : FALSE; break;
+		case fos_zbuffertest: v.i = pValue->ZBufferTest ? TRUE : FALSE; break;
+		case fos_screenspacereflections: v.i = pValue->ScreenSpaceReflections ? TRUE : FALSE; break;
+		case fos_wetnesscontrolscreenspacereflections: v.i = pValue->WetnessControlScreenSpaceReflections ? TRUE : FALSE; break;
+		case fos_decal: v.i = pValue->Decal ? TRUE : FALSE; break;
+		case fos_twosided: v.i = pValue->TwoSided ? TRUE : FALSE; break;
+		case fos_decalnofade: v.i = pValue->DecalNoFade ? TRUE : FALSE; break;
+		case fos_nonoccluder: v.i = pValue->NonOccluder ? TRUE : FALSE; break;
+		case fos_refraction: v.i = pValue->Refraction ? TRUE : FALSE; break;
+		case fos_refractionfalloff: v.i = pValue->RefractionFalloff ? TRUE : FALSE; break;
+		case fos_refractionpower: v.f = pValue->RefractionPower; break;
+		case fos_environmentmapping: v.i = pValue->EnvironmentMapping ? TRUE : FALSE; break;
+		case fos_environmentmappingmaskscale: v.f = pValue->EnvironmentMappingMaskScale; break;
+		case fos_grayscaletopalettecolor: v.i = pValue->GrayscaleToPaletteColor ? TRUE : FALSE; break;
+		}
+	}
+};
+
+static MaterialPBAccessor mtl_pb_accessor;
+
+// extra rollout dialog proc
+class MaterialDlgProc : public ParamMap2UserDlgProc
+{
+public:
+	INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
+	{
+		switch (msg)
+		{
+		case WM_INITDIALOG: {
+			//if (auto* m = static_cast<FO4Shader*>(map->GetParamBlock()->GetOwner()))
+			//	;
+			//m->UpdateExtraParams(m->GetShader()->SupportStdParams());
+			return TRUE;
+		case WM_NCDESTROY:
+		case WM_DESTROY:
+		case WM_CLOSE:
+			if (auto* m = static_cast<FO4Shader*>(map->GetParamBlock()->GetOwner()))
+				m->ClearDialogRollup(fos_mtl);
+			return FALSE;
+		}
+		}
+		return FALSE;
+	}
+	void DeleteThis() override { }
+};
+
+static MaterialDlgProc materialDlgProc;
+
+// base parameters
+static ParamBlockDesc2 fos_mtl_blk(fos_mtl, _T("baseMaterial"), 0, &FO4ShaderDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, ref_mtl,
+	//rollout
+	IDD_FO4SHADER_MTL, IDS_FOS_MTLNAME, 0, APPENDROLL_CLOSED, &materialDlgProc,
+	// params
+
+	fos_tileu, _T("tileU"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_TILEU,
+	p_default, TRUE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_TILEU_CHK,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_tilev, _T("tileV"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_TILEV,
+	p_default, TRUE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_TILEV_CHK,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_uoffset, _T("uOffset"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_UOFFSET,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_UOFFSET_EDIT, IDC_FOS_UOFFSET_SPIN, 0.1f,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_voffset, _T("vOffset"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_VOFFSET,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_VOFFSET_EDIT, IDC_FOS_VOFFSET_SPIN, 0.1f,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_uscale, _T("uScale"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_USCALE,
+	p_default, 1.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_USCALE_EDIT, IDC_FOS_USCALE_SPIN, 0.1f,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_vscale, _T("vScale"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_VSCALE,
+	p_default, 1.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_VSCALE_EDIT, IDC_FOS_VSCALE_SPIN, 0.1f,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_alpha, _T("alpha"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_ALPHA,
+	p_default, 1.0,
+	p_range, 0.0, 1.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_ALPHA_EDIT, IDC_FOS_ALPHA_SPIN, 0.1f,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_alphablendmode, _T("alphaBlendMode"), TYPE_INT, P_TRANSIENT, IDS_FOS_ALPHABLENDMODE,
+	p_default, 0,
+	p_range, 0, 10,
+	p_ui, TYPE_SPINNER, EDITTYPE_INT, IDC_FOS_ALPHABLENDMODE_EDIT, IDC_FOS_ALPHABLENDMODE_SPIN, 1.0f,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_blendstate, _T("blendState"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_BLENDSTATE,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_BLENDSTATE_CHK,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_blendfunc1, _T("blendFuncSrc"), TYPE_INT, P_TRANSIENT, IDS_FOS_BLENDFUNC1,
+	p_default, 0,
+	p_range, 0, 10,
+	p_ui, TYPE_SPINNER, EDITTYPE_INT, IDC_FOS_BLENDFUNC1_EDIT, IDC_FOS_BLENDFUNC1_SPIN, 1.0f,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_blendfunc2, _T("blendFuncDst"), TYPE_INT, P_TRANSIENT, IDS_FOS_BLENDFUNC2,
+	p_default, 0,
+	p_range, 0, 10,
+	p_ui, TYPE_SPINNER, EDITTYPE_INT, IDC_FOS_BLENDFUNC2_EDIT, IDC_FOS_BLENDFUNC2_SPIN, 1.0f,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_alphatestref, _T("alphaTestRef"), TYPE_INT, P_TRANSIENT, IDS_FOS_ALPHATESTREF,
+	p_default, 0,
+	p_range, 0, 256,
+	p_ui, TYPE_SPINNER, EDITTYPE_INT, IDC_FOS_ALPHATESTREF_EDIT, IDC_FOS_ALPHATESTREF_SPIN, 1.0f,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_alphatest, _T("alphaTest"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_ALPHATEST,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_ALPHATEST_CHK,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_zbufferwrite, _T("zBufferWrite"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_ZBUFFERWRITE,
+	p_default, TRUE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_ZBUFFERWRITE_CHK,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_zbuffertest, _T("zBufferTest"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_ZBUFFERTEST,
+	p_default, TRUE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_ZBUFFERTEST_CHK,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_screenspacereflections, _T("screenSpaceReflections"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_SCREENSPACEREFLECTIONS,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_SCREENSPACEREFLECTIONS_CHK,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_wetnesscontrolscreenspacereflections, _T("wetnessControlScreenSpaceReflections"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_WETNESSCONTROLSCREENSPACEREFLECTIONS,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_WETNESSCONTROLSCREENSPACEREFLECTIONS_CHK,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_decal, _T("decal"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_DECAL,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_DECAL_CHK,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_twosided, _T("twoSided"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_TWOSIDED,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_TWOSIDED_CHK,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_decalnofade, _T("decalNoFade"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_DECALNOFADE,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_DECALNOFADE_CHK,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_nonoccluder, _T("nonOccluder"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_NONOCCLUDER,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_NONOCCLUDER_CHK,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_refraction, _T("refraction"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_REFRACTION,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_REFRACTION_CHK,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_refractionfalloff, _T("refractionFalloff"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_REFRACTIONFALLOFF,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_REFRACTIONFALLOFF_CHK,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_refractionpower, _T("refractionPower"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_REFRACTIONPOWER,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_REFRACTIONPOWER_EDIT, IDC_FOS_REFRACTIONPOWER_SPIN, 0.1f,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_environmentmapping, _T("environmentMapping"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_ENVIRONMENTMAPPING,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_ENVIRONMENTMAPPING_CHK,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_environmentmappingmaskscale, _T("environmentMappingMaskScale"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_ENVIRONMENTMAPPINGMASKSCALE,
+	p_default, 1.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_ENVIRONMENTMAPPINGMASKSCALE_EDIT, IDC_FOS_ENVIRONMENTMAPPINGMASKSCALE_SPIN, 0.1f,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	fos_grayscaletopalettecolor, _T("grayscaleToPaletteColor"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_GRAYSCALETOPALETTECOLOR,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_GRAYSCALETOPALETTECOLOR_CHK,
+	p_accessor, &mtl_pb_accessor,
+	p_end,
+
+	p_end
+	);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// BGSM Rollout
+
+class BGSMPBAccessor : public PBAccessor
+{
+public:
+	void Set(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t)   override
+	{
+		auto* pShader = static_cast<FO4Shader*>(owner);
+		auto* pValue = pShader->GetBGSMData();
+		if (pValue == nullptr)
+			return;
+
+		IParamMap2* map = pShader->pb_base ? pShader->pb_base->GetMap() : NULL;
+		switch (id)
+		{
+		case fos_diffusetexture: {  pValue->DiffuseTexture = v.s; } break;
+		case fos_normaltexture: {  pValue->NormalTexture = v.s; } break;
+		case fos_smoothspectexture: {  pValue->SmoothSpecTexture = v.s; } break;
+		case fos_greyscaletexture: {  pValue->GreyscaleTexture = v.s; } break;
+		case fos_envmaptexture: {  pValue->EnvmapTexture = v.s; } break;
+		case fos_glowtexture: {  pValue->GlowTexture = v.s; } break;
+		case fos_innerlayertexture: {  pValue->InnerLayerTexture = v.s; } break;
+		case fos_wrinklestexture: {  pValue->WrinklesTexture = v.s; } break;
+		case fos_displacementtexture: {  pValue->DisplacementTexture = v.s; } break;
+		case fos_enableeditoralpharef: pValue->EnableEditorAlphaRef = v.i ? true : false; break;
+		case fos_rimlighting: pValue->RimLighting = v.i ? true : false; break;
+		case fos_rimpower: pValue->RimPower = v.f; break;
+		case fos_backlightpower: pValue->BackLightPower = v.f; break;
+		case fos_subsurfacelighting: pValue->SubsurfaceLighting = v.i ? true : false; break;
+		case fos_subsurfacelightingrolloff: pValue->SubsurfaceLightingRolloff = v.f; break;
+		case fos_specularenabled: pValue->SpecularEnabled = v.i ? true : false; break;
+		case fos_specularcolor: if (v.p) pValue->SpecularColor = TOCOLOR3(*v.p); break;
+		case fos_specularmult: pValue->SpecularMult = v.f; break;
+		case fos_smoothness: pValue->Smoothness = v.f; break;
+		case fos_fresnelpower: pValue->FresnelPower = v.f; break;
+		case fos_wetnesscontrolspecscale: pValue->WetnessControlSpecScale = v.f; break;
+		case fos_wetnesscontrolspecpowerscale: pValue->WetnessControlSpecPowerScale = v.f; break;
+		case fos_wetnesscontrolspecminvar: pValue->WetnessControlSpecMinvar = v.f; break;
+		case fos_wetnesscontrolenvmapscale: pValue->WetnessControlEnvMapScale = v.f; break;
+		case fos_wetnesscontrolfresnelpower: pValue->WetnessControlFresnelPower = v.f; break;
+		case fos_wetnesscontrolmetalness: pValue->WetnessControlMetalness = v.f; break;
+		case fos_rootmaterialpath: {  pValue->RootMaterialPath = v.s; } break;
+		case fos_anisolighting: pValue->AnisoLighting = v.i ? true : false; break;
+		case fos_emitenabled: pValue->EmitEnabled = v.i ? true : false; break;
+		case fos_emittancecolor: if (v.p) pValue->EmittanceColor = TOCOLOR3(*v.p); break;
+		case fos_emittancemult: pValue->EmittanceMult = v.f; break;
+		case fos_modelspacenormals: pValue->ModelSpaceNormals = v.i ? true : false; break;
+		case fos_externalemittance: pValue->ExternalEmittance = v.i ? true : false; break;
+		case fos_backlighting: pValue->BackLighting = v.i ? true : false; break;
+		case fos_receiveshadows: pValue->ReceiveShadows = v.i ? true : false; break;
+		case fos_hidesecret: pValue->HideSecret = v.i ? true : false; break;
+		case fos_castshadows: pValue->CastShadows = v.i ? true : false; break;
+		case fos_dissolvefade: pValue->DissolveFade = v.i ? true : false; break;
+		case fos_assumeshadowmask: pValue->AssumeShadowmask = v.i ? true : false; break;
+		case fos_glowmap: pValue->Glowmap = v.i ? true : false; break;
+		case fos_environmentmappingwindow: pValue->EnvironmentMappingWindow = v.i ? true : false; break;
+		case fos_environmentmappingeye: pValue->EnvironmentMappingEye = v.i ? true : false; break;
+		case fos_hair: pValue->Hair = v.i ? true : false; break;
+		case fos_hairtintcolor: if (v.p) pValue->HairTintColor = TOCOLOR3(*v.p); break;
+		case fos_tree: pValue->Tree = v.i ? true : false; break;
+		case fos_facegen: pValue->Facegen = v.i ? true : false; break;
+		case fos_skintint: pValue->SkinTint = v.i ? true : false; break;
+		case fos_tessellate: pValue->Tessellate = v.i ? true : false; break;
+		case fos_displacementtexturebias: pValue->DisplacementTextureBias = v.f; break;
+		case fos_displacementtexturescale: pValue->DisplacementTextureScale = v.f; break;
+		case fos_tessellationpnscale: pValue->TessellationPNScale = v.f; break;
+		case fos_tessellationbasefactor: pValue->TessellationBaseFactor = v.f; break;
+		case fos_tessellationfadedistance: pValue->TessellationFadeDistance = v.f; break;
+		case fos_grayscaletopalettescale: pValue->GrayscaleToPaletteScale = v.f; break;
+		case fos_skewspecularalpha: pValue->SkewSpecularAlpha = v.i ? true : false; break;
+		}
+	}
+
+	virtual void Get(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t, Interval &valid) override
+	{
+		auto* pShader = static_cast<FO4Shader*>(owner);
+		IParamMap2* map = pShader->pb_base ? pShader->pb_base->GetMap() : NULL;
+		auto* pValue = pShader->GetBGSMData();
+		if (pValue == nullptr)
+			return;
+		switch (id)
+		{
+		case fos_diffusetexture: {  static TSTR value; value = pValue->DiffuseTexture.c_str(); v.s = const_cast<LPTSTR>(value.data()); } break;
+		case fos_normaltexture: {  static TSTR value; value = pValue->NormalTexture.c_str(); v.s = const_cast<LPTSTR>(value.data()); } break;
+		case fos_smoothspectexture: {  static TSTR value; value = pValue->SmoothSpecTexture.c_str(); v.s = const_cast<LPTSTR>(value.data()); } break;
+		case fos_greyscaletexture: {  static TSTR value; value = pValue->GreyscaleTexture.c_str(); v.s = const_cast<LPTSTR>(value.data()); } break;
+		case fos_envmaptexture: {  static TSTR value; value = pValue->EnvmapTexture.c_str(); v.s = const_cast<LPTSTR>(value.data()); } break;
+		case fos_glowtexture: {  static TSTR value; value = pValue->GlowTexture.c_str(); v.s = const_cast<LPTSTR>(value.data()); } break;
+		case fos_innerlayertexture: {  static TSTR value; value = pValue->InnerLayerTexture.c_str(); v.s = const_cast<LPTSTR>(value.data()); } break;
+		case fos_wrinklestexture: {  static TSTR value; value = pValue->WrinklesTexture.c_str(); v.s = const_cast<LPTSTR>(value.data()); } break;
+		case fos_displacementtexture: {  static TSTR value; value = pValue->DisplacementTexture.c_str(); v.s = const_cast<LPTSTR>(value.data()); } break;
+		case fos_enableeditoralpharef: v.i = pValue->EnableEditorAlphaRef ? TRUE : FALSE; break;
+		case fos_rimlighting: v.i = pValue->RimLighting ? TRUE : FALSE; break;
+		case fos_rimpower: v.f = pValue->RimPower; break;
+		case fos_backlightpower: v.f = pValue->BackLightPower; break;
+		case fos_subsurfacelighting: v.i = pValue->SubsurfaceLighting ? TRUE : FALSE; break;
+		case fos_subsurfacelightingrolloff: v.f = pValue->SubsurfaceLightingRolloff; break;
+		case fos_specularenabled: v.i = pValue->SpecularEnabled ? TRUE : FALSE; break;
+		case fos_specularcolor: if (v.p) *v.p = TOCOLOR(pValue->SpecularColor); break;
+		case fos_specularmult: v.f = pValue->SpecularMult; break;
+		case fos_smoothness: v.f = pValue->Smoothness; break;
+		case fos_fresnelpower: v.f = pValue->FresnelPower; break;
+		case fos_wetnesscontrolspecscale: v.f = pValue->WetnessControlSpecScale; break;
+		case fos_wetnesscontrolspecpowerscale: v.f = pValue->WetnessControlSpecPowerScale; break;
+		case fos_wetnesscontrolspecminvar: v.f = pValue->WetnessControlSpecMinvar; break;
+		case fos_wetnesscontrolenvmapscale: v.f = pValue->WetnessControlEnvMapScale; break;
+		case fos_wetnesscontrolfresnelpower: v.f = pValue->WetnessControlFresnelPower; break;
+		case fos_wetnesscontrolmetalness: v.f = pValue->WetnessControlMetalness; break;
+		case fos_rootmaterialpath: {  static TSTR value; value = pValue->RootMaterialPath.c_str(); v.s = value; } break;
+		case fos_anisolighting: v.i = pValue->AnisoLighting ? TRUE : FALSE; break;
+		case fos_emitenabled: v.i = pValue->EmitEnabled ? TRUE : FALSE; break;
+		case fos_emittancecolor: if (v.p) *v.p = TOCOLOR(pValue->EmittanceColor); break;
+		case fos_emittancemult: v.f = pValue->EmittanceMult; break;
+		case fos_modelspacenormals: v.i = pValue->ModelSpaceNormals ? TRUE : FALSE; break;
+		case fos_externalemittance: v.i = pValue->ExternalEmittance ? TRUE : FALSE; break;
+		case fos_backlighting: v.i = pValue->BackLighting ? TRUE : FALSE; break;
+		case fos_receiveshadows: v.i = pValue->ReceiveShadows ? TRUE : FALSE; break;
+		case fos_hidesecret: v.i = pValue->HideSecret ? TRUE : FALSE; break;
+		case fos_castshadows: v.i = pValue->CastShadows ? TRUE : FALSE; break;
+		case fos_dissolvefade: v.i = pValue->DissolveFade ? TRUE : FALSE; break;
+		case fos_assumeshadowmask: v.i = pValue->AssumeShadowmask ? TRUE : FALSE; break;
+		case fos_glowmap: v.i = pValue->Glowmap ? TRUE : FALSE; break;
+		case fos_environmentmappingwindow: v.i = pValue->EnvironmentMappingWindow ? TRUE : FALSE; break;
+		case fos_environmentmappingeye: v.i = pValue->EnvironmentMappingEye ? TRUE : FALSE; break;
+		case fos_hair: v.i = pValue->Hair ? TRUE : FALSE; break;
+		case fos_hairtintcolor: if (v.p) *v.p = TOCOLOR(pValue->HairTintColor); break;
+		case fos_tree: v.i = pValue->Tree ? TRUE : FALSE; break;
+		case fos_facegen: v.i = pValue->Facegen ? TRUE : FALSE; break;
+		case fos_skintint: v.i = pValue->SkinTint ? TRUE : FALSE; break;
+		case fos_tessellate: v.i = pValue->Tessellate ? TRUE : FALSE; break;
+		case fos_displacementtexturebias: v.f = pValue->DisplacementTextureBias; break;
+		case fos_displacementtexturescale: v.f = pValue->DisplacementTextureScale; break;
+		case fos_tessellationpnscale: v.f = pValue->TessellationPNScale; break;
+		case fos_tessellationbasefactor: v.f = pValue->TessellationBaseFactor; break;
+		case fos_tessellationfadedistance: v.f = pValue->TessellationFadeDistance; break;
+		case fos_grayscaletopalettescale: v.f = pValue->GrayscaleToPaletteScale; break;
+		case fos_skewspecularalpha: v.i = pValue->SkewSpecularAlpha ? TRUE : FALSE; break;
+		}
+	}
+};
+
+static BGSMPBAccessor bgsm_pb_accessor;
+
+// extra rollout dialog proc
+class BGSMDlgProc : public ParamMap2UserDlgProc
+{
+public:
+	INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
+	{
+		switch (msg)
+		{
+		case WM_INITDIALOG: {
+			//if (auto* m = static_cast<FO4Shader*>(map->GetParamBlock()->GetOwner()))
+			//	;
+			//m->UpdateExtraParams(m->GetShader()->SupportStdParams());
+			return TRUE;
+		case WM_NCDESTROY:
+		case WM_DESTROY:
+		case WM_CLOSE:
+			if (auto* m = static_cast<FO4Shader*>(map->GetParamBlock()->GetOwner()))
+				m->ClearDialogRollup(fos_bgsm);
+			return FALSE;
+		}
+		}
+		return FALSE;
+	}
+	void DeleteThis() override { }
+};
+
+static BGSMDlgProc bgsmDlgProc;
+
+// base parameters
+static ParamBlockDesc2 fos_bgsm_blk(fos_bgsm, _T("bgsmMaterial"), 0, &FO4ShaderDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, ref_bgsm,
+	//rollout
+	IDD_FO4SHADER_BGSM, IDS_FOS_BGSMNAME, 0, APPENDROLL_CLOSED, &bgsmDlgProc,
+	// params
+
+	fos_diffusetexture, _T("diffuseTexture"), TYPE_STRING, P_TRANSIENT, IDS_FOS_DIFFUSETEXTURE,
+	p_ui, TYPE_EDITBOX, IDC_FOS_DIFFUSETEXTURE_EDIT,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_normaltexture, _T("normalTexture"), TYPE_STRING, P_TRANSIENT, IDS_FOS_NORMALTEXTURE,
+	p_ui, TYPE_EDITBOX, IDC_FOS_NORMALTEXTURE_EDIT,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_smoothspectexture, _T("smoothSpecTexture"), TYPE_STRING, P_TRANSIENT, IDS_FOS_SMOOTHSPECTEXTURE,
+	p_ui, TYPE_EDITBOX, IDC_FOS_SMOOTHSPECTEXTURE_EDIT,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_greyscaletexture, _T("greyscaleTexture"), TYPE_STRING, P_TRANSIENT, IDS_FOS_GREYSCALETEXTURE,
+	p_ui, TYPE_EDITBOX, IDC_FOS_GREYSCALETEXTURE_EDIT,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_envmaptexture, _T("envmapTexture"), TYPE_STRING, P_TRANSIENT, IDS_FOS_ENVMAPTEXTURE,
+	p_ui, TYPE_EDITBOX, IDC_FOS_ENVMAPTEXTURE_EDIT,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_glowtexture, _T("glowTexture"), TYPE_STRING, P_TRANSIENT, IDS_FOS_GLOWTEXTURE,
+	p_ui, TYPE_EDITBOX, IDC_FOS_GLOWTEXTURE_EDIT,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_innerlayertexture, _T("innerLayerTexture"), TYPE_STRING, P_TRANSIENT, IDS_FOS_INNERLAYERTEXTURE,
+	p_ui, TYPE_EDITBOX, IDC_FOS_INNERLAYERTEXTURE_EDIT,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_wrinklestexture, _T("wrinklesTexture"), TYPE_STRING, P_TRANSIENT, IDS_FOS_WRINKLESTEXTURE,
+	p_ui, TYPE_EDITBOX, IDC_FOS_WRINKLESTEXTURE_EDIT,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_displacementtexture, _T("displacementTexture"), TYPE_STRING, P_TRANSIENT, IDS_FOS_DISPLACEMENTTEXTURE,
+	p_ui, TYPE_EDITBOX, IDC_FOS_DISPLACEMENTTEXTURE_EDIT,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_enableeditoralpharef, _T("enableEditorAlphaRef"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_ENABLEEDITORALPHAREF,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_ENABLEEDITORALPHAREF_CHK,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_rimlighting, _T("rimLighting"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_RIMLIGHTING,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_RIMLIGHTING_CHK,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_rimpower, _T("rimPower"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_RIMPOWER,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_RIMPOWER_EDIT, IDC_FOS_RIMPOWER_SPIN, 0.1f,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_backlightpower, _T("backLightPower"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_BACKLIGHTPOWER,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_BACKLIGHTPOWER_EDIT, IDC_FOS_BACKLIGHTPOWER_SPIN, 0.1f,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_subsurfacelighting, _T("subsurfaceLighting"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_SUBSURFACELIGHTING,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_SUBSURFACELIGHTING_CHK,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_subsurfacelightingrolloff, _T("subsurfaceLightingRolloff"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_SUBSURFACELIGHTINGROLLOFF,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_SUBSURFACELIGHTINGROLLOFF_EDIT, IDC_FOS_SUBSURFACELIGHTINGROLLOFF_SPIN, 0.1f,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_specularenabled, _T("specularEnabled"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_SPECULARENABLED,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_SPECULARENABLED_CHK,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_specularcolor, _T("specularColor"), TYPE_RGBA, P_TRANSIENT, IDS_FOS_SPECULARCOLOR,
+	p_ui, TYPE_COLORSWATCH, IDC_FOS_SPECULARCOLOR_COLOR,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_specularmult, _T("specularMult"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_SPECULARMULT,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_SPECULARMULT_EDIT, IDC_FOS_SPECULARMULT_SPIN, 0.1f,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_smoothness, _T("smoothness"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_SMOOTHNESS,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_SMOOTHNESS_EDIT, IDC_FOS_SMOOTHNESS_SPIN, 0.1f,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_fresnelpower, _T("fresnelPower"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_FRESNELPOWER,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_FRESNELPOWER_EDIT, IDC_FOS_FRESNELPOWER_SPIN, 0.1f,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_wetnesscontrolspecscale, _T("wetnessControlSpecScale"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_WETNESSCONTROLSPECSCALE,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_WETNESSCONTROLSPECSCALE_EDIT, IDC_FOS_WETNESSCONTROLSPECSCALE_SPIN, 0.1f,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_wetnesscontrolspecpowerscale, _T("wetnessControlSpecPowerScale"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_WETNESSCONTROLSPECPOWERSCALE,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_WETNESSCONTROLSPECPOWERSCALE_EDIT, IDC_FOS_WETNESSCONTROLSPECPOWERSCALE_SPIN, 0.1f,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_wetnesscontrolspecminvar, _T("wetnessControlSpecMinvar"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_WETNESSCONTROLSPECMINVAR,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_WETNESSCONTROLSPECMINVAR_EDIT, IDC_FOS_WETNESSCONTROLSPECMINVAR_SPIN, 0.1f,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_wetnesscontrolenvmapscale, _T("wetnessControlEnvMapScale"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_WETNESSCONTROLENVMAPSCALE,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_WETNESSCONTROLENVMAPSCALE_EDIT, IDC_FOS_WETNESSCONTROLENVMAPSCALE_SPIN, 0.1f,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_wetnesscontrolfresnelpower, _T("wetnessControlFresnelPower"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_WETNESSCONTROLFRESNELPOWER,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_WETNESSCONTROLFRESNELPOWER_EDIT, IDC_FOS_WETNESSCONTROLFRESNELPOWER_SPIN, 0.1f,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_wetnesscontrolmetalness, _T("wetnessControlMetalness"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_WETNESSCONTROLMETALNESS,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_WETNESSCONTROLMETALNESS_EDIT, IDC_FOS_WETNESSCONTROLMETALNESS_SPIN, 0.1f,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_rootmaterialpath, _T("rootMaterialPath"), TYPE_STRING, P_TRANSIENT, IDS_FOS_ROOTMATERIALPATH,
+	p_ui, TYPE_EDITBOX, IDC_FOS_ROOTMATERIALPATH_EDIT,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_anisolighting, _T("anisoLighting"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_ANISOLIGHTING,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_ANISOLIGHTING_CHK,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_emitenabled, _T("emitEnabled"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_EMITENABLED,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_EMITENABLED_CHK,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_emittancecolor, _T("emittanceColor"), TYPE_RGBA, P_TRANSIENT, IDS_FOS_EMITTANCECOLOR,
+	p_ui, TYPE_COLORSWATCH, IDC_FOS_EMITTANCECOLOR_COLOR,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_emittancemult, _T("emittanceMult"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_EMITTANCEMULT,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_EMITMULT_EDIT, IDC_FOS_EMITMULT_SPIN, 0.1f,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_modelspacenormals, _T("modelSpaceNormals"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_MODELSPACENORMALS,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_MODELSPACENORMALS_CHK,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_externalemittance, _T("externalEmittance"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_EXTERNALEMITTANCE,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_EXTERNALEMITTANCE_CHK,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_backlighting, _T("backLighting"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_BACKLIGHTING,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_BACKLIGHTING_CHK,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_receiveshadows, _T("receiveShadows"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_RECEIVESHADOWS,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_RECEIVESHADOWS_CHK,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_hidesecret, _T("hideSecret"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_HIDESECRET,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_HIDESECRET_CHK,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_castshadows, _T("castShadows"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_CASTSHADOWS,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_CASTSHADOWS_CHK,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_dissolvefade, _T("dissolveFade"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_DISSOLVEFADE,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_DISSOLVEFADE_CHK,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_assumeshadowmask, _T("assumeShadowmask"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_ASSUMESHADOWMASK,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_ASSUMESHADOWMASK_CHK,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_glowmap, _T("glowmap"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_GLOWMAP,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_GLOWMAP_CHK,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_environmentmappingwindow, _T("environmentMappingWindow"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_ENVIRONMENTMAPPINGWINDOW,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_ENVIRONMENTMAPPINGWINDOW_CHK,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_environmentmappingeye, _T("environmentMappingEye"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_ENVIRONMENTMAPPINGEYE,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_ENVIRONMENTMAPPINGEYE_CHK,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_hair, _T("hair"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_HAIR,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_HAIR_CHK,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_hairtintcolor, _T("hairTintColor"), TYPE_RGBA, P_TRANSIENT, IDS_FOS_HAIRTINTCOLOR,
+	p_ui, TYPE_COLORSWATCH, IDC_FOS_HAIRTINTCOLOR_COLOR,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_tree, _T("tree"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_TREE,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_TREE_CHK,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_facegen, _T("facegen"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_FACEGEN,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_FACEGEN_CHK,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_skintint, _T("skinTint"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_SKINTINT,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_SKINTINT_CHK,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_tessellate, _T("tessellate"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_TESSELLATE,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_TESSELLATE_CHK,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_displacementtexturebias, _T("displacementTextureBias"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_DISPLACEMENTTEXTUREBIAS,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_DISPLACEMENTTEXTUREBIAS_EDIT, IDC_FOS_DISPLACEMENTTEXTUREBIAS_SPIN, 0.1f,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_displacementtexturescale, _T("displacementTextureScale"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_DISPLACEMENTTEXTURESCALE,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_DISPLACEMENTTEXTURESCALE_EDIT, IDC_FOS_DISPLACEMENTTEXTURESCALE_SPIN, 0.1f,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_tessellationpnscale, _T("tessellationPNScale"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_TESSELLATIONPNSCALE,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_TESSELLATIONPNSCALE_EDIT, IDC_FOS_TESSELLATIONPNSCALE_SPIN, 0.1f,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_tessellationbasefactor, _T("tessellationBaseFactor"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_TESSELLATIONBASEFACTOR,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_TESSELLATIONBASEFACTOR_EDIT, IDC_FOS_TESSELLATIONBASEFACTOR_SPIN, 0.1f,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_tessellationfadedistance, _T("tessellationFadeDistance"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_TESSELLATIONFADEDISTANCE,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_TESSELLATIONFADEDISTANCE_EDIT, IDC_FOS_TESSELLATIONFADEDISTANCE_SPIN, 0.1f,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_grayscaletopalettescale, _T("grayscaleToPaletteScale"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_GRAYSCALETOPALETTESCALE,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_GRAYSCALETOPALETTESCALE_EDIT, IDC_FOS_GRAYSCALETOPALETTESCALE_SPIN, 0.1f,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	fos_skewspecularalpha, _T("skewSpecularAlpha"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_SKEWSPECULARALPHA,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_SKEWSPECULARALPHA_CHK,
+	p_accessor, &bgsm_pb_accessor,
+	p_end,
+
+	p_end
+	);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// BGEM Rollout
+
+class BGEMPBAccessor : public PBAccessor
+{
+public:
+	void Set(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t)   override
+	{
+		auto* pShader = static_cast<FO4Shader*>(owner);
+		auto* pValue = pShader->GetBGEMData();
+		if (pValue == nullptr)
+			return;
+		IParamMap2* map = pShader->pb_base ? pShader->pb_base->GetMap() : NULL;
+		switch (id)
+		{
+		case fos_basetexture: {  pValue->BaseTexture = v.s; } break;
+		case fos_grayscaletexture: {  pValue->GrayscaleTexture = v.s; } break;
+		case fos_envmaptexture2: {  pValue->EnvmapTexture = v.s; } break;
+		case fos_normaltexture2: {  pValue->NormalTexture = v.s; } break;
+		case fos_envmapmasktexture: {  pValue->EnvmapMaskTexture = v.s; } break;
+		case fos_bloodenabled: pValue->BloodEnabled = v.i ? true : false; break;
+		case fos_effectlightingenabled: pValue->EffectLightingEnabled = v.i ? true : false; break;
+		case fos_falloffenabled: pValue->FalloffEnabled = v.i ? true : false; break;
+		case fos_falloffcolorenabled: pValue->FalloffColorEnabled = v.i ? true : false; break;
+		case fos_grayscaletopalettealpha: pValue->GrayscaleToPaletteAlpha = v.i ? true : false; break;
+		case fos_softenabled: pValue->SoftEnabled = v.i ? true : false; break;
+		case fos_basecolor: if (v.p) pValue->BaseColor = TOCOLOR3(*v.p); break;
+		case fos_basecolorscale: pValue->BaseColorScale = v.f; break;
+		case fos_falloffstartangle: pValue->FalloffStartAngle = v.f; break;
+		case fos_falloffstopangle: pValue->FalloffStopAngle = v.f; break;
+		case fos_falloffstartopacity: pValue->FalloffStartOpacity = v.f; break;
+		case fos_falloffstopopacity: pValue->FalloffStopOpacity = v.f; break;
+		case fos_lightinginfluence: pValue->LightingInfluence = v.f; break;
+		case fos_envmapminlod: pValue->EnvmapMinLOD = v.i; break;
+		case fos_softdepth: pValue->SoftDepth = v.f; break;
+		}
+	}
+
+	virtual void Get(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t, Interval &valid) override
+	{
+		auto* pShader = static_cast<FO4Shader*>(owner);
+		IParamMap2* map = pShader->pb_base ? pShader->pb_base->GetMap() : NULL;
+		auto* pValue = pShader->GetBGEMData();
+		if (pValue == nullptr)
+			return;
+		switch (id)
+		{
+		case fos_basetexture: {  static TSTR value; value = pValue->BaseTexture.c_str(); v.s = value; } break;
+		case fos_grayscaletexture: {  static TSTR value; value = pValue->GrayscaleTexture.c_str(); v.s = value; } break;
+		case fos_envmaptexture2: {  static TSTR value; value = pValue->EnvmapTexture.c_str(); v.s = value; } break;
+		case fos_normaltexture2: {  static TSTR value; value = pValue->NormalTexture.c_str(); v.s = value; } break;
+		case fos_envmapmasktexture: {  static TSTR value; value = pValue->EnvmapMaskTexture.c_str(); v.s = value; } break;
+		case fos_bloodenabled: v.i = pValue->BloodEnabled ? TRUE : FALSE; break;
+		case fos_effectlightingenabled: v.i = pValue->EffectLightingEnabled ? TRUE : FALSE; break;
+		case fos_falloffenabled: v.i = pValue->FalloffEnabled ? TRUE : FALSE; break;
+		case fos_falloffcolorenabled: v.i = pValue->FalloffColorEnabled ? TRUE : FALSE; break;
+		case fos_grayscaletopalettealpha: v.i = pValue->GrayscaleToPaletteAlpha ? TRUE : FALSE; break;
+		case fos_softenabled: v.i = pValue->SoftEnabled ? TRUE : FALSE; break;
+		case fos_basecolor: if (v.p) *v.p = TOCOLOR(pValue->BaseColor); break;
+		case fos_basecolorscale: v.f = pValue->BaseColorScale; break;
+		case fos_falloffstartangle: v.f = pValue->FalloffStartAngle; break;
+		case fos_falloffstopangle: v.f = pValue->FalloffStopAngle; break;
+		case fos_falloffstartopacity: v.f = pValue->FalloffStartOpacity; break;
+		case fos_falloffstopopacity: v.f = pValue->FalloffStopOpacity; break;
+		case fos_lightinginfluence: v.f = pValue->LightingInfluence; break;
+		case fos_envmapminlod: v.i = pValue->EnvmapMinLOD; break;
+		case fos_softdepth: v.f = pValue->SoftDepth; break;
+		}
+	}
+};
+
+static BGEMPBAccessor bgem_pb_accessor;
+
+// extra rollout dialog proc
+class BGEMDlgProc : public ParamMap2UserDlgProc
+{
+public:
+	INT_PTR DlgProc(TimeValue t, IParamMap2 *map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override
+	{
+		switch (msg)
+		{
+		case WM_INITDIALOG: {
+			//if (auto* m = static_cast<FO4Shader*>(map->GetParamBlock()->GetOwner()))
+			//	;
+			//m->UpdateExtraParams(m->GetShader()->SupportStdParams());
+			return TRUE;
+		case WM_NCDESTROY:
+		case WM_DESTROY:
+		case WM_CLOSE:
+			if (auto* m = static_cast<FO4Shader*>(map->GetParamBlock()->GetOwner()))
+				m->ClearDialogRollup(fos_bgem);
+			return FALSE;
+		}
+		}
+		return FALSE;
+	}
+	void DeleteThis() override { }
+};
+
+static BGEMDlgProc bgemDlgProc;
+
+// base parameters
+static ParamBlockDesc2 fos_bgem_blk(fos_bgem, _T("bgemMaterial"), 0, &FO4ShaderDesc, P_AUTO_CONSTRUCT + P_AUTO_UI, ref_bgem,
+	//rollout
+	IDD_FO4SHADER_BGEM, IDS_FOS_BGEMNAME, 0, APPENDROLL_CLOSED, &bgemDlgProc,
+	// params
+	fos_basetexture, _T("baseTexture"), TYPE_STRING, P_TRANSIENT, IDS_FOS_BASETEXTURE,
+	p_ui, TYPE_EDITBOX, IDC_FOS_BASETEXTURE_EDIT,
+	p_accessor, &bgem_pb_accessor,
+	p_end,
+
+	fos_grayscaletexture, _T("grayscaleTexture"), TYPE_STRING, P_TRANSIENT, IDS_FOS_GRAYSCALETEXTURE,
+	p_ui, TYPE_EDITBOX, IDC_FOS_GRAYSCALETEXTURE_EDIT,
+	p_accessor, &bgem_pb_accessor,
+	p_end,
+
+	fos_envmaptexture2, _T("envmapTexture"), TYPE_STRING, P_TRANSIENT, IDS_FOS_ENVMAPTEXTURE2,
+	p_ui, TYPE_EDITBOX, IDC_FOS_ENVMAPTEXTURE2_EDIT,
+	p_accessor, &bgem_pb_accessor,
+	p_end,
+
+	fos_normaltexture2, _T("normalTexture"), TYPE_STRING, P_TRANSIENT, IDS_FOS_NORMALTEXTURE2,
+	p_ui, TYPE_EDITBOX, IDC_FOS_NORMALTEXTURE2_EDIT,
+	p_accessor, &bgem_pb_accessor,
+	p_end,
+
+	fos_envmapmasktexture, _T("envmapMaskTexture"), TYPE_STRING, P_TRANSIENT, IDS_FOS_ENVMAPMASKTEXTURE,
+	p_ui, TYPE_EDITBOX, IDC_FOS_ENVMAPMASKTEXTURE_EDIT,
+	p_accessor, &bgem_pb_accessor,
+	p_end,
+
+	fos_bloodenabled, _T("bloodEnabled"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_BLOODENABLED,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_BLOODENABLED_CHK,
+	p_accessor, &bgem_pb_accessor,
+	p_end,
+
+	fos_effectlightingenabled, _T("effectLightingEnabled"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_EFFECTLIGHTINGENABLED,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_EFFECTLIGHTINGENABLED_CHK,
+	p_accessor, &bgem_pb_accessor,
+	p_end,
+
+	fos_falloffenabled, _T("falloffEnabled"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_FALLOFFENABLED,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_FALLOFFENABLED_CHK,
+	p_accessor, &bgem_pb_accessor,
+	p_end,
+
+	fos_falloffcolorenabled, _T("falloffColorEnabled"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_FALLOFFCOLORENABLED,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_FALLOFFCOLORENABLED_CHK,
+	p_accessor, &bgem_pb_accessor,
+	p_end,
+
+	fos_grayscaletopalettealpha, _T("grayscaleToPaletteAlpha"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_GRAYSCALETOPALETTEALPHA,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_GRAYSCALETOPALETTEALPHA_CHK,
+	p_accessor, &bgem_pb_accessor,
+	p_end,
+
+	fos_softenabled, _T("softEnabled"), TYPE_BOOL, P_TRANSIENT, IDS_FOS_SOFTENABLED,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_FOS_SOFTENABLED_CHK,
+	p_accessor, &bgem_pb_accessor,
+	p_end,
+
+	fos_basecolor, _T("baseColor"), TYPE_RGBA, P_TRANSIENT, IDS_FOS_BASECOLOR,
+	p_ui, TYPE_COLORSWATCH, IDC_FOS_BASECOLOR_COLOR,
+	p_accessor, &bgem_pb_accessor,
+	p_end,
+
+	fos_basecolorscale, _T("baseColorScale"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_BASECOLORSCALE,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_BASECOLORSCALE_EDIT, IDC_FOS_BASECOLORSCALE_SPIN, 0.1f,
+	p_accessor, &bgem_pb_accessor,
+	p_end,
+
+	fos_falloffstartangle, _T("falloffStartAngle"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_FALLOFFSTARTANGLE,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_FALLOFFSTARTANGLE_EDIT, IDC_FOS_FALLOFFSTARTANGLE_SPIN, 0.1f,
+	p_accessor, &bgem_pb_accessor,
+	p_end,
+
+	fos_falloffstopangle, _T("falloffStopAngle"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_FALLOFFSTOPANGLE,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_FALLOFFSTOPANGLE_EDIT, IDC_FOS_FALLOFFSTOPANGLE_SPIN, 0.1f,
+	p_accessor, &bgem_pb_accessor,
+	p_end,
+
+	fos_falloffstartopacity, _T("falloffStartOpacity"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_FALLOFFSTARTOPACITY,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_FALLOFFSTARTOPACITY_EDIT, IDC_FOS_FALLOFFSTARTOPACITY_SPIN, 0.1f,
+	p_accessor, &bgem_pb_accessor,
+	p_end,
+
+	fos_falloffstopopacity, _T("falloffStopOpacity"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_FALLOFFSTOPOPACITY,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_FALLOFFSTOPOPACITY_EDIT, IDC_FOS_FALLOFFSTOPOPACITY_SPIN, 0.1f,
+	p_accessor, &bgem_pb_accessor,
+	p_end,
+
+	fos_lightinginfluence, _T("lightingInfluence"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_LIGHTINGINFLUENCE,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_LIGHTINGINFLUENCE_EDIT, IDC_FOS_LIGHTINGINFLUENCE_SPIN, 0.1f,
+	p_accessor, &bgem_pb_accessor,
+	p_end,
+
+	fos_envmapminlod, _T("envmapMinLOD"), TYPE_INT, P_TRANSIENT, IDS_FOS_ENVMAPMINLOD,
+	p_default, 0,
+	p_range, 0, 256,
+	p_ui, TYPE_SPINNER, EDITTYPE_INT, IDC_FOS_ENVMAPMINLOD_EDIT, IDC_FOS_ENVMAPMINLOD_SPIN, 1.0f,
+	p_accessor, &bgem_pb_accessor,
+	p_end,
+
+	fos_softdepth, _T("softDepth"), TYPE_FLOAT, P_TRANSIENT, IDS_FOS_SOFTDEPTH,
+	p_default, 0.0,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FOS_SOFTDEPTH_EDIT, IDC_FOS_SOFTDEPTH_SPIN, 0.1f,
+	p_accessor, &bgem_pb_accessor,
+	p_end,
+
+	p_end
+	);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 FO4Shader::FO4Shader()
 {
@@ -420,6 +1584,7 @@ FO4Shader::FO4Shader()
 
 	ivalid.SetEmpty();
 	rolloutOpen = TRUE;
+	inSync = FALSE;
 
 	FO4Shader::Reset();
 }
@@ -454,7 +1619,8 @@ void FO4Shader::CopyStdParams(Shader* pFrom)
 RefTargetHandle FO4Shader::Clone(RemapDir &remap)
 {
 	FO4Shader* pShader = new FO4Shader();
-	for (int i = 0; i < MAX_REFERENCES; ++i)
+	// dont copy the oldmtl
+	for (int i = 0; i < MAX_REFERENCES - 1; ++i)
 		pShader->ReplaceReference(i, remap.CloneRef(GetReference(i)));
 	return pShader;
 }
@@ -470,8 +1636,9 @@ Animatable* FO4Shader::SubAnim(int i)
 	return nullptr;
 }
 
-WStr FO4Shader::SubAnimName(int i)
+TSTR FO4Shader::SubAnimName(int i)
 {
+	USES_CONVERSION;
 	switch (i) {
 	case 0: return TSTR(GetString(IDS_FOS_BASENAME));
 	case 1: return TSTR(GetString(IDS_FOS_MTLNAME));
@@ -502,7 +1669,7 @@ IParamBlock2* FO4Shader::GetParamBlockByID(BlockID id)
 }
 
 int FO4Shader::NumRefs() {
-	return MAX_REFERENCES-1;
+	return MAX_REFERENCES;
 }
 
 RefTargetHandle FO4Shader::GetReference(int i)
@@ -570,7 +1737,8 @@ void FO4Shader::Reset()
 	SetLockDS(FALSE);
 
 	// create reference for BGSM file
-	ReplaceReference(1, new BGSMFileReference(), 1);
+	ReplaceReference(ref_activemtl, new BGSMFileReference(), 1);
+	//ReplaceReference(ref_oldmtl, new BGSMFileReference(), 1);
 
 	macroRecorder->Enable();
 }
@@ -650,7 +1818,8 @@ void FO4Shader::Illum(ShadeContext &sc, IllumParams &ip)
 			// fade the ambient down on si: 5/27/99 ke
 			ip.ambIllumOut *= 1.0f - si;
 		}
-	} else {
+	}
+	else {
 		// colored self illum, 
 		ip.selfIllumOut += ip.channels[ID_SI];
 	}
@@ -666,7 +1835,9 @@ void FO4Shader::Illum(ShadeContext &sc, IllumParams &ip)
 }
 
 void FO4Shader::AffectReflection(ShadeContext &sc, IllumParams &ip, Color &rcol)
-{ rcol *= ip.channels[ID_SP]; };
+{
+	rcol *= ip.channels[ID_SP];
+};
 
 #endif
 #ifdef USE_STRAUSS_SHADER
@@ -702,7 +1873,7 @@ inline float G(float x) {
 void FO4Shader::AffectReflection(ShadeContext &sc, IllumParams &ip, Color &rClr)
 {
 	float opac = 0.0f;
-	float g = ip.channels[C_GLOW].r;
+	float g = ip.channels[C_SMOOTHSPEC].r;
 	float m = 0.0f;
 	Color Cd = ip.channels[C_DIFFUSE];
 
@@ -748,18 +1919,25 @@ void FO4Shader::GetIllumParams(ShadeContext &sc, IllumParams& ip)
 {
 	ip.stdParams = SupportStdParams();
 	// ip.shFlags = selfIllumClrOn? SELFILLUM_CLR_ON : 0;
+	//ip.shFlags = 0;
 	TimeValue t = 0;
-	ip.channels[C_DIFFUSE] = GetDiffuseClr();
+	ip.channels[C_DIFFUSE] = GetDiffuseClr(0);
+	ip.channels[C_SMOOTHSPEC] = GetSpecularClr(0);
+	if (IsSelfIllumClrOn())
+		ip.channels[C_GLOW] = GetSelfIllumClr(0);
+	else
+		ip.channels[C_GLOW] = Color(0, 0, 0);
+
 	//ip.channels[C_BASE] = GetDiffuseClr();
 	//ip.channels[C_OPACITY] = Color(1.0f, 1.0f, 1.0f);
 	//ip.channels[(ID_DI)] = GetDiffuseClr();
 	//ip.channels[StdIDToChannel(ID_SP)] = GetSpecularClr();
 	//ip.channels[StdIDToChannel(ID_SH)].r = GetGlossiness();
 	//ip.channels[StdIDToChannel(ID_SS)].r = GetSpecularLevel();
-	//if( IsSelfIllumClrOn() )
-		//ip.channels[C_GLOW] = pb->GetColor(ns_mat_emittance, 0, 0);
+	//if (IsSelfIllumClrOn())
+	//	ip.channels[C_GLOW] = GetSelfIllumClr(0);
 	//else
-	//   ip.channels[C_GLOW].r = ip.channels[C_GLOW].g = ip.channels[C_GLOW].b = GetSelfIllum();
+	//	ip.channels[C_GLOW].r = ip.channels[C_GLOW].g = ip.channels[C_GLOW].b = GetSelfIllum();
 }
 
 
@@ -777,7 +1955,7 @@ void FO4Shader::Illum(ShadeContext &sc, IllumParams &ip)
 	//float opac = ip.channels[C_OPACITY].r;
 	//float opac = ip.channels[C_].r;
 	float opac = 1.0f;
-	float g = ip.channels[C_GLOW].r;
+	float g = ip.channels[C_SMOOTHSPEC].r;
 	float m = 0.0f;
 	Color Cd = ip.channels[C_DIFFUSE];
 	// BOOL dimDiffuse = ip.hasComponents & HAS_REFLECT;
@@ -827,7 +2005,8 @@ void FO4Shader::Illum(ShadeContext &sc, IllumParams &ip)
 						RV *= SoftSpline2(NL / softThresh);
 					// specular function
 					s = SpecBoost * (float)pow(-RV, h);
-				} else
+				}
+				else
 					continue;
 
 				float a, b;
@@ -880,7 +2059,8 @@ void FO4Shader::Illum(ShadeContext &sc, IllumParams &ip)
 		// no transparency when doing refraction
 		ip.finalT.Black();
 
-	} else {
+	}
+	else {
 		// no refraction, transparent?
 		ip.finalAttenuation = opac;
 		if (ip.hasComponents & HAS_OPACITY) {
@@ -1055,6 +2235,7 @@ static Texmap* MakeAlpha(Texmap* tex)
 
 Texmap* FO4Shader::CreateTexture(const tstring& name, BaseMaterial* base_material, IFileResolver* resolver)
 {
+	USES_CONVERSION;
 	if (name.empty())
 		return nullptr;
 
@@ -1063,11 +2244,14 @@ Texmap* FO4Shader::CreateTexture(const tstring& name, BaseMaterial* base_materia
 		BitmapTex *bmpTex = NewDefaultBitmapTex();
 
 		tstring filename;
-		resolver->FindFileByType(name, IFileResolver::FT_Texture, filename);
+		if (resolver)
+			resolver->FindFileByType(name, IFileResolver::FT_Texture, filename);
+		else
+			filename = name;
 		bmpTex->SetName(name.c_str());
-		bmpTex->SetMapName(filename.c_str());
+		bmpTex->SetMapName(const_cast<LPTSTR>(filename.c_str()));
 		bmpTex->SetAlphaAsMono(TRUE);
-		bmpTex->SetAlphaSource(ALPHA_NONE);
+		bmpTex->SetAlphaSource(0/*ALPHA_NONE*/);
 
 		bmpTex->SetFilterType(FILTER_PYR);
 
@@ -1092,20 +2276,95 @@ Texmap* FO4Shader::CreateTexture(const tstring& name, BaseMaterial* base_materia
 	}
 	return nullptr;
 }
+
+void FO4Shader::SyncTexMapsToFilenames(StdMat2* mtl, IFileResolver* resolver)
+{
+	if (inSync)
+		return;
+
+	BaseMaterial* base_mtl = GetMtlData();
+	if (base_mtl == nullptr)
+		return;
+
+	try
+	{
+		inSync = TRUE;
+		if (this->HasBGSM())
+		{
+			auto* bgsm = GetBGSMData();
+
+			UpdateTextureName(mtl, C_DIFFUSE, bgsm->DiffuseTexture, resolver);
+			UpdateTextureName(mtl, C_SMOOTHSPEC, bgsm->SmoothSpecTexture, resolver);
+			UpdateTextureName(mtl, C_GREYSCALE, bgsm->GreyscaleTexture, resolver);
+			UpdateTextureName(mtl, C_GLOW, bgsm->GlowTexture, resolver);
+			UpdateTextureName(mtl, C_INNERLAYER, bgsm->InnerLayerTexture, resolver);
+			UpdateTextureName(mtl, C_WRINKLES, bgsm->WrinklesTexture, resolver);
+			UpdateTextureName(mtl, C_DISPLACE, bgsm->DisplacementTexture, resolver);
+
+			Texmap * tex = mtl->GetSubTexmap(C_NORMAL);
+			if (tex && (tex->ClassID() == GNORMAL_CLASS_ID)) {
+				Texmap *normal = tex->GetSubTexmap(0);
+				UpdateTextureName(normal, bgsm->NormalTexture, resolver);
+			}
+			else {
+				UpdateTextureName(tex, bgsm->NormalTexture, resolver);
+			}
+			tex = mtl->GetSubTexmap(C_ENVMAP);
+			if (tex && tex->ClassID() == Class_ID(MASK_CLASS_ID, 0)) {
+				Texmap *envMap = tex->GetSubTexmap(0);
+				UpdateTextureName(envMap, bgsm->EnvmapTexture, resolver);
+			}
+			else {
+				UpdateTextureName(tex, bgsm->EnvmapTexture, resolver);
+			}
+		}
+		if (this->HasBGEM())
+		{
+			auto* bgem = GetBGEMData();
+
+			UpdateTextureName(mtl, C_DIFFUSE, bgem->BaseTexture, resolver);
+			UpdateTextureName(mtl, C_GREYSCALE, bgem->GrayscaleTexture, resolver);
+			Texmap * tex = mtl->GetSubTexmap(C_NORMAL);
+			if (tex && (tex->ClassID() == GNORMAL_CLASS_ID)) {
+				Texmap *normal = tex->GetSubTexmap(0);
+				UpdateTextureName(normal, bgem->NormalTexture, resolver);
+			}
+			else {
+				UpdateTextureName(tex, bgem->NormalTexture, resolver);
+			}
+			tex = mtl->GetSubTexmap(C_ENVMAP);
+			if (tex->ClassID() == Class_ID(MASK_CLASS_ID, 0)) {
+				Texmap *envMap = tex->GetSubTexmap(0);
+				UpdateTextureName(envMap, bgem->EnvmapTexture, resolver);
+				Texmap *envMapMask = tex->GetSubTexmap(1);
+				UpdateTextureName(envMapMask, bgem->EnvmapMaskTexture, resolver);
+			}
+			else {
+				UpdateTextureName(tex, bgem->EnvmapTexture, resolver);
+			}
+		}
+	}
+	catch (...)
+	{
+
+	}
+	inSync = FALSE;
+}
+
 BOOL FO4Shader::UpdateMaterial(StdMat2* mtl)
 {
 	return TRUE;
 }
 
-Texmap * FO4Shader::GetOrCreateTexture(StdMat2* mtl, BaseMaterial* base_mtl, int map, tstring texture, IFileResolver* resolver, pfCreateWrapper wrapper )
+Texmap * FO4Shader::GetOrCreateTexture(StdMat2* mtl, BaseMaterial* base_mtl, int map, tstring texture, IFileResolver* resolver, pfCreateWrapper wrapper)
 {
 	Texmap * tex = mtl->GetSubTexmap(map);
-	if (tex != nullptr && tex->GetName() == texture.c_str())
+	if (tex != nullptr && strmatch(tex->GetName(), texture))
 		return tex;
 
 	if (tex && tex->NumSubTexmaps() > 0) {
 		tex = tex->GetSubTexmap(0);
-		if (tex != nullptr && tex->GetName() == texture.c_str())
+		if (tex != nullptr && strmatch(tex->GetName(), texture))
 			return tex;
 	}
 	if (texture.empty())
@@ -1119,82 +2378,107 @@ Texmap * FO4Shader::GetOrCreateTexture(StdMat2* mtl, BaseMaterial* base_mtl, int
 	return tex;
 }
 
+bool FO4Shader::UpdateTextureName(StdMat2* mtl, int map, tstring& texture, IFileResolver* resolver)
+{
+	return UpdateTextureName(mtl->GetSubTexmap(map), texture, resolver);
+}
+
+bool FO4Shader::UpdateTextureName(Texmap * tex, tstring& texture, IFileResolver* resolver)
+{
+	if (tex == nullptr) {
+		texture.clear();
+		return true;
+	}
+	if (strmatch(tex->GetName(), texture))
+		return true;
+	tstring fname;
+	if (GetTexFullName(tex, fname))
+	{
+		if (resolver->GetRelativePath(fname, IFileResolver::FT_Texture)) {
+			if (strmatch(fname, texture))
+				return true;
+			texture = fname;
+			return true;
+		}
+	}
+	return false;
+}
+
+
 BOOL FO4Shader::LoadMaterial(StdMat2* mtl, IFileResolver* resolver)
 {
 	BaseMaterial* base_mtl = GetMtlData();
 	if (base_mtl == nullptr)
 		return FALSE;
 
-	// handle base material stuff
-	mtl->SetTwoSided(base_mtl->TwoSided ? TRUE : FALSE);
-	mtl->SetOpacity(base_mtl->Alpha, INFINITE);
-
-	if (this->HasBGSM())
+	BOOL oldInSync = inSync;
+	inSync = TRUE; // prevent updates to textures while assigning textures
+	try
 	{
-		auto* bgsm = GetBGSMData();
-		mtl->SetSpecular(TOCOLOR(bgsm->SpecularColor), 0);
-		mtl->GetSelfIllumColorOn(bgsm->Glowmap);
+		// handle base material stuff
+		mtl->SetTwoSided(base_mtl->TwoSided ? TRUE : FALSE);
+		mtl->SetOpacity(base_mtl->Alpha, INFINITE);
 
-		GetOrCreateTexture(mtl, base_mtl, C_DIFFUSE, bgsm->DiffuseTexture, resolver);
-		GetOrCreateTexture(mtl, base_mtl, C_NORMAL, bgsm->NormalTexture, resolver, CreateNormalBump);
-		GetOrCreateTexture(mtl, base_mtl, C_SMOOTHSPEC, bgsm->SmoothSpecTexture, resolver);
-		GetOrCreateTexture(mtl, base_mtl, C_GREYSCALE, bgsm->GreyscaleTexture, resolver);
-		GetOrCreateTexture(mtl, base_mtl, C_GLOW, bgsm->GlowTexture, resolver);
-		GetOrCreateTexture(mtl, base_mtl, C_INNERLAYER, bgsm->InnerLayerTexture, resolver);
-		GetOrCreateTexture(mtl, base_mtl, C_WRINKLES, bgsm->WrinklesTexture, resolver);
-		GetOrCreateTexture(mtl, base_mtl, C_DISPLACE, bgsm->DisplacementTexture, resolver);
-	}
-	if (this->HasBGEM())
-	{
-		auto* bgem = GetBGEMData();
+		if (this->HasBGSM())
+		{
+			auto* bgsm = GetBGSMData();
+			mtl->SetSpecular(TOCOLOR(bgsm->SpecularColor), 0);
+			mtl->GetSelfIllumColorOn(bgsm->Glowmap);
 
-		if (Texmap* tex = CreateTexture(bgem->BaseTexture, base_mtl, resolver))
-			mtl->SetSubTexmap(C_DIFFUSE, tex);
-		if (Texmap* tex = CreateTexture(bgem->NormalTexture, base_mtl, resolver))
-			mtl->SetSubTexmap(C_NORMAL, CreateNormalBump(nullptr, tex));
-		if (Texmap* tex = CreateTexture(bgem->EnvmapTexture, base_mtl, resolver)) {
-			if (Texmap* mask = CreateTexture(bgem->EnvmapMaskTexture, base_mtl, resolver)) {
-				tex = CreateMask(nullptr, tex, mask);
-				mtl->SetSubTexmap(C_ENVMAP, tex);
-				mtl->SetTexmapAmt(C_ENVMAP, 0.0f, INFINITE);
-				tex->SetOutputLevel(INFINITE, 0.0f);
-			}
+			GetOrCreateTexture(mtl, base_mtl, C_DIFFUSE, bgsm->DiffuseTexture, resolver);
+			GetOrCreateTexture(mtl, base_mtl, C_NORMAL, bgsm->NormalTexture, resolver, CreateNormalBump);
+			GetOrCreateTexture(mtl, base_mtl, C_SMOOTHSPEC, bgsm->SmoothSpecTexture, resolver);
+			GetOrCreateTexture(mtl, base_mtl, C_GREYSCALE, bgsm->GreyscaleTexture, resolver);
+			GetOrCreateTexture(mtl, base_mtl, C_ENVMAP, bgsm->EnvmapTexture, resolver);
+			GetOrCreateTexture(mtl, base_mtl, C_GLOW, bgsm->GlowTexture, resolver);
+			GetOrCreateTexture(mtl, base_mtl, C_INNERLAYER, bgsm->InnerLayerTexture, resolver);
+			GetOrCreateTexture(mtl, base_mtl, C_WRINKLES, bgsm->WrinklesTexture, resolver);
+			GetOrCreateTexture(mtl, base_mtl, C_DISPLACE, bgsm->DisplacementTexture, resolver);
 		}
-		if (Texmap* tex = CreateTexture(bgem->GrayscaleTexture, base_mtl, resolver))
-			mtl->SetSubTexmap(C_GREYSCALE, tex);
-	}
+		if (this->HasBGEM())
+		{
+			auto* bgem = GetBGEMData();
 
+			if (Texmap* tex = CreateTexture(bgem->BaseTexture, base_mtl, resolver))
+				mtl->SetSubTexmap(C_DIFFUSE, tex);
+			if (Texmap* tex = CreateTexture(bgem->NormalTexture, base_mtl, resolver))
+				mtl->SetSubTexmap(C_NORMAL, CreateNormalBump(nullptr, tex));
+			if (Texmap* tex = CreateTexture(bgem->EnvmapTexture, base_mtl, resolver)) {
+				if (Texmap* mask = CreateTexture(bgem->EnvmapMaskTexture, base_mtl, resolver)) {
+					tex = CreateMask(nullptr, tex, mask);
+					mtl->SetSubTexmap(C_ENVMAP, tex);
+					mtl->SetTexmapAmt(C_ENVMAP, 0.0f, INFINITE);
+					tex->SetOutputLevel(INFINITE, 0.0f);
+				}
+			}
+			if (Texmap* tex = CreateTexture(bgem->GrayscaleTexture, base_mtl, resolver))
+				mtl->SetSubTexmap(C_GREYSCALE, tex);
+		}
+	}
+	catch (...)
+	{
+	}
+	inSync = oldInSync;
 	return TRUE;
 }
-
-//
-//BOOL FO4Shader::UpdateMaterial(StdMat2* mtl)
-//{
-//	BaseMaterial* base_material = GetMtlData();
-//	mtl->SetTwoSided(base_material->TwoSided ? TRUE : FALSE);
-//	//mtl->SetSpecular(TOCOLOR(pMaterialData->SpecularColor), 0);
-//	//mtl->GetSelfIllumColorOn(pMaterialData->Glowmap);
-//
-//
-//	return TRUE;
-//}
 
 BOOL FO4Shader::ChangeShader(const Class_ID& clsid)
 {
 	// careful with references in this routine
-	if ( clsid == BGSMFILE_CLASS_ID ) {
+	if (clsid == BGSMFILE_CLASS_ID) {
 		if (!HasBGSM()) {
 			MaterialReference* oldmtl = static_cast<MaterialReference*>(GetReference(ref_oldmtl));
 			MaterialReference* curmtl = static_cast<MaterialReference*>(GetReference(ref_activemtl));
 			if (!oldmtl || oldmtl->ClassID() == clsid) { // swap
 				pMtlFileRef = oldmtl;
 				pMtlFileRefOld = curmtl;
-			} 
+			}
 		}
 		if (GetReference(ref_activemtl) == nullptr) {
 			ReplaceReference(ref_activemtl, new BGSMFileReference(), TRUE);
 		}
-	} else if (clsid == BGEMFILE_CLASS_ID) {
+	}
+	else if (clsid == BGEMFILE_CLASS_ID) {
 		if (!HasBGEM()) {
 			MaterialReference* oldmtl = static_cast<MaterialReference*>(GetReference(ref_oldmtl));
 			MaterialReference* curmtl = static_cast<MaterialReference*>(GetReference(ref_activemtl));
@@ -1242,6 +2526,7 @@ public:
 	BOOL     isActive;
 	BOOL     inUpdate;
 	BOOL     valid;
+	BOOL     preserveRollup;
 
 	virtual ~FO4ShaderRollupBase();
 
@@ -1259,7 +2544,7 @@ public:
 
 	virtual void UpdateMtlDisplay();
 
-	virtual void LoadPanel(BOOL );
+	virtual void LoadPanel(BOOL);
 	virtual void ReloadPanel();
 	void FreeRollup();
 
@@ -1286,9 +2571,12 @@ public:
 	IMtlParams* pMtlPar;
 	HWND     hwmEdit; // window handle of the materials editor dialog
 	FO4ShaderRollupBase *pBaseRollup;
-	FO4ShaderRollupBase *pMtlRollup;
-	FO4ShaderRollupBase *pBGSMRollup;
-	FO4ShaderRollupBase *pBGEMRollup;
+	//FO4ShaderRollupBase *pMtlRollup;
+	//FO4ShaderRollupBase *pBGSMRollup;
+	//FO4ShaderRollupBase *pBGEMRollup;
+	IAutoMParamDlg *pMtlRollup;
+	IAutoMParamDlg *pBGSMRollup;
+	IAutoMParamDlg *pBGEMRollup;
 
 	TimeValue   curTime;
 	BOOL     isActive;
@@ -1301,20 +2589,16 @@ public:
 		DeleteRollups();
 		if (pShader) pShader->pDlg = nullptr;
 		pShader = nullptr;
-		delete this; 
+		delete this;
 	}
 
 	// Methods
 	Class_ID ClassID()  override { return FO4SHADER_CLASS_ID; }
 
 	void SetThing(ReferenceTarget *m)  override { pMtl = static_cast<StdMat2*>(m); }
-	void SetThings(StdMat2* theMtl, Shader* theShader) override
-	{
-		if (pShader) pShader->SetParamDlg(nullptr, 0);
-		pShader = static_cast<FO4Shader*>(theShader);
-		if (pShader)pShader->SetParamDlg(this, 0);
-		pMtl = theMtl;
-	}
+
+	void SetThings(StdMat2* theMtl, Shader* theShader) override;
+
 	ReferenceTarget* GetThing()  override { return pMtl; } // mtl is the thing! (for DAD!)
 	Shader* GetShader()  override { return pShader; }
 
@@ -1332,7 +2616,7 @@ public:
 	//BOOL KeyAtCurTime(int id) { return pShader->KeyAtTime(id,curTime); } 
 	void ActivateDlg(BOOL dlgOn)  override { isActive = dlgOn; }
 	HWND GetHWnd()  override {
-		return nullptr;// pMtlRollup ? pMtlRollup->hRollup : nullptr; 
+		return pBaseRollup ? pBaseRollup->hRollup : nullptr;
 	}
 	void NotifyChanged()  const { pShader->NotifyChanged(); }
 	void LoadDialog(BOOL draw) override;
@@ -1356,7 +2640,19 @@ public:
 
 };
 
-FO4ShaderDlg::FO4ShaderDlg(HWND hwMtlEdit, IMtlParams *pParams) 
+static void MapNotify(void *param, NotifyInfo *info)
+{
+	FO4Shader *pShader = (FO4Shader *)param;
+	switch (info->intcode)
+	{
+	case NOTIFY_BITMAP_CHANGED:
+		//pShader->
+		break;
+	}
+}
+
+
+FO4ShaderDlg::FO4ShaderDlg(HWND hwMtlEdit, IMtlParams *pParams)
 {
 	hwmEdit = hwMtlEdit;
 	pBaseRollup = nullptr;
@@ -1378,14 +2674,27 @@ FO4ShaderDlg::~FO4ShaderDlg()
 	if (pShader) pShader->SetParamDlg(nullptr, 0);
 }
 
+void FO4ShaderDlg::SetThings(StdMat2* theMtl, Shader* theShader)
+{
+	if (pShader) pShader->SetParamDlg(nullptr, 0);
+	pShader = static_cast<FO4Shader*>(theShader);
+	if (pShader)pShader->SetParamDlg(this, 0);
+	pMtl = theMtl;
+
+	//pMtl->GetReference(MAPS_PB_REF);
+//	pMtl->NotifyRefChanged()
+//	RegisterNotification(MapNotify, pShader, REFMSG_CHANGE);
+//;	MAPS_PB_REF
+}
 
 void  FO4ShaderDlg::LoadDialog(BOOL draw)
 {
 	if (pShader) {
 		if (pBaseRollup) pBaseRollup->UpdateControls();
-		if (pMtlRollup) pMtlRollup->UpdateControls();
-		if (pBGSMRollup) pBGSMRollup->UpdateControls();
-		if (pBGEMRollup) pBGEMRollup->UpdateControls();
+		//if (pMtlRollup) pMtlRollup->InvalidateUI();
+		//if (pMtlRollup) pMtlRollup->UpdateControls();
+		//if (pBGSMRollup) pBGSMRollup->UpdateControls();
+		//if (pBGEMRollup) pBGEMRollup->UpdateControls();
 	}
 }
 
@@ -1395,18 +2704,22 @@ static TCHAR* mapStates[] = { _T(" "), _T("m"),  _T("M") };
 void FO4ShaderDlg::UpdateMapButtons()
 {
 	if (pBaseRollup) pBaseRollup->UpdateMapButtons();
-	if (pMtlRollup) pMtlRollup->UpdateMapButtons();
-	if (pBGSMRollup) pBGSMRollup->UpdateMapButtons();
-	if (pBGEMRollup) pBGEMRollup->UpdateMapButtons();
+	//if (pMtlRollup) pMtlRollup->UpdateMapButtons();
+	//if (pBGSMRollup) pBGSMRollup->UpdateMapButtons();
+	//if (pBGEMRollup) pBGEMRollup->UpdateMapButtons();
+
+	// update the filenames in the maps
+
+	pShader->SyncTexMapsToFilenames(this->pMtl, &fo4Resolver);
 }
 
 
 void FO4ShaderDlg::UpdateOpacity()
 {
 	if (pBaseRollup) pBaseRollup->UpdateOpacity();
-	if (pMtlRollup) pMtlRollup->UpdateOpacity();
-	if (pBGSMRollup) pBGSMRollup->UpdateOpacity();
-	if (pBGEMRollup) pBGEMRollup->UpdateOpacity();
+	//if (pMtlRollup) pMtlRollup->UpdateOpacity();
+	//if (pBGSMRollup) pBGSMRollup->UpdateOpacity();
+	//if (pBGEMRollup) pBGEMRollup->UpdateOpacity();
 
 	//trSpin->SetValue(FracToPc(pMtl->GetOpacity(curTime)),FALSE);
 	//trSpin->SetKeyBrackets(pMtl->KeyAtTime(OPACITY_PARAM, curTime));
@@ -1426,18 +2739,18 @@ void FO4ShaderDlg::UpdateColSwatches()
 	//cs[0]->SetKeyBrackets( pShader->KeyAtTime(ns_mat_diffuse,curTime) );
 	//cs[0]->SetColor( pShader->GetDiffuseClr() );
 	if (pBaseRollup) pBaseRollup->UpdateColSwatches();
-	if (pMtlRollup) pMtlRollup->UpdateColSwatches();
-	if (pBGSMRollup) pBGSMRollup->UpdateColSwatches();
-	if (pBGEMRollup) pBGEMRollup->UpdateColSwatches();
+	//if (pMtlRollup) pMtlRollup->UpdateColSwatches();
+	//if (pBGSMRollup) pBGSMRollup->UpdateColSwatches();
+	//if (pBGEMRollup) pBGEMRollup->UpdateColSwatches();
 }
 
 
 void FO4ShaderDlg::UpdateHilite()
 {
 	if (pBaseRollup) pBaseRollup->UpdateHilite();
-	if (pMtlRollup) pMtlRollup->UpdateHilite();
-	if (pBGSMRollup) pBGSMRollup->UpdateHilite();
-	if (pBGEMRollup) pBGEMRollup->UpdateHilite();
+	//if (pMtlRollup) pMtlRollup->UpdateHilite();
+	//if (pBGSMRollup) pBGSMRollup->UpdateHilite();
+	//if (pBGEMRollup) pBGEMRollup->UpdateHilite();
 }
 
 #pragma endregion 
@@ -1486,71 +2799,6 @@ public:
 	static INT_PTR CALLBACK DlgRollupProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 };
 
-class FO4ShaderMtlRollup : public FO4ShaderRollupBase
-{
-	typedef FO4ShaderRollupBase base;
-public:
-	TexDADMgr dadMgr;
-
-	IColorSwatch* clrSpecular;
-	IColorSwatch* clrEmittance;
-
-	ICustButton* texMButDiffuse;
-
-	ISpinnerControl *pShininessSpinner;
-	ISpinnerControl *pAlphaSpinner;
-	ISpinnerControl *pTestRefSpinner;
-
-	FO4ShaderMtlRollup(FO4ShaderDlg *pDlg);
-	virtual ~FO4ShaderMtlRollup();
-
-	void InitializeControls(HWND hwnd) override;
-	void ReleaseControls()  override;
-	void UpdateControls()  override;
-	void CommitValues()  override;
-	void UpdateVisible()  override;
-
-	INT_PTR PanelProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam) override;
-	static INT_PTR CALLBACK DlgRollupProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-};
-
-class FO4ShaderBGSMRollup : public FO4ShaderRollupBase
-{
-	typedef FO4ShaderRollupBase base;
-public:
-	FO4ShaderBGSMRollup(FO4ShaderDlg *pDlg);
-	virtual ~FO4ShaderBGSMRollup();
-
-	void InitializeControls(HWND hwnd) override {}
-	void ReleaseControls()  override {}
-	void UpdateControls()  override {}
-	void CommitValues()  override {}
-	void UpdateVisible()  override {}
-
-	INT_PTR PanelProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam) override;
-	static INT_PTR CALLBACK DlgRollupProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-};
-
-
-
-
-class FO4ShaderBGEMRollup : public FO4ShaderRollupBase
-{
-	typedef FO4ShaderRollupBase base;
-public:
-	FO4ShaderBGEMRollup(FO4ShaderDlg *pDlg);
-	virtual ~FO4ShaderBGEMRollup();
-
-	void InitializeControls(HWND hwnd) override {}
-	void ReleaseControls()  override {}
-	void UpdateControls()  override {}
-	void CommitValues()  override {}
-	void UpdateVisible()  override {}
-
-	INT_PTR PanelProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam) override;
-	static INT_PTR CALLBACK DlgRollupProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-};
-
 
 ////////////////////////////////////////////////////////////////////////////
 // 
@@ -1564,6 +2812,7 @@ FO4ShaderRollupBase::FO4ShaderRollupBase(FO4ShaderDlg *dlg)
 	isActive = FALSE;
 	inUpdate = FALSE;
 	valid = FALSE;
+	preserveRollup = FALSE;
 }
 
 void FO4ShaderRollupBase::FreeRollup()
@@ -1580,12 +2829,11 @@ void FO4ShaderRollupBase::FreeRollup()
 	HWND hOldRollup = hRollup;
 	hwHilite = hRollup = nullptr;
 
-	if (hOldRollup && pDlg && pDlg->pMtlPar)
+	if (!preserveRollup)
 	{
-
-		pDlg->pMtlPar->DeleteRollupPage(hOldRollup);
+		if (hOldRollup && pDlg && pDlg->pMtlPar)
+			pDlg->pMtlPar->DeleteRollupPage(hOldRollup);
 	}
-
 }
 
 FO4ShaderRollupBase::~FO4ShaderRollupBase()
@@ -1615,7 +2863,7 @@ void FO4ShaderRollupBase::UpdateMapButtons()
 
 void FO4ShaderRollupBase::ReleaseControls()
 {
-	
+
 }
 
 
@@ -1687,114 +2935,9 @@ void FO4ShaderRollupBase::LoadPanel(BOOL)
 	}
 }
 
-
-FO4ShaderMtlRollup::FO4ShaderMtlRollup(FO4ShaderDlg* pDlg) 
-	: base(pDlg)
-{
-	clrSpecular = clrEmittance = nullptr;
-	texMButDiffuse = nullptr;
-	pShininessSpinner = pAlphaSpinner = pTestRefSpinner = nullptr;
-}
-
-FO4ShaderMtlRollup::~FO4ShaderMtlRollup()
-{
-	FO4ShaderMtlRollup::ReleaseControls();
-}
-
-INT_PTR FO4ShaderMtlRollup::PanelProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-	base::PanelProc(hwndDlg, msg, wParam, lParam);
-	switch (msg) {
-	case WM_COMMAND:
-	{
-		switch (LOWORD(wParam))
-		{
-		case IDC_MAP_DIFFUSE:
-			//PostMessage(hwmEdit, WM_TEXMAP_BUTTON, 0, LPARAM(pMtl));
-			UpdateMapButtons();
-			UpdateMtlDisplay();
-			break;
-
-		case IDC_CHK_DITHER:
-			CommitValues();
-			//UpdateControls();
-			UpdateMtlDisplay();
-			break;
-
-		case IDC_CHK_SPECENABLE:
-			CommitValues();
-			//UpdateControls();
-			UpdateMtlDisplay();
-			break;
-
-		default:
-			CommitValues();
-			break;
-		}
-	}
-	break;
-
-	case CC_COLOR_SEL:
-	case CC_COLOR_DROP:
-	{
-		switch (LOWORD(wParam))
-		{
-		case IDC_CLR_SPECULAR:  clrSpecular->EditThis(FALSE); break;
-		case IDC_CLR_EMITTANCE: clrEmittance->EditThis(FALSE); break;
-		}
-	}
-	break;
-	case CC_COLOR_BUTTONDOWN:
-		theHold.Begin();
-		break;
-	case CC_COLOR_BUTTONUP:
-		if (HIWORD(wParam)) theHold.Accept(GetString(IDS_DS_PARAMCHG));
-		else theHold.Cancel();
-		UpdateMtlDisplay();
-		break;
-	case CC_COLOR_CHANGE:
-	{
-		int buttonUp = HIWORD(wParam);
-		if (buttonUp) theHold.Begin();
-		CommitValues();
-		//UpdateControls();
-		if (buttonUp) {
-			theHold.Accept(GetString(IDS_DS_PARAMCHG));
-			// DS: 5/3/99-  this was commented out. I put it back in, because
-			// it is necessary for the Reset button in the color picker to 
-			// update the viewport.          
-			UpdateMtlDisplay();
-		}
-	}
-	break;
-
-	case CC_SPINNER_CHANGE:
-		if (!theHold.Holding()) theHold.Begin();
-		CommitValues();
-		// UpdateControls();
-		// UpdateHilite();
-		// UpdateMtlDisplay();
-		break;
-
-	case CC_SPINNER_BUTTONDOWN:
-		theHold.Begin();
-		break;
-
-	case WM_CUSTEDIT_ENTER:
-	case CC_SPINNER_BUTTONUP:
-		if (HIWORD(wParam) || msg == WM_CUSTEDIT_ENTER)
-			theHold.Accept(GetString(IDS_DS_PARAMCHG));
-		else
-			theHold.Cancel();
-		UpdateMtlDisplay();
-		break;
-	}
-	//exit:
-	return FALSE;
-}
-
 void FO4ShaderBaseRollup::UpdateControls()
 {
+	USES_CONVERSION;
 	FO4Shader* pShader = pDlg->pShader;
 	if (inUpdate)
 		return;
@@ -1804,9 +2947,9 @@ void FO4ShaderBaseRollup::UpdateControls()
 
 	HWND hWnd = this->hRollup;
 	if (p_name_edit && pShader->pMtlFileRef)
-		p_name_edit->SetText(T2W(pShader->pMtlFileRef->materialName));
+		p_name_edit->SetText(pShader->pMtlFileRef->materialName);
 
-	if ( pShader->HasBGSM() )
+	if (pShader->HasBGSM())
 		SendDlgItemMessage(hWnd, IDC_CUSTOM_SHADER, CB_SETCURSEL, WPARAM(0), LPARAM(0));
 	else if (pShader->HasBGEM())
 		SendDlgItemMessage(hWnd, IDC_CUSTOM_SHADER, CB_SETCURSEL, WPARAM(1), LPARAM(0));
@@ -1821,14 +2964,14 @@ void FO4ShaderBaseRollup::UpdateControls()
 
 void FO4ShaderBaseRollup::CommitValues()
 {
-	TSTR matName;
 	FO4Shader* pShader = pDlg->pShader;
-
 	if (p_name_edit && pShader->pMtlFileRef) {
-		p_name_edit->GetText(matName);
-		pShader->pMtlFileRef->materialName = matName;
+		TCHAR buffer[120];
+		p_name_edit->GetText(buffer, _countof(buffer));
+		pShader->pMtlFileRef->materialName = buffer;
 	}
 }
+
 
 INT_PTR FO4ShaderBaseRollup::PanelProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -1867,24 +3010,16 @@ INT_PTR FO4ShaderBaseRollup::PanelProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 			{
 			case IDC_BTN_MTL_LOAD:
 			{
-				TCHAR filter[120], *pfilter = filter;
-				pfilter = _tcscpy(pfilter, TEXT("Material Files (*.BGSM,*.BGEM, *.JSON)"));
-				pfilter += _tcslen(pfilter), *pfilter++ = '\0';
-				if (pShader->HasBGSM()) {
-					_tcscpy(pfilter, TEXT("*.BGSM"));
-					pfilter += _tcslen(pfilter), *pfilter++ = '\0';
-				} else if (pShader->HasBGEM()) {
-					_tcscpy(pfilter, TEXT("*.BGEM"));
-					pfilter += _tcslen(pfilter), *pfilter++ = '\0';
-				}
-				_tcscpy(pfilter, TEXT("*.JSON"));
-				pfilter += _tcslen(pfilter), *pfilter++ = '\0';
-				*pfilter++ = '\0';
-				*pfilter = '\0';
-
+				TCHAR filter[] = // TEXT("All Material Files (*.BGSM,*.BGEM,*.JSON)\0*.BGSM;*.BGEM;*.JSON\0")
+					TEXT("BGSM Lighting Shader (*.BGSM)\0*.BGSM\0")
+					TEXT("BGEM Effect Shader (*.BGEM)\0*.BGEM\0")
+					TEXT("BGSM Lighting Shader (*.JSON)\0*.JSON\0")
+					TEXT("BGEM Effect Shader (*.JSON)\0*.JSON\0")
+					TEXT("\0");
 				if (_taccess(pShader->pMtlFileRef->materialFileName, 0) != -1) {
 					_tcscpy(tmp, pShader->pMtlFileRef->materialFileName);
-				} else {
+				}
+				else {
 					_tcscpy(tmp, pShader->pMtlFileRef->materialName);
 				}
 
@@ -1894,6 +3029,7 @@ INT_PTR FO4ShaderBaseRollup::PanelProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 				ofn.hwndOwner = gi->GetMAXHWnd();
 				ofn.lpstrFilter = filter;
 				ofn.lpstrFile = tmp;
+				ofn.nFilterIndex = pShader->HasBGSM() ? 1 : 2;
 				ofn.nMaxFile = _countof(tmp);
 				ofn.lpstrTitle = TEXT("Browse for Material File...");
 				ofn.lpstrDefExt = pShader->HasBGSM() ? TEXT("BGSM") : TEXT("BGEM");
@@ -1903,17 +3039,27 @@ INT_PTR FO4ShaderBaseRollup::PanelProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 					pShader->pMtlFileRef->materialName = tmp;
 					pShader->pMtlFileRef->materialFileName = tmp;
 
+					if (_tcsicmp(PathFindExtension(tmp), TEXT(".BGSM")) == 0)
+						pShader->ChangeShader(BGSMFILE_CLASS_ID);
+					else if (_tcsicmp(PathFindExtension(tmp), TEXT(".BGEM")) == 0)
+						pShader->ChangeShader(BGEMFILE_CLASS_ID);
+					else if (ofn.nFilterIndex == 1 || ofn.nFilterIndex == 3)
+						pShader->ChangeShader(BGSMFILE_CLASS_ID);
+					else if (ofn.nFilterIndex == 2 || ofn.nFilterIndex == 4)
+						pShader->ChangeShader(BGEMFILE_CLASS_ID);
+
 					if (pShader->HasBGSM()) {
 						BGSMFile materialData;
 						if (ReadBGSMFile(tmp, materialData)) {
 							pShader->LoadBGSM(materialData);
-							pShader->LoadMaterial(pDlg->pMtl, nullptr);
+							pShader->LoadMaterial(pDlg->pMtl, &fo4Resolver);
 						}
-					} else if (pShader->HasBGEM()) {
+					}
+					else if (pShader->HasBGEM()) {
 						BGEMFile materialData;
 						if (ReadBGEMFile(tmp, materialData)) {
 							pShader->LoadBGEM(materialData);
-							pShader->LoadMaterial(pDlg->pMtl, nullptr);
+							pShader->LoadMaterial(pDlg->pMtl, &fo4Resolver);
 						}
 					}
 					// find the material prefix part
@@ -1921,16 +3067,54 @@ INT_PTR FO4ShaderBaseRollup::PanelProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 					PathAddExtension(tmp, pShader->HasBGSM() ? TEXT(".BGSM") : TEXT(".BGEM"));
 					for (LPCTSTR filepart = tmp; filepart != nullptr; filepart = PathFindNextComponent(filepart)) {
 						if (wildmatch(TEXT("materials\\*"), filepart)) {
-							pShader->pMtlFileRef->materialName = filepart;							
+							pShader->pMtlFileRef->materialName = filepart;
 							break;
-						}						
+						}
 					}
+					pShader->NotifyChanged();
+					pShader->ReloadDialog();
 					UpdateControls();
 				}
 			} break;
 
 			case IDC_BTN_MTL_SAVE:
 			{
+				TCHAR filter[] = // TEXT("All Material Files (*.BGSM,*.BGEM,*.JSON)\0*.BGSM;*.BGEM;*.JSON\0")
+					TEXT("BGSM Lighting Shader (*.BGSM)\0*.BGSM\0")
+					TEXT("BGEM Effect Shader (*.BGEM)\0*.BGEM\0")
+					TEXT("\0");
+				if (_taccess(pShader->pMtlFileRef->materialFileName, 0) != -1) {
+					_tcscpy(tmp, pShader->pMtlFileRef->materialFileName);
+				}
+				else {
+					_tcscpy(tmp, pShader->pMtlFileRef->materialName);
+				}
+
+				OPENFILENAME ofn;
+				memset(&ofn, 0, sizeof(ofn));
+				ofn.lStructSize = sizeof(ofn);
+				ofn.hwndOwner = gi->GetMAXHWnd();
+				ofn.lpstrFilter = filter;
+				ofn.lpstrFile = tmp;
+				ofn.nFilterIndex = pShader->HasBGSM() ? 1 : 2;
+				ofn.nMaxFile = _countof(tmp);
+				ofn.lpstrTitle = TEXT("Browse for Material File...");
+				ofn.lpstrDefExt = pShader->HasBGSM() ? TEXT("BGSM") : TEXT("BGEM");
+				ofn.Flags = OFN_EXPLORER | OFN_NOCHANGEDIR | OFN_PATHMUSTEXIST;
+				if (GetSaveFileName(&ofn)) {
+					pShader->SyncTexMapsToFilenames(pDlg->pMtl, &fo4Resolver);
+					if (pShader->HasBGSM()) {
+						if (auto *data = pShader->GetBGSMData())
+							SaveBGSMFile(tmp, *data);
+					}
+					else if (pShader->HasBGEM()) {
+						if (auto *data = pShader->GetBGEMData())
+							SaveBGEMFile(tmp, *data);
+					}
+					pShader->NotifyChanged();
+					pShader->ReloadDialog();
+					UpdateControls();
+				}
 			} break;
 			}
 		}
@@ -1939,9 +3123,9 @@ INT_PTR FO4ShaderBaseRollup::PanelProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 
 		case IDC_ED_MTL_FILE:
 			if (p_name_edit) {
-				TSTR text;
-				p_name_edit->GetText(text);
-				pShader->SetName(text);
+				TCHAR text[120];
+				p_name_edit->GetText(text, _countof(text));
+				pShader->SetMaterialName(text);
 			} break;
 		}
 		break;
@@ -1966,80 +3150,6 @@ INT_PTR CALLBACK  FO4ShaderBaseRollup::DlgRollupProc(HWND hwndDlg, UINT msg, WPA
 	return res;
 }
 
-
-INT_PTR CALLBACK  FO4ShaderMtlRollup::DlgRollupProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam) {
-	FO4ShaderMtlRollup *theDlg;
-	if (msg == WM_INITDIALOG) {
-		theDlg = reinterpret_cast<FO4ShaderMtlRollup*>(lParam);
-		DLSetWindowLongPtr(hwndDlg, lParam);
-	}
-	else {
-		if ((theDlg = DLGetWindowLongPtr<FO4ShaderMtlRollup *>(hwndDlg)) == nullptr)
-			return FALSE;
-	}
-	++theDlg->isActive;
-	INT_PTR res = theDlg->PanelProc(hwndDlg, msg, wParam, lParam);
-	--theDlg->isActive;
-	return res;
-}
-
-FO4ShaderBGSMRollup::FO4ShaderBGSMRollup(FO4ShaderDlg* pDlg) : FO4ShaderRollupBase(pDlg)
-{
-}
-
-FO4ShaderBGSMRollup::~FO4ShaderBGSMRollup()
-{
-}
-
-INT_PTR FO4ShaderBGSMRollup::PanelProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-	return base::PanelProc(hwndDlg, msg, wParam, lParam);
-}
-
-INT_PTR CALLBACK  FO4ShaderBGSMRollup::DlgRollupProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam) {
-	FO4ShaderBGSMRollup *theDlg;
-	if (msg == WM_INITDIALOG) {
-		theDlg = reinterpret_cast<FO4ShaderBGSMRollup*>(lParam);
-		DLSetWindowLongPtr(hwndDlg, lParam);
-	}
-	else {
-		if ((theDlg = DLGetWindowLongPtr<FO4ShaderBGSMRollup *>(hwndDlg)) == nullptr)
-			return FALSE;
-	}
-	++theDlg->isActive;
-	INT_PTR res = theDlg->PanelProc(hwndDlg, msg, wParam, lParam);
-	--theDlg->isActive;
-	return res;
-}
-
-FO4ShaderBGEMRollup::FO4ShaderBGEMRollup(FO4ShaderDlg* pDlg) : FO4ShaderRollupBase(pDlg)
-{
-}
-
-FO4ShaderBGEMRollup::~FO4ShaderBGEMRollup()
-{
-}
-
-INT_PTR FO4ShaderBGEMRollup::PanelProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-	return base::PanelProc(hwndDlg, msg, wParam, lParam);
-}
-
-INT_PTR CALLBACK  FO4ShaderBGEMRollup::DlgRollupProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam) {
-	FO4ShaderBGEMRollup *theDlg;
-	if (msg == WM_INITDIALOG) {
-		theDlg = reinterpret_cast<FO4ShaderBGEMRollup*>(lParam);
-		DLSetWindowLongPtr(hwndDlg, lParam);
-	}
-	else {
-		if ((theDlg = DLGetWindowLongPtr<FO4ShaderBGEMRollup *>(hwndDlg)) == nullptr)
-			return FALSE;
-	}
-	++theDlg->isActive;
-	INT_PTR res = theDlg->PanelProc(hwndDlg, msg, wParam, lParam);
-	--theDlg->isActive;
-	return res;
-}
 
 #pragma endregion
 
@@ -2083,21 +3193,16 @@ ShaderParamDlg* FO4Shader::CreateParamDialog(HWND hOldRollup, HWND hwMtlEdit, IM
 				FO4ShaderBaseRollup::DlgRollupProc, GetString(IDS_FO4_SHADER_BASIC),
 				reinterpret_cast<LPARAM>(pRollup), rollupflags, ROLLUP_CAT_STANDARD);
 			pRollup->hRollup = hRollup;
-		} else {
+		}
+		else {
 			HWND hRollup = imp->AddRollupPage(hInstance, MAKEINTRESOURCE(IDD_FO4SHADER_BASE),
 				FO4ShaderBaseRollup::DlgRollupProc, GetString(IDS_FO4_SHADER_BASIC),
 				reinterpret_cast<LPARAM>(pRollup), rollupflags, ROLLUP_CAT_STANDARD);
 			pRollup->hRollup = hRollup;
 		}
 	}
-	{
-		FO4ShaderMtlRollup *pRollup = new FO4ShaderMtlRollup(pDlg);
-		pDlg->pMtlRollup = pRollup;
-		HWND hRollup = imp->AddRollupPage(hInstance, MAKEINTRESOURCE(IDD_FO4SHADER_MTL),
-			 FO4ShaderMtlRollup::DlgRollupProc, GetString(IDS_FO4_SHADER_MTL),
-			reinterpret_cast<LPARAM>(pRollup), APPENDROLL_CLOSED, ROLLUP_CAT_STANDARD+1);
-		pRollup->hRollup = hRollup;
-	}
+	pDlg->pMtlRollup = FO4ShaderDesc.CreateParamDlg(fos_mtl, hwMtlEdit, imp, this);
+
 	FixRollups();
 	return static_cast<ShaderParamDlg*>(pDlg);
 }
@@ -2107,40 +3212,32 @@ void FO4Shader::FixRollups()
 {
 	if (pDlg == nullptr)
 		return;
-
 	if (HasBGSM())
 	{
+		if (pDlg->pBGEMRollup)
+		{
+			auto* pRollup = pDlg->pBGEMRollup;
+			pDlg->pBGEMRollup = nullptr;
+			pRollup->DeleteThis();
+		}
 		if (!pDlg->pBGSMRollup)
 		{
-			FO4ShaderBGSMRollup *pRollup = new FO4ShaderBGSMRollup(pDlg);
-			pDlg->pBGSMRollup = pRollup;
-			HWND hRollup = pDlg->pMtlPar->AddRollupPage(hInstance, MAKEINTRESOURCE(IDD_FO4SHADER_2),
-				FO4ShaderBGSMRollup::DlgRollupProc, GetString(IDS_FO4_SHADER_BGSM),
-				reinterpret_cast<LPARAM>(pRollup), APPENDROLL_CLOSED, ROLLUP_CAT_STANDARD+2);
-			pRollup->hRollup = hRollup;
+			pDlg->pBGSMRollup = FO4ShaderDesc.CreateParamDlg(fos_bgsm, pDlg->hwmEdit, pDlg->pMtlPar, this);
 		}
-	} else if (pDlg->pBGSMRollup) {
-		pDlg->pMtlPar->DeleteRollupPage(pDlg->pBGSMRollup->hRollup);
-		pDlg->pBGSMRollup = nullptr;
 	}
-
 	if (HasBGEM())
 	{
+		if (pDlg->pBGSMRollup)
+		{
+			auto* pRollup = pDlg->pBGSMRollup;
+			pDlg->pBGSMRollup = nullptr;
+			pRollup->DeleteThis();
+		}
 		if (!pDlg->pBGEMRollup)
 		{
-			FO4ShaderBGEMRollup *pRollup = new FO4ShaderBGEMRollup(pDlg);
-			pDlg->pBGEMRollup = pRollup;
-			HWND hRollup = pDlg->pMtlPar->AddRollupPage(hInstance, MAKEINTRESOURCE(IDD_FO4SHADER_2),
-				FO4ShaderBGEMRollup::DlgRollupProc, GetString(IDS_FO4_SHADER_BGEM),
-				reinterpret_cast<LPARAM>(pRollup), APPENDROLL_CLOSED, ROLLUP_CAT_STANDARD+2);
-			pRollup->hRollup = hRollup;
+			pDlg->pBGEMRollup = FO4ShaderDesc.CreateParamDlg(fos_bgem, pDlg->hwmEdit, pDlg->pMtlPar, this);
 		}
 	}
-	else if (pDlg->pBGEMRollup) {
-		pDlg->pMtlPar->DeleteRollupPage(pDlg->pBGEMRollup->hRollup);
-		pDlg->pBGEMRollup = nullptr;
-	}
-
 }
 
 
@@ -2171,137 +3268,38 @@ RefResult FO4Shader::NotifyRefChanged(const Interval& changeInt, RefTargetHandle
 void FO4ShaderDlg::DeleteRollups()
 {
 	delete pBaseRollup; pBaseRollup = nullptr;
-	delete pMtlRollup; pMtlRollup = nullptr;
-	delete pBGSMRollup; pBGSMRollup = nullptr;
-	delete pBGEMRollup; pBGEMRollup = nullptr;
-}
-#pragma endregion
-
-#pragma region ("Material Rollup")
-/////////////////////////////////////////////////////////////////////////
-//
-//  Material Rollup
-//
-void FO4ShaderMtlRollup::InitializeControls(HWND hWnd)
-{
-
-	HDC theHDC = GetDC(hWnd);
-	hOldPal = GetGPort()->PlugPalette(theHDC);
-	ReleaseDC(hWnd, theHDC);
-
-	//////////////////////////////////////////////////////////////////////////
-	clrSpecular = GetIColorSwatch(GetDlgItem(hWnd, IDC_CLR_SPECULAR));
-	clrEmittance = GetIColorSwatch(GetDlgItem(hWnd, IDC_CLR_EMITTANCE));
-
-	//texMButDiffuse = GetICustButton(GetDlgItem(hWnd, IDC_MAP_DIFFUSE));
-	//texMButDiffuse->SetRightClickNotify(TRUE);
-	//texMButDiffuse->SetDADMgr(&dadMgr);
-
-	pShininessSpinner = GetISpinner(GetDlgItem(hWnd, IDC_SPN_SHININESS));
-	pShininessSpinner->SetLimits(0.0f, 200.0f, TRUE);
-	pShininessSpinner->SetScale(10.0f);
-	pShininessSpinner->SetResetValue(10.0f);
-	pShininessSpinner->LinkToEdit(GetDlgItem(hWnd, IDC_EDT_SHININESS), EDITTYPE_POS_FLOAT);
-
-	pAlphaSpinner = GetISpinner(GetDlgItem(hWnd, IDC_SPN_ALPHA));
-	pAlphaSpinner->SetLimits(0.0f, 1.0f, TRUE);
-	pAlphaSpinner->SetScale(0.1f);
-	pAlphaSpinner->SetResetValue(0.0f);
-	pAlphaSpinner->LinkToEdit(GetDlgItem(hWnd, IDC_EDT_ALPHA), EDITTYPE_POS_FLOAT);
-
-	//////////////////////////////////////////////////////////////////////////
-	for (const EnumLookupType* flag = TransparencyModes; flag->name != nullptr; ++flag) {
-		SendDlgItemMessage(hWnd, IDC_CBO_TRANS_SRC, CB_ADDSTRING, 0, LPARAM(flag->name));
-		SendDlgItemMessage(hWnd, IDC_CBO_TRANS_DEST, CB_ADDSTRING, 0, LPARAM(flag->name));
-	}
-	//////////////////////////////////////////////////////////////////////////
-	for (const EnumLookupType* flag = VertexModes; flag->name != nullptr; ++flag)
-		SendDlgItemMessage(hWnd, IDC_CBO_VERTEX_SRC, CB_ADDSTRING, 0, LPARAM(flag->name));
-
-	for (const EnumLookupType* flag = LightModes; flag->name != nullptr; ++flag)
-		SendDlgItemMessage(hWnd, IDC_CBO_VERTEX_LIGHT, CB_ADDSTRING, 0, LPARAM(flag->name));
-
-	//////////////////////////////////////////////////////////////////////////
-	for (const EnumLookupType* flag = ApplyModes; flag->name != nullptr; ++flag)
-		SendDlgItemMessage(hWnd, IDC_CBO_APPLY_MODE, CB_ADDSTRING, 0, LPARAM(flag->name));
-
-	//////////////////////////////////////////////////////////////////////////
-	for (const EnumLookupType* flag = TestModes; flag->name != nullptr; ++flag)
-		SendDlgItemMessage(hWnd, IDC_CBO_TESTMODE, CB_ADDSTRING, 0, LPARAM(flag->name));
-
-	pTestRefSpinner = GetISpinner(GetDlgItem(hWnd, IDC_SPN_TESTREF));
-	pTestRefSpinner->SetLimits(0, 256, TRUE);
-	pTestRefSpinner->SetScale(1.0f);
-	pTestRefSpinner->SetResetValue(0.0f);
-	pTestRefSpinner->LinkToEdit(GetDlgItem(hWnd, IDC_EDT_TESTREF), EDITTYPE_POS_INT);
-
-	UpdateControls();
+	//if (pMtlRollup) pMtlRollup->DeleteThis(); pMtlRollup = nullptr;
+	//if(pBGSMRollup) pBGSMRollup->DeleteThis(); pBGSMRollup = nullptr;
+	//if(pBGEMRollup) pBGEMRollup->DeleteThis(); pBGEMRollup = nullptr;
 }
 
 
-void FO4ShaderMtlRollup::ReleaseControls()
+void FO4Shader::NotifyChanged()
 {
-	if (hOldPal)
+	NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
+}
+
+void FO4Shader::ReloadDialog()
+{
+	try { FO4ShaderDesc.InvalidateUI(); }
+	catch (...)
 	{
-		HDC hdc = GetDC(hRollup);
-		GetGPort()->RestorePalette(hdc, hOldPal);
-		ReleaseDC(hRollup, hdc);
-		hOldPal = nullptr;
 	}
-
-	if (clrSpecular) { ReleaseIColorSwatch(clrSpecular); clrSpecular = nullptr; };
-	if (clrEmittance) { ReleaseIColorSwatch(clrEmittance); clrEmittance = nullptr; };
-
-	if (texMButDiffuse) { ReleaseICustButton(texMButDiffuse); texMButDiffuse = nullptr; };
-
-	if (pShininessSpinner) { ReleaseISpinner(pShininessSpinner); pShininessSpinner = nullptr; };
-	if (pAlphaSpinner) { ReleaseISpinner(pAlphaSpinner); pAlphaSpinner = nullptr; };
-
-	if (pTestRefSpinner) { ReleaseISpinner(pTestRefSpinner); pTestRefSpinner = nullptr; };
+	//fos_base_blk.InvalidateUI();
+	//fos_mtl_blk.InvalidateUI();
+	//fos_bgsm_blk.InvalidateUI();
+	//fos_bgem_blk.InvalidateUI();
 }
 
-void FO4ShaderMtlRollup::UpdateControls()
+void FO4Shader::ClearDialogRollup(int rollup)
 {
-	FO4Shader* pShader = pDlg->pShader;
-	if (inUpdate)
-		return;
-
-	BOOL update = inUpdate;
-	inUpdate = TRUE;
-
-	HWND hWnd = this->hRollup;
-	IParamBlock2 *pb = pShader->pb_base;
-
-	UpdateColSwatches();
-	UpdateMapButtons();
-
-	//////////////////////////////////////////////////////////////////////////
-
-	UpdateHilite();
-	UpdateVisible();
-	NotifyChanged();
-	inUpdate = update;
+	switch (rollup)
+	{
+	case fos_mtl: if (pDlg) pDlg->pMtlRollup = nullptr;
+	case fos_bgsm: if (pDlg) pDlg->pBGSMRollup = nullptr;
+	case fos_bgem: if (pDlg) pDlg->pBGEMRollup = nullptr;
+	}
 }
 
-void FO4ShaderMtlRollup::UpdateVisible()
-{
-
-}
-
-void FO4ShaderMtlRollup::CommitValues()
-{
-	FO4Shader* pShader = pDlg->pShader;
-
-	BOOL update = inUpdate;
-	inUpdate = TRUE;
-
-
-	HWND hWnd = this->hRollup;
-
-	//////////////////////////////////////////////////////////////////////////
-
-	UpdateVisible();
-	inUpdate = update;
-}
 
 #pragma endregion

@@ -132,7 +132,7 @@ Point3 RotateVec( Point3& p, Point3& axis, float rdn );
 
 
 // IDs for all the ParamBlocks and their parameters.  One block UI per rollout.
-enum { fos_shader, fos_mtl, fos_bgsm, std_bgem, };  // pblock IDs
+enum { fos_shader, fos_mtl, fos_bgsm, fos_bgem, };  // pblock IDs
 																			   // fos_shader param IDs
 enum
 {

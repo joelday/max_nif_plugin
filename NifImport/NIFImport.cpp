@@ -464,6 +464,17 @@ bool NifImporter::FindFileByType(const tstring& name, FileType type, tstring& re
 	return FindFile(name, resolved_name);
 }
 
+bool NifImporter::GetRelativePath(tstring& name, FileType type) const
+{
+	if (type == FT_Texture) {
+		if (appSettings != nullptr) {
+			name = appSettings->GetRelativeTexPath(name, TEXT("textures"));
+			return true;
+		}
+	}
+	return false;
+}
+
 bool NifImporter::DoImport()
 {
 	bool ok = true;

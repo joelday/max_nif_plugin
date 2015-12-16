@@ -14,7 +14,7 @@ const USHORT FILE_CHUNKID = 0x0233;
 template <typename T>
 bool ReadObject(ILoad* iload, T& x, const char *name) {
 	ULONG nw = 0;
-	IOResult res = iload->ReadVoid(static_cast<LPVOID>(&x), sizeof(x), &nw);
+	IOResult res = iload->Read(static_cast<char*>(static_cast<LPVOID>(&x)), sizeof(x), &nw);
 	if (res != IO_OK) return false;
 	if (sizeof(x) != nw) return false;
 	return true;
@@ -38,7 +38,7 @@ bool ReadObject<tstring>(ILoad* iload, tstring& x, const char *name) {
 	ULONG nw = 0;
 	ULONG size = sizeof(wchar_t)*(len);
 	ptr = static_cast<wchar_t*>(_alloca(size));
-	IOResult res = iload->ReadVoid(static_cast<void*>(ptr), size, &nw);
+	IOResult res = iload->Read(ptr, size, &nw);
 	if (res != IO_OK) return false;
 	if (size != nw) return false;
 	ptr[len-1] = 0;
@@ -51,7 +51,7 @@ error: return false;
 template <typename T>
 bool SaveObject(ISave* file, T& x, const char *name) {
 	ULONG nw = 0;
-	IOResult res = file->WriteVoid(static_cast<void*>(&x), sizeof(x), &nw);
+	IOResult res = file->Write(static_cast<char*>(static_cast<void*>(&x)), sizeof(x), &nw);
 	if (res != IO_OK || nw != sizeof(x)) return false;
 	return true;
 }
@@ -70,7 +70,7 @@ bool SaveObject<tstring>(ISave* file, tstring& x, const char *name) {
 	LPCWSTR ptr = T2W(x.c_str());
 	if (!SaveObject(file, len, "")) return false;
 	ULONG nw = 0;
-	IOResult res = file->WriteVoid(const_cast<LPWSTR>(ptr), size, &nw);
+	IOResult res = file->Write(ptr, size, &nw);
 	if (res != IO_OK || nw != size) return false;
 	return true;
 }
@@ -165,6 +165,7 @@ extern ClassDesc2* GetBGSMFileClassDesc()
 
 IOResult BGSMFileReference::Load(ILoad* iload)
 {
+	USES_CONVERSION;
 	IOResult res;
 	ULONG nb;
 	int version = 1;
@@ -181,11 +182,11 @@ IOResult BGSMFileReference::Load(ILoad* iload)
 			break;
 		case NAME_CHUNKID:
 			res = iload->ReadWStringChunk(&ptr);
-			this->materialName = ptr;
+			this->materialName = W2T(ptr);
 			break;
 		case FILENAME_CHUNKID:
 			res = iload->ReadWStringChunk(&ptr);
-			this->materialFileName = ptr;
+			this->materialFileName = W2T(ptr);
 			break;
 		case FILE_CHUNKID:
 			res = LoadMaterialChunk(iload);
@@ -381,6 +382,7 @@ extern ClassDesc2* GetBGEMFileClassDesc()
 
 IOResult BGEMFileReference::Load(ILoad* iload)
 {
+	USES_CONVERSION;
 	IOResult res;
 	ULONG nb;
 	int version = 1;
@@ -397,11 +399,11 @@ IOResult BGEMFileReference::Load(ILoad* iload)
 			break;
 		case NAME_CHUNKID:
 			res = iload->ReadWStringChunk(&ptr);
-			this->materialName = ptr;
+			this->materialName = W2T(ptr);
 			break;
 		case FILENAME_CHUNKID:
 			res = iload->ReadWStringChunk(&ptr);
-			this->materialFileName = ptr;
+			this->materialFileName = W2T(ptr);
 			break;
 		case FILE_CHUNKID:
 			res = LoadMaterialChunk(iload);

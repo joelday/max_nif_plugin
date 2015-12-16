@@ -21,6 +21,7 @@ HISTORY:
 #include <iparamb2.h>
 #include <iskin.h>
 #include "../NifProps/bhkRigidBodyInterface.h"
+#include <stdmat.h>
 
 #ifdef USE_BIPED
 #  include <cs/BipedApi.h>
@@ -1742,6 +1743,14 @@ TSTR EnumToString(int value, const EnumLookupType *table) {
 	return FormatText(TEXT("%x"), value);
 }
 
+LPCTSTR EnumToStringRaw(int value, const EnumLookupType *table) {
+	for (const EnumLookupType *itr = table; itr->name != nullptr; ++itr) {
+		if (itr->value == value) return itr->name;
+	}
+	return TEXT("");
+}
+
+
 int EnumToIndex(int value, const EnumLookupType *table) {
 	int i = 0;
 	for (const EnumLookupType *itr = table; itr->name != nullptr; ++itr, ++i) {
@@ -1805,4 +1814,47 @@ string W2AString(const wstring& str)
 {
 	USES_CONVERSION;
 	return W2A(str.c_str());
+}
+
+bool GetTexFullName(Texmap *texMap, TSTR& fName)
+{
+	if (texMap && texMap->ClassID() == Class_ID(BMTEX_CLASS_ID, 0)) {
+		TSTR fileName = static_cast<BitmapTex*>(texMap)->GetMapName();
+		if (fileName.isNull()) {
+			fileName = static_cast<BitmapTex*>(texMap)->GetFullName();
+			int idx = fileName.last('(');
+			if (idx >= 0) {
+				fileName.remove(idx, fileName.length() - idx + 1);
+				while (--idx > 0) {
+					if (isspace(fileName[idx]))
+						fileName.remove(idx);
+				}
+			}
+		}
+		fName = fileName;
+		return true;
+	}
+	return false;
+}
+
+
+bool GetTexFullName(Texmap *texMap, tstring& fName)
+{
+	if (texMap && texMap->ClassID() == Class_ID(BMTEX_CLASS_ID, 0)) {
+		TSTR fileName = static_cast<BitmapTex*>(texMap)->GetMapName();
+		if (fileName.isNull()) {
+			fileName = static_cast<BitmapTex*>(texMap)->GetFullName();
+			int idx = fileName.last('(');
+			if (idx >= 0) {
+				fileName.remove(idx, fileName.length() - idx + 1);
+				while (--idx > 0) {
+					if (isspace(fileName[idx]))
+						fileName.remove(idx);
+				}
+			}
+		}
+		fName = fileName;
+		return true;
+	}
+	return false;
 }

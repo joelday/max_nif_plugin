@@ -47,11 +47,12 @@ EnumLookupType *BodyPartFlags = DefaultBodyPartFlags;
 class PartSubObjType : public ISubObjType {
 	TSTR name;
 public:
-	TSTR& GetNameRef() { return name; }
 	void SetName(const TCHAR *nm) { name = nm; }
 #if VERSION_3DSMAX < (15000<<16) // Version 15 (2013)
+	TSTR& GetNameRef() { return name; }
 	TCHAR *GetName() { return name; }
 #else
+	TSTR& GetNameRef() { return name; }
 	const MSTR& GetName() { return name; }
 #endif
 	MaxIcon *GetIcon() { return NULL; }
@@ -133,7 +134,7 @@ public:
 	static BSSIModifier *editMod;
 	static SelectModBoxCMode *selectMode;
 	static BOOL updateCachePosted;
-	std::vector<PartSubObjType> segments;
+	Tab<PartSubObjType> segments;
 
 	BSSIModifier();
 
@@ -1093,13 +1094,20 @@ void BSSIModifier::LocalDataChanged() {
 		if (IBSSubIndexModifierData* p = GetFirstModifierData())
 		{
 			bool changed = false;
-			changed = (segments.size() != p->GetNumPartitions());
-			segments.resize(p->GetNumPartitions());
+			changed = (segments.Count() != p->GetNumPartitions());
+			segments.Resize(p->GetNumPartitions());
 			for (int i = 0; i < p->GetNumPartitions(); ++i) {
-				TSTR name; name.printf(TEXT("%d"), i);
-				//TSTR name = EnumToString(partitions[i].bodyPart, BodyPartFlags);
-				changed |= (name != segments[i].GetNameRef()) ? true : false;
-				segments[i].SetName(name);
+				TSTR name = FormatText(TEXT("%d"), i);
+				if ( i <= segments.Count())
+				{
+					PartSubObjType subobj; subobj.SetName(name);
+					segments.Append(1, &subobj);
+					changed = true;
+				}
+				else
+				{
+					changed |= !strmatch(name, segments[i].GetName());
+				}
 			}
 
 			SetEnableStates();
@@ -1534,6 +1542,7 @@ IOResult BSSIModifier::SaveLocalData(ISave *isave, LocalModData *ld) {
 }
 
 IOResult BSSIModifier::LoadLocalData(ILoad *iload, LocalModData **pld) {
+	USES_CONVERSION;
 	BSSIData *d = new BSSIData;
 	ULONG nb = 0;
 	*pld = d;
@@ -1586,7 +1595,7 @@ IOResult BSSIModifier::LoadLocalData(ILoad *iload, LocalModData **pld) {
 			LPWSTR ptr = nullptr;
 			res = iload->ReadWStringChunk(&ptr);
 			if (res == IO_OK)
-				d->ssfFile = ptr;
+				d->ssfFile = W2T(ptr);
 		}break;
 		}
 		iload->CloseChunk();
@@ -1783,10 +1792,14 @@ INT_PTR BSSIModifierMainDlgProc::DlgProc(TimeValue t, IParamMap2 *map,
 		mDelSubPart->SetImage(theBSSIPartImageHandler.LoadImages(), 1, 3, 1, 3, 16, 16);
 
 		BSSubIndexData& si_data = mod->GetCurrentPartition();
-		BSSubIndexMaterial& si_mat = si_data.materials[nSubActive];
-		mCbMaterial.select(EnumToIndex(si_mat.materialHash, BodyPartFlags));
-
-		CheckDlgButton(hWnd, IDC_CBO_SI_VISIBLE, si_mat.visible ? BST_CHECKED : BST_UNCHECKED);
+		if (nSubActive >= 0) {
+			BSSubIndexMaterial& si_mat = si_data.materials[nSubActive];
+			mCbMaterial.select(EnumToIndex(si_mat.materialHash, BodyPartFlags));
+			CheckDlgButton(hWnd, IDC_CBO_SI_VISIBLE, si_mat.visible ? BST_CHECKED : BST_UNCHECKED);
+		} else {
+			mCbMaterial.select(-1);
+			CheckDlgButton(hWnd, IDC_CBO_SI_VISIBLE, BST_UNCHECKED);
+		}
 
 		auto* data = mod->GetFirstModifierData();
 		if (data && p_ssf_edit) p_ssf_edit->SetText(data->GetSSF());
@@ -1896,9 +1909,9 @@ INT_PTR BSSIModifierMainDlgProc::DlgProc(TimeValue t, IParamMap2 *map,
 			if (p_ssf_edit) {
 				auto* data = mod->GetFirstModifierData();
 				if (data && p_ssf_edit) {
-					TSTR text;
-					p_ssf_edit->GetText(text);
-					data->SetSSF(text);
+					TCHAR buffer[120];
+					p_ssf_edit->GetText(buffer, _countof(buffer));
+					data->SetSSF(buffer);
 				}
 			} break;
 		}
@@ -2082,7 +2095,7 @@ INT_PTR BSSIModifierMainDlgProc::DlgProc(TimeValue t, IParamMap2 *map,
 						if (wildmatch(TEXT("materials\\*"), filepart)) {
 							auto* data = mod->GetFirstModifierData();
 							if (data && p_ssf_edit) {
-								p_ssf_edit->SetText(filepart);
+								p_ssf_edit->SetText(const_cast<LPTSTR>(filepart));
 								data->SetSSF(filepart);
 							}
 							break;
@@ -2528,12 +2541,12 @@ RefResult BSSIModifier::NotifyRefChanged(const Interval& changeInt, RefTargetHan
 
 int BSSIModifier::NumSubObjTypes()
 {
-	return segments.size();
+	return segments.Count();
 }
 
 ISubObjType *BSSIModifier::GetSubObjType(int i)
 {
-	if (i >= segments.size())
+	if (i >= segments.Count())
 		return NULL;
 	if (i < 0) {
 		if (GetActivePartition() > 0)

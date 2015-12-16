@@ -155,8 +155,10 @@ typedef struct BGEMFile : BaseMaterial {
 
 extern bool InitialzeBGSM(BGSMFile& bgsm);
 extern bool ReadBGSMFile(const tstring& filename, BGSMFile& bgsm);
+extern bool SaveBGSMFile(const tstring& filename, const BGSMFile& bgsm);
 
 extern bool InitialzeBGEM(BGEMFile& bgem);
 extern bool ReadBGEMFile(const tstring& filename, BGEMFile& bgem);
+extern bool SaveBGEMFile(const tstring& filename, const BGEMFile& bgem);
 extern AlphaBlendModeType ConvertAlphaBlendMode(bool BlendState, AlphaBlendFunc BlendFunc1, AlphaBlendFunc BlendFunc2);
 extern void ConvertAlphaBlendMode(AlphaBlendModeType type, bool& BlendState, AlphaBlendFunc& BlendFunc1, AlphaBlendFunc& BlendFunc2);

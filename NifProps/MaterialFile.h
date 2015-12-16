@@ -33,32 +33,19 @@ public:
 	static IOResult LoadMaterialChunk(BaseMaterial &mtl, ILoad* iload);
 	static IOResult SaveMaterialChunk(BaseMaterial &mtl, ISave* isave);
 
-	ReferenceTarget* Clone(RemapDir& remap) override
-	{
-		ReferenceTarget* result = new MaterialReference();
-		BaseClone(this, result, remap);
-		return result;
+	void SetFileName(const TSTR& name, const TSTR& path) {
+		SetName(name);
+		SetFileName(path);
 	}
 
-	void SetFileName(const TSTR& name, const TSTR& path) {
-		materialName = name;
-		materialFileName = path;
-	}
+	virtual BaseMaterial *GetBaseMaterial() = 0;
 
 	void SetName(const TSTR& name) {
 		materialName = name;
 	}
-
-	//bool IsBGSM() { return ClassID() == BGSMFILE_CLASS_ID; }
-
-	//const int MY_REFERENCE = 1;
-	//void BaseClone(ReferenceTarget* from, ReferenceTarget* to, RemapDir& remap) override
-	//{
-	//	if (!to || !from || from == to)
-	//		return;
-	//	MaterialReference::BaseClone(from, to, remap);
-	//	to->ReplaceReference(MY_REFERENCE, remap.CloneRef(from->GetReference(MY_REFERENCE)));
-	//}
+	void SetFileName(const TSTR& path) {
+		materialFileName = path;
+	}
 
 #if VERSION_3DSMAX < (17000<<16) // Version 17 (2015)
 	RefResult	NotifyRefChanged(Interval changeInt, RefTargetHandle hTarget, PartID& partID, RefMessage message) override { return(REF_SUCCEED); }
@@ -87,6 +74,15 @@ public:
 	IOResult LoadMaterialChunk(ILoad* iload);
 	IOResult SaveMaterialChunk(ISave* isave);
 
+	BaseMaterial *GetBaseMaterial() override { return &file;  }
+
+
+	ReferenceTarget* Clone(RemapDir& remap) override
+	{
+		ReferenceTarget* result = new BGSMFileReference();
+		BaseClone(this, result, remap);
+		return result;
+	}
 };
 
 
@@ -107,5 +103,14 @@ public:
 
 	IOResult LoadMaterialChunk(ILoad* iload);
 	IOResult SaveMaterialChunk(ISave* isave);
+
+	BaseMaterial *GetBaseMaterial() override { return &file; }
+
+	ReferenceTarget* Clone(RemapDir& remap) override
+	{
+		ReferenceTarget* result = new BGEMFileReference();
+		BaseClone(this, result, remap);
+		return result;
+	}
 
 };

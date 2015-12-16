@@ -779,6 +779,7 @@ typedef struct EnumLookupType {
 } EnumLookupType;
 
 extern TSTR EnumToString(int value, const EnumLookupType *table);
+extern LPCTSTR EnumToStringRaw(int value, const EnumLookupType *table);
 extern int StringToEnum(TSTR value, const EnumLookupType *table);
 extern int EnumToIndex(int value, const EnumLookupType *table);
 
@@ -788,5 +789,7 @@ extern int StringToFlags(TSTR value, const EnumLookupType *table);
 
 extern unsigned long Crc32Array(const void *data, size_t size);
 
+extern bool GetTexFullName(Texmap *texMap, TSTR& fName);
+extern bool GetTexFullName(Texmap *texMap, tstring& fName);
 
 #endif // _NIUTILS_H_

@@ -136,6 +136,7 @@ public:
 
 	bool FindFile(const tstring& name, tstring& resolved_name) const override;
 	bool FindFileByType(const tstring& name, FileType type, tstring& resolved_name) const override;
+	bool GetRelativePath(tstring& name, FileType type) const override;
 
 	bool ImportUPB(INode *node, Niflib::NiNodeRef block);
 

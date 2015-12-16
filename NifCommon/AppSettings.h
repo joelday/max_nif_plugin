@@ -56,6 +56,7 @@ public:
    bool doNotReuseExistingBones;
    tstring skeletonCheck;
 
+   static bool Initialized();
    static void Initialize(Interface *gi);
    void ReadSettings(tstring iniFile);
    void WriteSettings(Interface *gi);

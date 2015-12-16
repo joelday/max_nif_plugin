@@ -55,9 +55,6 @@ AlphaBlendModeType ConvertAlphaBlendMode(bool BlendState, AlphaBlendFunc BlendFu
 	return ABMT_None;
 }
 
-
-
-
 #define READ_VALUE(dst, x)  if (!ReadObject(src, ##dst . ##x, #x)) goto error;
 #define SAVE_VALUE(src, x)  if (!SaveObject(dst, ##src . ##x, #x)) goto error;
 
@@ -83,15 +80,18 @@ error: return false;
 
 
 template <typename T>
-bool SaveObject(FILE* file, T& x, const char *name) {
+bool SaveObject(FILE* file, const T& x, const char *name) {
 	return (fwrite(&x, sizeof(x), 1, file) == 1);
 }
 
 template <>
-bool SaveObject<tstring>(FILE* file, tstring& x, const char *name) {
+bool SaveObject<tstring>(FILE* file, const tstring& x, const char *name) {
 	USES_CONVERSION;
 	ULONG len = ULONG(x.size() + 1); // include null terminator
-	char *ptr = T2A(x.c_str());
+	char *ptr = static_cast<char*>(_alloca(len));
+	strcpy(ptr, T2A(x.c_str()));
+	for (ULONG i = 0; i < len; ++i)
+		if (ptr[i] == '\\') ptr[i] = '/';
 	if (!SaveObject(file, len, "")) goto error;
 	if (fwrite(ptr, 1, len, file) != len) goto error;
 	return true;
@@ -225,6 +225,14 @@ static bool ReadMtlHeader(FILE* src, MaterialHeader& hdr)
 	error: return false;
 }
 
+static bool SaveMtlHeader(FILE* dst, MaterialHeader& hdr)
+{
+	SAVE_VALUE(hdr, Signature);
+	SAVE_VALUE(hdr, Version);
+	return true;
+error: return false;
+}
+
 static bool ReadBaseMaterial(FILE* src, const MaterialHeader& hdr, BaseMaterial& mtl)
 {
 	int tile_uv;
@@ -258,6 +266,38 @@ static bool ReadBaseMaterial(FILE* src, const MaterialHeader& hdr, BaseMaterial&
 	READ_VALUE(mtl,EnvironmentMapping);
 	READ_VALUE(mtl,EnvironmentMappingMaskScale);
 	READ_VALUE(mtl,GrayscaleToPaletteColor);
+	return true;
+error: return false;
+}
+
+static bool SaveBaseMaterial(FILE* dst, const MaterialHeader& hdr, const BaseMaterial& mtl)
+{
+	int tile_uv = (mtl.TileU ? 0x1 : 0) | (mtl.TileV ? 0x2 : 0);
+	if (!SaveObject(dst, tile_uv, "")) goto error;
+	SAVE_VALUE(mtl, UOffset);
+	SAVE_VALUE(mtl, VOffset);
+	SAVE_VALUE(mtl, UScale);
+	SAVE_VALUE(mtl, VScale);
+	SAVE_VALUE(mtl, Alpha);
+	SAVE_VALUE(mtl, BlendState);
+	SAVE_VALUE(mtl, BlendFunc1);
+	SAVE_VALUE(mtl, BlendFunc2);
+	SAVE_VALUE(mtl, AlphaTestRef);
+	SAVE_VALUE(mtl, AlphaTest);
+	SAVE_VALUE(mtl, ZBufferWrite);
+	SAVE_VALUE(mtl, ZBufferTest);
+	SAVE_VALUE(mtl, ScreenSpaceReflections);
+	SAVE_VALUE(mtl, WetnessControlScreenSpaceReflections);
+	SAVE_VALUE(mtl, Decal);
+	SAVE_VALUE(mtl, TwoSided);
+	SAVE_VALUE(mtl, DecalNoFade);
+	SAVE_VALUE(mtl, NonOccluder);
+	SAVE_VALUE(mtl, Refraction);
+	SAVE_VALUE(mtl, RefractionFalloff);
+	SAVE_VALUE(mtl, RefractionPower);
+	SAVE_VALUE(mtl, EnvironmentMapping);
+	SAVE_VALUE(mtl, EnvironmentMappingMaskScale);
+	SAVE_VALUE(mtl, GrayscaleToPaletteColor);
 	return true;
 error: return false;
 }
@@ -329,6 +369,73 @@ static bool ReadBGSM(FILE* src, const MaterialHeader& hdr, BGSMFile& mtl)
 	return true;
 error: return false;
 }
+
+
+static bool SaveBGSM(FILE* dst, const MaterialHeader& hdr, const BGSMFile& mtl)
+{
+	if (!SaveBaseMaterial(dst, hdr, mtl)) goto error;
+	SAVE_VALUE(mtl, DiffuseTexture);
+	SAVE_VALUE(mtl, NormalTexture);
+	SAVE_VALUE(mtl, SmoothSpecTexture);
+	SAVE_VALUE(mtl, GreyscaleTexture);
+	SAVE_VALUE(mtl, EnvmapTexture);
+	SAVE_VALUE(mtl, GlowTexture);
+	SAVE_VALUE(mtl, InnerLayerTexture);
+	SAVE_VALUE(mtl, WrinklesTexture);
+	SAVE_VALUE(mtl, DisplacementTexture);
+	SAVE_VALUE(mtl, EnableEditorAlphaRef);
+	SAVE_VALUE(mtl, RimLighting);
+	SAVE_VALUE(mtl, RimPower);
+	SAVE_VALUE(mtl, BackLightPower);
+	SAVE_VALUE(mtl, SubsurfaceLighting);
+	SAVE_VALUE(mtl, SubsurfaceLightingRolloff);
+	SAVE_VALUE(mtl, SpecularEnabled);
+	SAVE_VALUE(mtl, SpecularColor);
+	SAVE_VALUE(mtl, SpecularMult);
+	SAVE_VALUE(mtl, Smoothness);
+	SAVE_VALUE(mtl, FresnelPower);
+	SAVE_VALUE(mtl, WetnessControlSpecScale);
+	SAVE_VALUE(mtl, WetnessControlSpecPowerScale);
+	SAVE_VALUE(mtl, WetnessControlSpecMinvar);
+	SAVE_VALUE(mtl, WetnessControlEnvMapScale);
+	SAVE_VALUE(mtl, WetnessControlFresnelPower);
+	SAVE_VALUE(mtl, WetnessControlMetalness);
+	SAVE_VALUE(mtl, RootMaterialPath);
+	SAVE_VALUE(mtl, AnisoLighting);
+	SAVE_VALUE(mtl, EmitEnabled);
+	if (mtl.EmitEnabled)
+		SAVE_VALUE(mtl, EmittanceColor);
+	SAVE_VALUE(mtl, EmittanceMult);
+	SAVE_VALUE(mtl, ModelSpaceNormals);
+	SAVE_VALUE(mtl, ExternalEmittance);
+	SAVE_VALUE(mtl, BackLighting);
+	SAVE_VALUE(mtl, ReceiveShadows);
+	SAVE_VALUE(mtl, HideSecret);
+	SAVE_VALUE(mtl, CastShadows);
+	SAVE_VALUE(mtl, DissolveFade);
+	SAVE_VALUE(mtl, AssumeShadowmask);
+	SAVE_VALUE(mtl, Glowmap);
+	SAVE_VALUE(mtl, EnvironmentMappingWindow);
+	SAVE_VALUE(mtl, EnvironmentMappingEye);
+	SAVE_VALUE(mtl, Hair);
+	SAVE_VALUE(mtl, HairTintColor);
+	SAVE_VALUE(mtl, Tree);
+	SAVE_VALUE(mtl, Facegen);
+	SAVE_VALUE(mtl, SkinTint);
+	SAVE_VALUE(mtl, Tessellate);
+	SAVE_VALUE(mtl, DisplacementTextureBias);
+	SAVE_VALUE(mtl, DisplacementTextureScale);
+	SAVE_VALUE(mtl, TessellationPNScale);
+	SAVE_VALUE(mtl, TessellationBaseFactor);
+	SAVE_VALUE(mtl, TessellationFadeDistance);
+	SAVE_VALUE(mtl, GrayscaleToPaletteScale);
+	if (hdr.Version >= 1) {
+		SAVE_VALUE(mtl, SkewSpecularAlpha);
+	}
+	return true;
+error: return false;
+}
+
 #undef READ_VALUE
 
 #define READ_VALUE(dst, x, def)  if (!ReadObject(src, ##dst . ##x, #x)) goto error;
@@ -357,6 +464,33 @@ static bool ReadBGEM(FILE* src, const MaterialHeader& hdr, BGEMFile& mtl)
 	READ_VALUE(mtl, EnvmapMinLOD, '\x0');
 	READ_VALUE(mtl, SoftDepth, 100.0f);
 
+	return true;
+error: return false;
+}
+
+static bool SaveBGEM(FILE* dst, const MaterialHeader& hdr, const BGEMFile& mtl)
+{
+	if (!SaveBaseMaterial(dst, hdr, mtl)) goto error;
+	SAVE_VALUE(mtl, BaseTexture);
+	SAVE_VALUE(mtl, GrayscaleTexture);
+	SAVE_VALUE(mtl, EnvmapTexture);
+	SAVE_VALUE(mtl, NormalTexture);
+	SAVE_VALUE(mtl, EnvmapMaskTexture);
+	SAVE_VALUE(mtl, BloodEnabled);
+	SAVE_VALUE(mtl, EffectLightingEnabled);
+	SAVE_VALUE(mtl, FalloffEnabled);
+	SAVE_VALUE(mtl, FalloffColorEnabled);
+	SAVE_VALUE(mtl, GrayscaleToPaletteAlpha);
+	SAVE_VALUE(mtl, SoftEnabled);
+	SAVE_VALUE(mtl, BaseColor);
+	SAVE_VALUE(mtl, BaseColorScale);
+	SAVE_VALUE(mtl, FalloffStartAngle);
+	SAVE_VALUE(mtl, FalloffStopAngle);
+	SAVE_VALUE(mtl, FalloffStartOpacity);
+	SAVE_VALUE(mtl, FalloffStopOpacity);
+	SAVE_VALUE(mtl, LightingInfluence);
+	SAVE_VALUE(mtl, EnvmapMinLOD);
+	SAVE_VALUE(mtl, SoftDepth);
 	return true;
 error: return false;
 }
@@ -547,6 +681,26 @@ exit:
 	return result;
 }
 
+bool SaveBGSMFile(const tstring& filename, const BGSMFile& bgsm)
+{
+	FILE *file = _tfopen(filename.c_str(), TEXT("wb"));
+	if (file == nullptr) return false;
+
+	bool result = false;
+	MaterialHeader hdr;
+	strncpy(hdr.Signature, "BGSM", 4);
+	hdr.Version = 1;
+	if (!SaveMtlHeader(file, hdr)) goto error;
+	if (!SaveBGSM(file, hdr, bgsm)) goto error;
+	result = true;
+	goto exit;
+error:
+	result = false;
+exit:
+	fclose(file);
+	return result;
+}
+
 bool ReadBGEMFile(const tstring& filename, BGEMFile& BGEM)
 {
 	FILE *file = _tfopen(filename.c_str(), TEXT("rb"));
@@ -593,6 +747,28 @@ exit:
 	fclose(file);
 	return result;
 }
+
+
+bool SaveBGEMFile(const tstring& filename, const BGEMFile& bgem)
+{
+	FILE *file = _tfopen(filename.c_str(), TEXT("wb"));
+	if (file == nullptr) return false;
+
+	bool result = false;
+	MaterialHeader hdr;
+	strncpy(hdr.Signature, "BGEM", 4);
+	hdr.Version = 1;
+	if (!SaveMtlHeader(file, hdr)) goto error;
+	if (!SaveBGEM(file, hdr, bgem)) goto error;
+	result = true;
+	goto exit;
+error:
+	result = false;
+exit:
+	fclose(file);
+	return result;
+}
+
 #undef READ_VALUE
 
 #if 0
