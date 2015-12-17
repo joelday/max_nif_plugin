@@ -47,6 +47,9 @@ EnumLookupType *BodyPartFlags = DefaultBodyPartFlags;
 class PartSubObjType : public ISubObjType {
 	TSTR name;
 public:
+	PartSubObjType() {}
+	PartSubObjType(const PartSubObjType& rhs) { name = rhs.name; }
+	PartSubObjType& operator=(const PartSubObjType& rhs) { name = rhs.name; return *this; }
 	void SetName(const TCHAR *nm) { name = nm; }
 #if VERSION_3DSMAX < (15000<<16) // Version 15 (2013)
 	TSTR& GetNameRef() { return name; }
@@ -134,10 +137,17 @@ public:
 	static BSSIModifier *editMod;
 	static SelectModBoxCMode *selectMode;
 	static BOOL updateCachePosted;
-	Tab<PartSubObjType> segments;
+	Tab<PartSubObjType*> segments;
 	BOOL inLocalDataChanged;
 
 	BSSIModifier();
+	~BSSIModifier()
+	{
+		for (int i = segments.Count() - 1; i >= 0; --i) {
+			if (PartSubObjType *subobj = segments[i]) delete subobj;
+			segments.Delete(i, 1);
+		}
+	}
 
 	// From Animatable
 	void DeleteThis() { delete this; }
@@ -1102,19 +1112,32 @@ void BSSIModifier::LocalDataChanged() {
 			{
 				bool changed = false;
 				changed = (segments.Count() != p->GetNumPartitions());
-				segments.Resize(p->GetNumPartitions());
+				//segments.Resize(p->GetNumPartitions());
 				for (int i = 0; i < p->GetNumPartitions(); ++i) {
 					TSTR name = FormatText(TEXT("%d"), i);
-					if (i <= segments.Count())
+					if (i >= segments.Count())
 					{
-						PartSubObjType subobj; subobj.SetName(name);
+						PartSubObjType *subobj = new PartSubObjType(); 
+						subobj->SetName(name);
 						segments.Append(1, &subobj);
 						changed = true;
 					}
 					else
 					{
-						changed |= !strmatch(name, segments[i].GetName());
+						PartSubObjType *subobj = segments[i];
+						if (!strmatch(name, subobj->GetName()))
+						{
+							subobj->SetName(name);
+							changed = true;
+						}
 					}
+				}
+				while ( segments.Count() > p->GetNumPartitions() )
+				{
+					int i = segments.Count() - 1;
+					PartSubObjType *subobj = segments[i];
+					delete subobj;
+					segments.Delete(i, 1);
 				}
 
 				SetEnableStates();
@@ -2564,7 +2587,7 @@ ISubObjType *BSSIModifier::GetSubObjType(int i)
 			return GetSubObjType(GetActivePartition() - 1);
 		return NULL;
 	}
-	return &segments[i];
+	return segments[i];
 }
 
 void BSSIModifier::InvalidateDialogElement(int elem) {

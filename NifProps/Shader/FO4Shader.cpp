@@ -141,16 +141,16 @@ enum
 static const int FO4ShaderStdIDToChannel[] = {
 	-1,           // 0 - ambient
 	C_DIFFUSE,    // 1 - diffuse           
-	-1, // 2 - specular
+	-1,			  // 2 - specular
 	-1,           // 3 - Glossiness (Shininess in 3ds Max release 2.0 and earlier)
 	-1,           // 4 - Specular Level (Shininess strength in 3ds Max release 2.0 and earlier)
-	-1,       // 5 - self-illumination 
-	-1,    // 6 - opacity
+	C_GLOW,       // 5 - self-illumination 
+	C_MAX_SUPPORTED, // 6 - opacity
 	-1,           // 7 - filter color
-	-1,     // 8 - bump              
+	C_NORMAL,     // 8 - bump              
 	-1,           // 9 - reflection        
 	-1,           // 10 - refraction 
-	-1,   // 11 - displacement
+	-1,           // 11 - displacement
 	-1,           // 12 - 
 	-1,           // 13 -  
 	-1,           // 14 -  
@@ -164,11 +164,11 @@ static const int FO4ShaderStdIDToChannel[] = {
 	-1,           // 23 -  
 };
 
-//const ULONG SHADER_PARAMS = (STD_PARAM_SELFILLUM | STD_PARAM_SELFILLUM_CLR
-//	| STD_PARAM_GLOSSINESS // || STD_PARAM_SPECULAR_CLR
-//	| STD_PARAM_SELFILLUM_CLR_ON // | STD_PARAM_SPECULAR_LEV 
-//	);
-const ULONG SHADER_PARAMS = 0;
+const ULONG SHADER_PARAMS = (STD_PARAM_SELFILLUM | STD_PARAM_SELFILLUM_CLR
+	| STD_PARAM_GLOSSINESS // || STD_PARAM_SPECULAR_CLR
+	| STD_PARAM_SELFILLUM_CLR_ON // | STD_PARAM_SPECULAR_LEV 
+	);
+// const ULONG SHADER_PARAMS = 0;
 
 class Fallout4FileResolver : public IFileResolver
 {
@@ -1726,8 +1726,8 @@ void FO4Shader::Reset()
 	SetAmbientClr(Color(0.588f, 0.588f, 0.588f), 0);
 	SetDiffuseClr(Color(0.588f, 0.588f, 0.588f), 0);
 	SetSpecularClr(Color(0.9f, 0.9f, 0.9f), 0);
-	SetGlossiness(.10f, 0);   // change from .25, 11/6/00
-	SetSpecularLevel(.0f, 0);
+	SetGlossiness(0.10f, 0);   // change from .25, 11/6/00
+	SetSpecularLevel(0.0f, 0);
 
 	SetSelfIllum(.0f, 0);
 	SetSelfIllumClr(Color(.0f, .0f, .0f), 0);
@@ -1955,7 +1955,8 @@ void FO4Shader::Illum(ShadeContext &sc, IllumParams &ip)
 	//float opac = ip.channels[C_OPACITY].r;
 	//float opac = ip.channels[C_].r;
 	float opac = 1.0f;
-	float g = ip.channels[C_SMOOTHSPEC].r;
+	//float g = ip.channels[C_SMOOTHSPEC].r;
+	float g = 0.10;
 	float m = 0.0f;
 	Color Cd = ip.channels[C_DIFFUSE];
 	// BOOL dimDiffuse = ip.hasComponents & HAS_REFLECT;
@@ -2426,7 +2427,8 @@ BOOL FO4Shader::LoadMaterial(StdMat2* mtl, IFileResolver* resolver)
 			mtl->GetSelfIllumColorOn(bgsm->Glowmap);
 
 			GetOrCreateTexture(mtl, base_mtl, C_DIFFUSE, bgsm->DiffuseTexture, resolver);
-			GetOrCreateTexture(mtl, base_mtl, C_NORMAL, bgsm->NormalTexture, resolver, CreateNormalBump);
+			if (Texmap *tex = GetOrCreateTexture(mtl, base_mtl, C_NORMAL, bgsm->NormalTexture, resolver, CreateNormalBump)) 
+				mtl->SetTexmapAmt(C_NORMAL, 0.3f, INFINITE);
 			GetOrCreateTexture(mtl, base_mtl, C_SMOOTHSPEC, bgsm->SmoothSpecTexture, resolver);
 			GetOrCreateTexture(mtl, base_mtl, C_GREYSCALE, bgsm->GreyscaleTexture, resolver);
 			GetOrCreateTexture(mtl, base_mtl, C_ENVMAP, bgsm->EnvmapTexture, resolver);
