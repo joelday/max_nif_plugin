@@ -482,7 +482,7 @@ begin
   FNVDataDirPage.Values[1] := GetPreviousData('FNVTexDir', '');
   F4DataDirPage.Values[0] := GetPreviousData('F4ModelDir', '');
   F4DataDirPage.Values[1] := GetPreviousData('F4TexDir', '');
-  F4DataDirPage.Values[1] := GetPreviousData('F4MtlDir', '');
+  F4DataDirPage.Values[2] := GetPreviousData('F4MtlDir', '');
 
 end;
 
