@@ -530,6 +530,7 @@ public:
 	NpComboBox mCbMaterial;
 	ICustEdit *p_ssf_edit;
 	ISpinnerControl *mActivePart;
+	ISpinnerControl *mEdMaterialID;
 	ICustButton *mAddPart;
 	ICustButton *mDelPart;
 	ICustButton *mLockPart;
@@ -747,10 +748,15 @@ void BSSIModifierMainDlgProc::UpdateSelLevelDisplay(HWND hWnd) {
 	if (nSubActive >= 0) {
 		auto& mat = partition.materials[nSubActive];
 		mCbMaterial.select(EnumToIndex(mat.materialHash, BodyPartFlags));
-		CheckDlgButton(hWnd, IDC_CBO_SI_VISIBLE, mat.visible ? BST_CHECKED : BST_UNCHECKED);
+		//CheckDlgButton(hWnd, IDC_CBO_SI_VISIBLE, mat.visible ? BST_CHECKED : BST_UNCHECKED);
+
+		if (mEdMaterialID) {
+			mEdMaterialID->SetValue((int)mat.id, FALSE);
+		}
 	}
 	int lockIdx = mod->GetPartitionEditEnabled() ? 0 : 1;
 	mLockPart->SetImage(theBSSILockImageHandler.LoadImages(), lockIdx, 2 + lockIdx, lockIdx, 2 + lockIdx, 16, 16);
+
 
 	auto* data = mod->GetFirstModifierData();
 	if (data && p_ssf_edit) p_ssf_edit->SetText(data->GetSSF());
@@ -1685,7 +1691,7 @@ void BSSIModifierMainDlgProc::SetEnables(HWND hParams) {
 
 
 	EnableWindow(mCbMaterial.mWnd, editEnabled);
-	EnableWindow(GetDlgItem(hParams, IDC_CBO_SI_VISIBLE), editEnabled);
+	//EnableWindow(GetDlgItem(hParams, IDC_CBO_SI_VISIBLE), editEnabled);
 	if (p_ssf_edit) p_ssf_edit->Enable(editEnabled);
 	EnableWindow(GetDlgItem(hParams, IDC_BTN_SSF_LOAD), editEnabled);
 
@@ -1771,6 +1777,7 @@ INT_PTR BSSIModifierMainDlgProc::DlgProc(TimeValue t, IParamMap2 *map,
 			nActive = mod->GetActivePartition();
 		}
 
+		
 		EnableWindow(GetDlgItem(hWnd, IDC_MS_PARTITION), TRUE);
 		mActivePart = GetISpinner(GetDlgItem(hWnd, IDC_MS_PARTSPIN));
 		mActivePart->LinkToEdit(GetDlgItem(hWnd, IDC_MS_PARTITION), EDITTYPE_POS_INT);
@@ -1779,6 +1786,7 @@ INT_PTR BSSIModifierMainDlgProc::DlgProc(TimeValue t, IParamMap2 *map,
 		mActivePart->SetAutoScale(FALSE);
 		mActivePart->SetScale(1);
 		mActivePart->SetResetValue(0);
+
 
 		mAddPart = GetICustButton(GetDlgItem(hWnd, IDC_MS_ADDPART));
 #if VERSION_3DSMAX < ((10000<<16)+(24<<8)+0) // Version 7
@@ -1813,6 +1821,18 @@ INT_PTR BSSIModifierMainDlgProc::DlgProc(TimeValue t, IParamMap2 *map,
 		mActiveSubPart->SetScale(1);
 		mActiveSubPart->SetResetValue(0);
 
+		EnableWindow(GetDlgItem(hWnd, IDC_MS_SIPARTITION_ID), TRUE);
+		mEdMaterialID = GetISpinner(GetDlgItem(hWnd, IDC_MS_SIPART_ID_SPIN));
+		mEdMaterialID->LinkToEdit(GetDlgItem(hWnd, IDC_MS_SIPARTITION_ID), EDITTYPE_POS_INT);
+		mEdMaterialID->SetValue(nActive, 0);
+		mEdMaterialID->SetLimits(0, 200, TRUE);
+		mEdMaterialID->SetAutoScale(FALSE);
+		mEdMaterialID->SetScale(1);
+		mEdMaterialID->SetResetValue(0);
+#if VERSION_3DSMAX < ((10000<<16)+(24<<8)+0) // Version 7
+		mEdMaterialID->SetTooltip(TRUE, "Delete Active SubPartition");
+#endif
+
 		mAddSubPart = GetICustButton(GetDlgItem(hWnd, IDC_MS_SIADDPART));
 #if VERSION_3DSMAX < ((10000<<16)+(24<<8)+0) // Version 7
 		mAddSubPart->SetTooltip(TRUE, "Create New SubPartition");
@@ -1829,10 +1849,12 @@ INT_PTR BSSIModifierMainDlgProc::DlgProc(TimeValue t, IParamMap2 *map,
 		if (nSubActive >= 0) {
 			BSSubIndexMaterial& si_mat = si_data.materials[nSubActive];
 			mCbMaterial.select(EnumToIndex(si_mat.materialHash, BodyPartFlags));
-			CheckDlgButton(hWnd, IDC_CBO_SI_VISIBLE, si_mat.visible ? BST_CHECKED : BST_UNCHECKED);
+			//CheckDlgButton(hWnd, IDC_CBO_SI_VISIBLE, si_mat.visible ? BST_CHECKED : BST_UNCHECKED);
+			mEdMaterialID->Enable();
 		} else {
 			mCbMaterial.select(0);
-			CheckDlgButton(hWnd, IDC_CBO_SI_VISIBLE, BST_UNCHECKED);
+			//CheckDlgButton(hWnd, IDC_CBO_SI_VISIBLE, BST_UNCHECKED);
+			mEdMaterialID->Disable();
 		}
 
 		auto* data = mod->GetFirstModifierData();
@@ -1976,6 +1998,18 @@ INT_PTR BSSIModifierMainDlgProc::DlgProc(TimeValue t, IParamMap2 *map,
 					mod->LocalDataChanged();
 					mod->NotifyDependents(FOREVER, PART_ALL, REFMSG_NUM_SUBOBJECTTYPES_CHANGED);
 				}
+			} break;
+
+		case IDC_MS_SIPARTITION_ID:
+			if (mEdMaterialID)
+			{
+				if (IBSSubIndexModifierData* p = mod->GetFirstModifierData()) {
+					int nActive = p->GetActivePartition();
+					int nSubActive = p->GetActiveSubPartition();
+					int sel = mCbMaterial.selection();
+					auto& mat = mod->GetCurrentPartition().materials[nSubActive];
+					mat.id = mEdMaterialID->GetIVal();
+				}				
 			} break;
 
 		case IDC_MS_ADDPART:
@@ -2159,6 +2193,12 @@ INT_PTR BSSIModifierMainDlgProc::DlgProc(TimeValue t, IParamMap2 *map,
 			break;
 		case IDC_SELELEMENT:
 			lpttt->lpszText = GetString(IDS_EM_ELEMENT);
+			break;
+		case IDC_MS_SIPARTITION_ID:
+			lpttt->lpszText = GetString(IDS_SIPARTITION_ID);
+			break;
+		case IDC_MS_LOCKEDIT:
+			lpttt->lpszText = GetString(IDS_MS_LOCKEDIT);
 			break;
 		}
 		break;

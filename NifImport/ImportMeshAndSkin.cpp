@@ -1097,7 +1097,7 @@ bool NifImporter::ImportSkin(ImpNode *node, Niflib::BSTriShapeRef shape, int v_s
 									mat.id = material.bodyPartIndex;
 									mat.visible = material.bodyPartIndex >= 100;
 									mat.materialHash = material.materialHash;
-									mat.data.resize(material.numData);
+									//mat.data.reserve(material.numData);
 									for (int l = 0; l < material.numData; ++l) {
 										auto value = material.extraData[l];
 										mat.data.push_back(value);

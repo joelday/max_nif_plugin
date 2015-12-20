@@ -85,6 +85,9 @@
 #define IDC_MS_SI_PART_COUNT            1395
 #define IDC_MS_SELBYMAT_TEXT4           1396
 #define IDC_MS_SELBYMAT_BOX4            1397
+#define IDC_MS_SIPARTITION_ID           1398
+#define IDC_MS_SIPART_ID_SPIN           1399
+#define IDC_MS_SELBYMAT_TEXT5           1401
 #define IDC_ED_POS1_X                   1700
 #define IDC_SP_POS1_X                   1701
 #define IDC_ED_POS1_Y                   1702
@@ -403,6 +406,8 @@
 #define IDS_FOS_SHADERTYPE              11188
 #define IDS_FOS_NAME                    11189
 #define IDS_FOS_FILENAME                11190
+#define IDS_SIPARTITION_ID              11191
+#define IDS_MS_LOCKEDIT                 11192
 #define IDC_ED_CENTER_X                 11490
 #define IDC_SP_CENTER_X                 11491
 #define IDC_ED_CENTER_Y                 11492

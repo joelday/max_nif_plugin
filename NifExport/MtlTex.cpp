@@ -1394,6 +1394,7 @@ bool Exporter::exportFO4Shader(NiAVObjectRef parent, Mtl* mtl)
 			texProp->SetBacklightPower(bgsm->BackLightPower);
 			if (bgsm->SubsurfaceLighting) flags2 = SkyrimShaderPropertyFlags2(flags2 | SLSF2_SOFT_LIGHTING);
 			texProp->SetSubsurfaceRolloff(bgsm->SubsurfaceLightingRolloff);
+			texProp->SetUnknownFloat1(FLT_MAX); // must be set to avoid hangs
 			if (bgsm->SpecularEnabled) flags1 = SkyrimShaderPropertyFlags1(flags1 | SLSF1_SPECULAR);
 			texProp->SetSpecularColor(bgsm->SpecularColor);
 			texProp->SetSpecularStrength(bgsm->SpecularMult);

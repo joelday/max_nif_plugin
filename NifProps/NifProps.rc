@@ -484,17 +484,19 @@ BEGIN
     CONTROL         "",IDC_MS_SIPARTITION,"CustEdit",WS_TABSTOP,19,50,30,10
     CONTROL         "X",IDC_MS_SI_DELPART,"CustButton",WS_TABSTOP,90,49,11,11
     CONTROL         "",IDC_MS_SIPARTSPIN,"SpinnerControl",0x0,50,50,7,10
-    RTEXT           "ID:",IDC_MS_SELBYMAT_TEXT3,6,51,11,8
+    RTEXT           "SI#:",IDC_MS_SELBYMAT_TEXT3,3,51,15,8
     CONTROL         "+",IDC_MS_SIADDPART,"CustButton",WS_TABSTOP,76,49,11,11
     LTEXT           "123456 Partitions",IDC_MS_PART_COUNT,6,27,98,8
     CONTROL         "X",IDC_MS_LOCKEDIT,"CustButton",WS_TABSTOP,93,14,11,11
     COMBOBOX        IDC_CB_MATERIAL,4,66,100,157,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "123456 Sub Partitions",IDC_MS_SI_PART_COUNT,5,97,98,8
-    CONTROL         "Visible on Dismember",IDC_CBO_SI_VISIBLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,8,83,87,10
     CONTROL         "",IDC_ED_SSF_FILE,"CustEdit",WS_DISABLED | WS_TABSTOP,16,113,80,12
     RTEXT           "SSF:",IDC_MS_SELBYMAT_TEXT4,0,115,15,8
     PUSHBUTTON      "...",IDC_BTN_SSF_LOAD,96,112,11,14
     GROUPBOX        "Selection:",IDC_MS_SELBYMAT_BOX4,1,127,105,76
+    CONTROL         "",IDC_MS_SIPARTITION_ID,"CustEdit",WS_TABSTOP,21,82,31,10
+    CONTROL         "",IDC_MS_SIPART_ID_SPIN,"SpinnerControl",0x0,52,82,7,10
+    RTEXT           "ID:",IDC_MS_SELBYMAT_TEXT5,6,83,11,8
 END
 
 IDD_FO4SHADER_MTL DIALOGEX 0, 0, 216, 203
@@ -2010,6 +2012,8 @@ BEGIN
     IDS_FOS_SHADERTYPE      "Shader Type"
     IDS_FOS_NAME            "Name"
     IDS_FOS_FILENAME        "File Name"
+    IDS_SIPARTITION_ID      "Unknown ID.  Usually 2+IDX.   >100 means visible on dismember"
+    IDS_MS_LOCKEDIT         "Lock/Unlock the Segments and Subsegments from Editing"
 END
 
 #endif    // English (United States) resources

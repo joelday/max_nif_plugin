@@ -770,16 +770,17 @@ bool Exporter::CreateSegmentation(INode* node, BSSubIndexTriShapeRef shape, Face
 		segment.triangleCount = 0;
 		segment.materialHash = 0xFFFFFFFF;
 		
+		int parent_segment_id = segmentOffset++;
 		BSSIMaterial seperator;
 		seperator.materialHash = 0xFFFFFFFF;
-		seperator.bodyPartIndex = segmentOffset++;
+		seperator.bodyPartIndex = i;
 		section.materials.push_back(seperator);
-		section.emptyMaterials.push_back(i);
+		section.emptyMaterials.push_back(parent_segment_id);
 
 		partition.id = i;
 
 		// skip the empty materials
-		bool emptyMaterial = (materials.size() == 1 && materials[0].materialHash == 0xFFFFFFFF);
+		bool emptyMaterial = (materials.size() == 1 && (materials[0].materialHash == 0xFFFFFFFF || materials[0].materialHash == 0));
 
 		if (!emptyMaterial)
 			segment.subIndexRecord.resize(materials.size());
@@ -793,11 +794,12 @@ bool Exporter::CreateSegmentation(INode* node, BSSubIndexTriShapeRef shape, Face
 			{
 				si_record = &segment.subIndexRecord[j];
 				si_record->triangleOffset = triangleOffset;
-				si_record->segmentOffset = seperator.bodyPartIndex;
+				si_record->segmentOffset = parent_segment_id;
 				
 				BSSIMaterial mat;
 				mat.materialHash = material.materialHash;
-				mat.bodyPartIndex = j + 1 + (material.visible ? 100 : 0);
+				//mat.bodyPartIndex = j + 1 + (material.visible ? 100 : 0);
+				mat.bodyPartIndex = material.id;
 				for (int k = 0; k < material.data.size(); ++k)
 					mat.extraData.push_back(material.data[k]);
 				section.materials.push_back(mat);
@@ -868,7 +870,7 @@ NiAVObjectRef Exporter::makeBSTriShape(NiNodeRef &parent, INode* node, Mtl *mtl,
 	const vector<TexCoord>& uvs = grp.uvs.empty() ? empty_uvs : grp.uvs[0];
 	bool has_uv, has_vc, has_normal, has_tangent, has_skin;
 	has_uv = !uvs.empty();
-	has_vc = !vcs.empty();
+	has_vc = mVertexColors && !vcs.empty();
 	has_normal = !norms.empty();
 	
 	vector<Vector3> tangents, binormals;
