@@ -75,6 +75,8 @@ ClassDesc2* GetNifExportDesc() { return &NifExportDesc; }
 
 extern list<NiObjectRef> GetAllObjectsByType(NiObjectRef const & root, const Type & type);
 
+void NifExportUpdateStatusDlg(NifExport* imp, HWND hwnd);
+
 INT_PTR CALLBACK NifExportOptionsDlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 {
 	USES_CONVERSION;
@@ -172,6 +174,7 @@ INT_PTR CALLBACK NifExportOptionsDlgProc(HWND hWnd, UINT message, WPARAM wParam,
 		LRESULT lIndex = SendDlgItemMessage(hWnd, IDC_CBO_ROOT_TYPE, CB_FINDSTRINGEXACT, -1, LPARAM(Exporter::mRootType.c_str()));
 		SendDlgItemMessage(hWnd, IDC_CBO_ROOT_TYPE, CB_SETCURSEL, WPARAM(lIndex), 0);
 
+		NifExportUpdateStatusDlg(imp, hWnd);
 		imp->mDlgResult = IDCANCEL;
 	}
 	return TRUE;
@@ -299,13 +302,29 @@ INT_PTR CALLBACK NifExportOptionsDlgProc(HWND hWnd, UINT message, WPARAM wParam,
 					SendDlgItemMessage(hWnd, IDC_CB_USER_VERSION, WM_SETTEXT, 0, LPARAM(userVer.c_str()));
 					SendDlgItemMessage(hWnd, IDC_CB_USER_VERSION2, WM_SETTEXT, 0, LPARAM(userVer2.c_str()));
 				}
+
+				NifExportUpdateStatusDlg(imp, hWnd);
 			}
 		}
 		break;
 	}
 	return FALSE;
 }
-
+void NifExportUpdateStatusDlg(NifExport* imp, HWND hWnd)
+{
+	TCHAR tmp[MAX_PATH];
+	GetDlgItemText(hWnd, IDC_CB_GAME, tmp, MAX_PATH);
+	if (AppSettings *appSettings = FindAppSetting(tmp))
+	{
+		bool isNotFallout4 = (!strmatch(appSettings->Name, TEXT("Fallout 4")));
+		EnableWindow(GetDlgItem(hWnd, IDC_CHK_COLL), isNotFallout4);
+		EnableWindow(GetDlgItem(hWnd, IDC_CHK_STRIPS), isNotFallout4);
+		EnableWindow(GetDlgItem(hWnd, IDC_CHK_SKINPART), isNotFallout4);
+		EnableWindow(GetDlgItem(hWnd, IDC_ED_BONES_PART), isNotFallout4);
+		EnableWindow(GetDlgItem(hWnd, IDC_ED_BONES_VERTEX), isNotFallout4);
+		EnableWindow(GetDlgItem(hWnd, IDC_CHK_PARTSTRIPS), isNotFallout4);
+	}
+}
 
 //--- NifExport -------------------------------------------------------
 NifExport::NifExport()

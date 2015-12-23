@@ -770,12 +770,12 @@ bool Exporter::CreateSegmentation(INode* node, BSSubIndexTriShapeRef shape, Face
 		segment.triangleCount = 0;
 		segment.materialHash = 0xFFFFFFFF;
 		
-		int parent_segment_id = segmentOffset++;
+		int parentSegment = segmentOffset++;
 		BSSIMaterial seperator;
 		seperator.materialHash = 0xFFFFFFFF;
 		seperator.bodyPartIndex = i;
 		section.materials.push_back(seperator);
-		section.emptyMaterials.push_back(parent_segment_id);
+		section.emptyMaterials.push_back(parentSegment);
 
 		partition.id = i;
 
@@ -794,7 +794,7 @@ bool Exporter::CreateSegmentation(INode* node, BSSubIndexTriShapeRef shape, Face
 			{
 				si_record = &segment.subIndexRecord[j];
 				si_record->triangleOffset = triangleOffset;
-				si_record->segmentOffset = parent_segment_id;
+				si_record->segmentOffset = parentSegment;
 				
 				BSSIMaterial mat;
 				mat.materialHash = material.materialHash;

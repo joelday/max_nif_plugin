@@ -17,6 +17,8 @@ HISTORY:
 #include "Hyperlinks.h"
 using namespace Niflib;
 
+static void NifImportUpdateStatusDlg(NifImporter *imp, HWND hWnd);
+
 static INT_PTR CALLBACK MaxNifImportOptionsDlgProc(HWND hWnd,UINT message,WPARAM wParam,LPARAM lParam) {
    static NifImporter *imp = nullptr;
    static DWORD dlgRes = IDCANCEL; 
@@ -92,6 +94,8 @@ static INT_PTR CALLBACK MaxNifImportOptionsDlgProc(HWND hWnd,UINT message,WPARAM
 
             ConvertStaticToHyperlink(hWnd, IDC_LBL_LINK);
             ConvertStaticToHyperlink(hWnd, IDC_LBL_WIKI);
+
+			NifImportUpdateStatusDlg(imp, hWnd);
          }
          return TRUE;
 
@@ -203,19 +207,7 @@ static INT_PTR CALLBACK MaxNifImportOptionsDlgProc(HWND hWnd,UINT message,WPARAM
             {
                if (LOWORD(wParam) == IDC_CB_GAME)
                {
-                  TCHAR tmp[MAX_PATH];
-                  GetDlgItemText(hWnd, IDC_CB_GAME, tmp, MAX_PATH);
-                  if (AppSettings *appSettings = FindAppSetting(tmp))
-                  {
-                     tstring skeleton = imp->GetSkeleton(appSettings);
-                     BOOL enable = imp->HasSkeleton() ? TRUE : FALSE;
-                     if (enable) {
-                        SetDlgItemText(hWnd, IDC_ED_SKELETON, skeleton.c_str());
-                     }
-                     EnableWindow(GetDlgItem(hWnd, IDC_STC_SKELETON), enable);
-                     EnableWindow(GetDlgItem(hWnd, IDC_ED_SKELETON), enable);
-                     EnableWindow(GetDlgItem(hWnd, IDC_BTN_BROWSE), enable);
-                  }
+				   NifImportUpdateStatusDlg(imp, hWnd);
                }
             }
          }
@@ -227,4 +219,26 @@ static INT_PTR CALLBACK MaxNifImportOptionsDlgProc(HWND hWnd,UINT message,WPARAM
 bool NifImporter::ShowDialog()
 {
    return (IDOK == DialogBoxParam(hInstance, MAKEINTRESOURCE(IDD_NIF_PANEL), GetActiveWindow(), MaxNifImportOptionsDlgProc, (LPARAM)this));
+}
+
+void NifImportUpdateStatusDlg(NifImporter *imp, HWND hWnd)
+{
+	TCHAR tmp[MAX_PATH];
+	GetDlgItemText(hWnd, IDC_CB_GAME, tmp, MAX_PATH);
+	if (AppSettings *appSettings = FindAppSetting(tmp))
+	{
+		tstring skeleton = imp->GetSkeleton(appSettings);
+		BOOL enable = imp->HasSkeleton() ? TRUE : FALSE;
+		if (enable) {
+			SetDlgItemText(hWnd, IDC_ED_SKELETON, skeleton.c_str());
+		}
+		EnableWindow(GetDlgItem(hWnd, IDC_STC_SKELETON), enable);
+		EnableWindow(GetDlgItem(hWnd, IDC_ED_SKELETON), enable);
+		EnableWindow(GetDlgItem(hWnd, IDC_BTN_BROWSE), enable);
+
+
+		//bool isNotFallout4 = (0 != strmatch(appSettings->Name, TEXT("Fallout 4")));
+		//EnableWindow(GetDlgItem(hWnd, IDC_CHK_COLL), isNotFallout4);
+		////EnableWindow(GetDlgItem(hWnd, IDC_CHK_FURN), isNotFallout4);
+	}
 }

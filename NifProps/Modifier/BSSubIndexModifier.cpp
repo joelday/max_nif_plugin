@@ -1829,10 +1829,7 @@ INT_PTR BSSIModifierMainDlgProc::DlgProc(TimeValue t, IParamMap2 *map,
 		mEdMaterialID->SetAutoScale(FALSE);
 		mEdMaterialID->SetScale(1);
 		mEdMaterialID->SetResetValue(0);
-#if VERSION_3DSMAX < ((10000<<16)+(24<<8)+0) // Version 7
-		mEdMaterialID->SetTooltip(TRUE, "Delete Active SubPartition");
-#endif
-
+        
 		mAddSubPart = GetICustButton(GetDlgItem(hWnd, IDC_MS_SIADDPART));
 #if VERSION_3DSMAX < ((10000<<16)+(24<<8)+0) // Version 7
 		mAddSubPart->SetTooltip(TRUE, "Create New SubPartition");

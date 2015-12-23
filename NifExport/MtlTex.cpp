@@ -82,6 +82,7 @@ void Exporter::makeTexture(NiAVObjectRef &parent, Mtl *mtl)
 		texProp->SetLightingEffect1(0.3f);
 		texProp->SetLightingEffect2(2.0f);
 		texProp->SetEnvironmentMapScale(1.0f);
+		texProp->SetUnknownFloat1(FLT_MAX); // must be set to avoid hangs
 
 		TSTR diffuseStr, normalStr, glowStr, dispStr, envStr, envMaskStr, parallaxStr, backlightStr;
 
@@ -825,6 +826,7 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 				texProp->SetLightingEffect2(2.0f);
 				texProp->SetEnvironmentMapScale(1.0f);
 				texProp->SetTextureClampMode(WRAP_S_WRAP_T);
+				texProp->SetUnknownFloat1(FLT_MAX); // must be set to avoid hangs
 
 				TSTR diffuseStr, normalStr, glowStr, dispStr, envStr, envMaskStr, backlightStr, parallaxStr;
 
@@ -1007,12 +1009,7 @@ bool Exporter::exportNiftoolsShader(NiAVObjectRef parent, Mtl* mtl)
 				root = Niflib::ObjectRegistry::CreateObject(T2A(CustomShader));
 
 			if (root == nullptr) {
-				if (IsSkyrim() || IsFallout4()) {
-					root = new BSLightingShaderProperty();
-				}
-				else {
-					root = new BSShaderPPLightingProperty();
-				}
+				root = new BSShaderPPLightingProperty();
 			}
 
 			if (BSShaderPPLightingPropertyRef texProp = DynamicCast<BSShaderPPLightingProperty>(root))
