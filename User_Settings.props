@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
     <MAXINSTALLPATH2014>$(ProgramFiles)\AutoDesk\3ds Max 2014 SDK</MAXINSTALLPATH2014>
     <MAXINSTALLPATH2015>$(ProgramFiles)\AutoDesk\3ds Max 2015 SDK</MAXINSTALLPATH2015>
     <MAXINSTALLPATH2016>$(ProgramFiles)\AutoDesk\3ds Max 2016 SDK</MAXINSTALLPATH2016>
+    <MAXINSTALLPATH2018>$(ProgramFiles)\AutoDesk\3ds Max 2018 SDK</MAXINSTALLPATH2018>
   </PropertyGroup>
   <PropertyGroup>
     <_ProjectFileVersion>14.0.23107.0</_ProjectFileVersion>
@@ -126,6 +127,10 @@ POSSIBILITY OF SUCH DAMAGE.
     </BuildMacro>
     <BuildMacro Include="MAXINSTALLPATH2016">
       <Value>$(MAXINSTALLPATH2016)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="MAXINSTALLPATH2018">
+      <Value>$(MAXINSTALLPATH2018)</Value>
       <EnvironmentVariable>true</EnvironmentVariable>
     </BuildMacro>
   </ItemGroup>

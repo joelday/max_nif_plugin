@@ -5,7 +5,7 @@
 AppName=NIF Utilities for 3ds Max
 AppVerName=NIF Utilities {code:GetParam|fullver} for 3ds Max
 AppPublisher=NIF File Format Library and Tools
-AppCopyright=Copyright © 2015, NIF File Format Library and Tools
+AppCopyright=Copyright ï¿½ 2015, NIF File Format Library and Tools
 OutputBaseFilename=niftools-max-plugins
 DisableProgramGroupPage=yes
 Compression=lzma2/ultra64
@@ -27,6 +27,7 @@ OutputDir=.\Output
 Name: "custom"; Description: "Custom installation"; Flags: iscustom
 
 [Components]
+Name: "max2018"; Description: "3ds Max 2018"; Types: custom;
 Name: "max2016"; Description: "3ds Max 2016"; Types: custom;
 Name: "max2015"; Description: "3ds Max 2015"; Types: custom;
 Name: "max2014"; Description: "3ds Max 2014"; Types: custom;
@@ -219,6 +220,14 @@ Source: "MaxNifStrings.ini"; DestDir: "{localappdata}{\}Autodesk\3dsmax\2016 - 6
 Source: "..\NifMagic\x64\NifMagic.dll"; DestDir: "{code:InstallPath|max2016}{\}plugins"; Components: "max2016"; Flags: ignoreversion;
 Source: "..\NifMopp\x64\NifMopp.dll"; DestDir: "{code:InstallPath|max2016}{\}plugins"; Components: "max2016"; Flags: ignoreversion;
 Source: "..\NifMopp\x64\NifMopp.exe"; DestDir: "{code:InstallPath|max2016}{\}plugins"; Components: "max2016"; Flags: ignoreversion;
+
+Source: "Staging\x64\Release - Max 2018\NifPlugins\NifPlugins.dlu"; DestDir: "{code:InstallPath|max2018}{\}plugins"; Components: "max2018"; Flags: ignoreversion;
+;Source: "MaxNifTools.ini"; DestDir: "{code:InstallPath|max2018}{\}plugcfg"; Components: "max2018"; Flags: ignoreversion;
+Source: "MaxNifTools.ini"; DestDir: "{localappdata}{\}Autodesk\3dsmax\2018 - 64bit\enu\en-US\plugcfg"; Components: "max2018"; Flags: ignoreversion; AfterInstall: FixPathInINI('max2018');
+Source: "MaxNifStrings.ini"; DestDir: "{localappdata}{\}Autodesk\3dsmax\2018 - 64bit\enu\en-US\plugcfg"; Components: "max2018"; Flags: ignoreversion; AfterInstall: FixPathInINI('max2018');
+Source: "..\NifMagic\x64\NifMagic.dll"; DestDir: "{code:InstallPath|max2018}{\}plugins"; Components: "max2018"; Flags: ignoreversion;
+Source: "..\NifMopp\x64\NifMopp.dll"; DestDir: "{code:InstallPath|max2018}{\}plugins"; Components: "max2018"; Flags: ignoreversion;
+Source: "..\NifMopp\x64\NifMopp.exe"; DestDir: "{code:InstallPath|max2018}{\}plugins"; Components: "max2018"; Flags: ignoreversion;
 
 ;[InstallDelete]
 ;Type: files; Name: "{code:InstallPath|max9}{\}plugcfg{\}MaxNifTools.ini";
@@ -783,6 +792,21 @@ begin
               Result := GetTempDir();
           end;
         end;
+    'max2018':
+        begin
+          If IsWin64() Then Begin
+          if RegGetSubkeyNames(HKEY_LOCAL_MACHINE, RegSoftware64() + 'Autodesk\3dsMax\19.0', Names) then begin
+            for I := 0 to GetArrayLength(Names)-1 do begin
+              if RegQueryStringValue(HKEY_LOCAL_MACHINE, RegSoftware64() + 'Autodesk\3dsMax\19.0\' + Names[I], 'InstallDir', Result) then
+                break;              
+            end;
+          end;
+          if Length(Result) = 0 then
+              Result := ExpandConstant('{pf64}{\}AutoDesk\3ds Max 2018{\}');
+          end else begin
+              Result := GetTempDir();
+          end;
+        end;
     else
       Result := '';
   end;
@@ -901,6 +925,8 @@ begin
         RegQueryStringValue(HKEY_LOCAL_MACHINE, RegSoftware64() + 'Autodesk\3dsMax\17.0', 'InstallDir', Result);
     '3ds Max 2016':
         RegQueryStringValue(HKEY_LOCAL_MACHINE, RegSoftware64() + 'Autodesk\3dsMax\18.0', 'InstallDir', Result);
+    '3ds Max 2018':
+        RegQueryStringValue(HKEY_LOCAL_MACHINE, RegSoftware64() + 'Autodesk\3dsMax\19.0', 'InstallDir', Result);
     else
       Result := '';
   end;
@@ -929,6 +955,8 @@ begin
     if not IsWin64() and (Param = '3ds Max 2015') then
        Result := False;
     if not IsWin64() and (Param = '3ds Max 2016') then
+       Result := False;
+    if not IsWin64() and (Param = '3ds Max 2018') then
        Result := False;
   end;
 end;

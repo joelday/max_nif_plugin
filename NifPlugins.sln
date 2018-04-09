@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.27428.2015
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{50B67748-0DFB-45B0-BF1F-E80135EE3823}"
 	ProjectSection(SolutionItems) = preProject
@@ -38,6 +38,8 @@ Global
 		Debug - Max 2015|x64 = Debug - Max 2015|x64
 		Debug - Max 2016|Win32 = Debug - Max 2016|Win32
 		Debug - Max 2016|x64 = Debug - Max 2016|x64
+		Debug - Max 2018|Win32 = Debug - Max 2018|Win32
+		Debug - Max 2018|x64 = Debug - Max 2018|x64
 		Debug - Max 4.2|Win32 = Debug - Max 4.2|Win32
 		Debug - Max 4.2|x64 = Debug - Max 4.2|x64
 		Debug - Max 4|Win32 = Debug - Max 4|Win32
@@ -72,6 +74,8 @@ Global
 		Release - Max 2015|x64 = Release - Max 2015|x64
 		Release - Max 2016|Win32 = Release - Max 2016|Win32
 		Release - Max 2016|x64 = Release - Max 2016|x64
+		Release - Max 2018|Win32 = Release - Max 2018|Win32
+		Release - Max 2018|x64 = Release - Max 2018|x64
 		Release - Max 4.2|Win32 = Release - Max 4.2|Win32
 		Release - Max 4.2|x64 = Release - Max 4.2|x64
 		Release - Max 4|Win32 = Release - Max 4|Win32
@@ -118,6 +122,9 @@ Global
 		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Debug - Max 2016|Win32.ActiveCfg = Debug - DLL|Win32
 		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Debug - Max 2016|x64.ActiveCfg = Debug - Static|x64
 		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Debug - Max 2016|x64.Build.0 = Debug - Static|x64
+		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Debug - Max 2018|Win32.ActiveCfg = Debug - DLL|Win32
+		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Debug - Max 2018|x64.ActiveCfg = Debug - Static|x64
+		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Debug - Max 2018|x64.Build.0 = Debug - Static|x64
 		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Debug - Max 4.2|Win32.ActiveCfg = Debug - Static|Win32
 		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Debug - Max 4.2|Win32.Build.0 = Debug - Static|Win32
 		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Debug - Max 4.2|x64.ActiveCfg = Debug - DLL|x64
@@ -182,6 +189,9 @@ Global
 		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Release - Max 2016|Win32.ActiveCfg = Release - DLL|x64
 		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Release - Max 2016|x64.ActiveCfg = Release - Static|x64
 		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Release - Max 2016|x64.Build.0 = Release - Static|x64
+		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Release - Max 2018|Win32.ActiveCfg = Release - DLL|x64
+		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Release - Max 2018|x64.ActiveCfg = Release - Static|x64
+		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Release - Max 2018|x64.Build.0 = Release - Static|x64
 		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Release - Max 4.2|Win32.ActiveCfg = Release - Static|Win32
 		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Release - Max 4.2|Win32.Build.0 = Release - Static|Win32
 		{19FD8EE6-79CC-4BAC-9744-D9573BE47C7E}.Release - Max 4.2|x64.ActiveCfg = Release - DLL|x64
@@ -246,6 +256,9 @@ Global
 		{466F2D3E-2663-4583-A05C-128683677617}.Debug - Max 2016|Win32.ActiveCfg = Debug - Max 2016|x64
 		{466F2D3E-2663-4583-A05C-128683677617}.Debug - Max 2016|x64.ActiveCfg = Debug - Max 2016|x64
 		{466F2D3E-2663-4583-A05C-128683677617}.Debug - Max 2016|x64.Build.0 = Debug - Max 2016|x64
+		{466F2D3E-2663-4583-A05C-128683677617}.Debug - Max 2018|Win32.ActiveCfg = Debug - Max 2018|x64
+		{466F2D3E-2663-4583-A05C-128683677617}.Debug - Max 2018|x64.ActiveCfg = Debug - Max 2018|x64
+		{466F2D3E-2663-4583-A05C-128683677617}.Debug - Max 2018|x64.Build.0 = Debug - Max 2018|x64
 		{466F2D3E-2663-4583-A05C-128683677617}.Debug - Max 4.2|Win32.ActiveCfg = Debug - Max 4.2|Win32
 		{466F2D3E-2663-4583-A05C-128683677617}.Debug - Max 4.2|Win32.Build.0 = Debug - Max 4.2|Win32
 		{466F2D3E-2663-4583-A05C-128683677617}.Debug - Max 4.2|x64.ActiveCfg = Debug - Max 4.2|x64
@@ -310,6 +323,10 @@ Global
 		{466F2D3E-2663-4583-A05C-128683677617}.Release - Max 2016|Win32.ActiveCfg = Release - Max 2016|x64
 		{466F2D3E-2663-4583-A05C-128683677617}.Release - Max 2016|x64.ActiveCfg = Release - Max 2016|x64
 		{466F2D3E-2663-4583-A05C-128683677617}.Release - Max 2016|x64.Build.0 = Release - Max 2016|x64
+		{466F2D3E-2663-4583-A05C-128683677617}.Release - Max 2018|Win32.ActiveCfg = Release - Max 2012|Win32
+		{466F2D3E-2663-4583-A05C-128683677617}.Release - Max 2018|Win32.Build.0 = Release - Max 2012|Win32
+		{466F2D3E-2663-4583-A05C-128683677617}.Release - Max 2018|x64.ActiveCfg = Release - Max 2016|x64
+		{466F2D3E-2663-4583-A05C-128683677617}.Release - Max 2018|x64.Build.0 = Release - Max 2016|x64
 		{466F2D3E-2663-4583-A05C-128683677617}.Release - Max 4.2|Win32.ActiveCfg = Release - Max 4.2|Win32
 		{466F2D3E-2663-4583-A05C-128683677617}.Release - Max 4.2|Win32.Build.0 = Release - Max 4.2|Win32
 		{466F2D3E-2663-4583-A05C-128683677617}.Release - Max 4.2|x64.ActiveCfg = Release - Max 4.2|x64
@@ -341,6 +358,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {57F17E33-44D4-4C5A-B893-259A243A5AC7}
 	EndGlobalSection
 	GlobalSection(SubversionScc) = preSolution
 		Svn-Managed = True

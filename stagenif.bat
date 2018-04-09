@@ -36,7 +36,7 @@ for %%j in (Win32) do (
 )
 
 for %%j in (x64) do (
-    for %%i in (9 2008 2009 2010 2011 2012 2013 2014 2015 2016) do (
+    for %%i in (9 2008 2009 2010 2011 2012 2013 2014 2015 2016 2018) do (
         mkdir "%DEST%\%%j\max-%%i-plugins-%1\plugcfg" > nul 2<&1
         mkdir "%DEST%\%%j\max-%%i-plugins-%1\plugins" > nul 2<&1
         xcopy /D /Y /I "%SRC%MaxNifTools.ini" "%DEST%\%%j\max-%%i-plugins-%1\plugcfg\" > nul 2<&1
